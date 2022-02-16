@@ -25,17 +25,17 @@
       },
       "build": {
         "sub_component": [
-            "//base/tee/tee_client/libteec/services/build/standard:libcadaemon",
-            "//base/tee/tee_client/libteec/services/build/standard/init:cadaemon.rc",
-            "//base/tee/tee_client/libteec/services/build/standard/sa_profile:cadaemon_profile",
-            "//base/tee/tee_client/teecd/build/standard:teecd",
-            "//base/tee/tee_client/teecd/build/standard/init:teecd.rc",
-            "//base/tee/tee_client/teecd/build/lite:teecd"
+            "//base/tee/tee_client/services/cadaemon/build/standard:libcadaemon",
+            "//base/tee/tee_client/services/cadaemon/build/standard/init:cadaemon.rc",
+            "//base/tee/tee_client/services/cadaemon/build/standard/sa_profile:cadaemon_profile",
+            "//base/tee/tee_client/services/teecd/build/standard:teecd",
+            "//base/tee/tee_client/services/teecd/build/standard/init:teecd.rc",
+            "//base/tee/tee_client/services/teecd/build/lite:teecd"
         ],
         "inner_kits": [
           {
-            "name": "//base/tee/tee_client/libteec/frameworks/build/standard:libteec",
-                    "//base/tee/tee_client/libteec/frameworks/build/lite:libteec_vendor",
+            "name": "//base/tee/tee_client/frameworks/build/standard:libteec",
+                    "//base/tee/tee_client/frameworks/build/lite:libteec_vendor",
             "header": {
               "header_files": [
                 "tee_client_api.h",
@@ -43,7 +43,7 @@
                 "tee_client_type.h",
                 "tee_client_constants.h"
               ],
-              "header_base": "base/tee/tee_client/libteec/interfaces/libteec"
+              "header_base": "base/tee/tee_client/interfaces/libteec"
             }
           }
         ],

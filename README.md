@@ -18,29 +18,30 @@ TeeClient consists of the following modules:
 
 ```
 base/tee/tee_client
-├── libteec
-│   ├── frameworks
-│   │   ├── build                          # sdk library compilation configuration file, enabled in standard and lite systems
-│   │   │   ├── lite                       # Standard system sdk library compilation configuration file
-│   │   │   └── standard                   # Lite system sdk library compilation configuration file
-│   │   ├── libteec_client                 # Standard system sdk library implementation code
-│   │   └── libteec_vendor                 # Lite system sdk library implementation code
-│   ├── interfaces                         # TeeClient sdk header files for applications
-│   │   └── libteec
-│   └── services                           # In standard system, provides applications with access to TEEOS services
-│       ├── build
-│       │   └── standard
-│       └── src
-├── teecd                                  # Implement basic functions such as secure storage and time synchronization for TEEOS,                                            # enabling it in standard and lite systems
-│   ├── build
-│   │   ├── lite
-│   │   └── standard
-│   └── src
-└── tlogcat                                # TEEOS log output service, enabled in standard and lite systems
-    ├── build
-    │   ├── lite
-    │   └── standard
-    └── src
+├── frameworks
+│   ├── build                          # sdk library compilation configuration file, enabled in standard and lite systems
+│   │   ├── lite                       # Standard system sdk library compilation configuration file
+│   │   └── standard                   # Lite system sdk library compilation configuration file
+│   ├── libteec_client                 # Standard system sdk library implementation code
+│   └── libteec_vendor                 # Lite system sdk library implementation code
+├── interfaces                         # TeeClient sdk header files for applications
+│   └── libteec
+└── services
+    ├── cadaemon                       # In standard system, provides applications with access to TEEOS services
+    |   ├── build
+    |   │   └── standard
+    |   └── src
+    ├── teecd                          # Implement basic functions such as secure storage and time synchronization for TEEOS,
+                                       # enabling it in standard and lite systems
+    │   ├── build
+    │   │   ├── lite
+    │   │   └── standard
+    │   └── src
+    └── tlogcat                        # TEEOS log output service, enabled in standard and lite systems
+        ├── build
+        │   ├── lite
+        │   └── standard
+        └── src
 ```
 
 ## Repositories Involved<a name="section1371113476307"></a>

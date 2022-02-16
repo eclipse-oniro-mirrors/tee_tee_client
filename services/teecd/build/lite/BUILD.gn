@@ -9,33 +9,33 @@
 # See the Mulan PSL v2 for more details.
 
 import("//build/lite/config/component/lite_component.gni")
-shared_library("libteec_vendor") {
-    output_dir = "$root_out_dir/vendor/lib"
+executable("teecd") {
+    output_dir = "$root_out_dir/vendor"
 
     sources = [
-        "../../libteec_vendor/tee_client_api.c",
-        "../../libteec_vendor/tee_client_app_load.c",
-        "../../libteec_vendor/load_sec_file.c",
-        "../../../services/src/authentication/tee_auth_common.c",
-        "../../../services/src/authentication/tee_get_native_cert.c",
-    ]
-
-    include_dirs = [
-        "//third_party/bounds_checking_function/include",
-        "//utils/native/base/include",
-        "//utils/system/safwk/native/include",
-        "//developtools/liblog",
-        "//base/hiviewdfx/hilog/interfaces/native/innerkits/include",
-        "//base/tee/tee_client/libteec/interfaces/libteec",
-        "../../include",
-        "../../include/lite",
-        "../../libteec_vendor/",
-        "../../../services/src/authentication",
+        "../../src/tee_agent.c",
+        "../../src/fs_work_agent.c",
+        "../../src/late_init_agent.c",
+        "../../src/misc_work_agent.c",
+        "../../src/tee_load_dynamic_drv.c",
+        "../../src/secfile_load_agent.c",
     ]
 
     deps = [
         "//third_party/bounds_checking_function:libsec_shared",
         "//base/hiviewdfx/hilog_lite/frameworks/featured:hilog_shared",
     ]
-    cflags = [ "-fPIC" ]
+
+    include_dirs = [
+        "//utils/native/base/include",
+        "//utils/system/safwk/native/include",
+        "//developtools/liblog",
+        "//base/hiviewdfx/hilog/interfaces/native/innerkits/include",
+        "//base/tee/tee_client/interfaces/libteec",
+        "../../include",
+        "../../include/lite",
+        "../../../../frameworks/include",
+        "../../../../frameworks/include/lite",
+        "../../../../frameworks/libteec_vendor",
+    ]
 }
