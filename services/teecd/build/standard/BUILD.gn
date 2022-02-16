@@ -11,31 +11,30 @@
 import("//build/ohos.gni")
 import("//build/ohos_var.gni")
 
-ohos_shared_library("libcadaemon") {
+ohos_executable("teecd") {
     part_name = "tee_client"
     subsystem_name = "tee"
 
     sources = [
-        "../../../frameworks/libteec_vendor/tee_client_api.c",
-        "../../../frameworks/libteec_vendor/tee_client_app_load.c",
-        "../../../frameworks/libteec_vendor/load_sec_file.c",
-        "../../src/authentication/tee_auth_common.c",
-        "../../src/authentication/tee_get_native_cert.c",
-        "../../src/ca_daemon/cadaemon_service.cpp",
-        "../../src/ca_daemon/cadaemon_stub.cpp",
-        ]
+        "../../src/fs_work_agent.c",
+        "../../src/late_init_agent.c",
+        "../../src/misc_work_agent.c",
+        "../../src/tee_agent.c",
+        "../../src/tee_load_dynamic_drv.c",
+        "../../src/secfile_load_agent.c",
+    ]
 
     include_dirs = [
         "//utils/native/base/include",
         "//utils/system/safwk/native/include",
         "//developtools/liblog",
-        "//base/tee/tee_client/libteec/interfaces/libteec",
-        "../../../frameworks/include/",
-        "../../../frameworks/include/standard",
-        "../../../frameworks/libteec_vendor/",
-        "../../src/authentication",
-        "../../src/ca_daemon",
-        ]
+        "//base/tee/tee_client/interfaces/libteec",
+        "../../include",
+        "../../include/standard",
+        "../../../../frameworks/include",
+        "../../../../frameworks/include/standard",
+        "../../../../frameworks/libteec_vendor",
+    ]
 
     deps = [
         "//utils/native/base:utils",
@@ -44,8 +43,5 @@ ohos_shared_library("libcadaemon") {
 
     external_deps = [
         "hiviewdfx_hilog_native:libhilog",
-        "ipc:ipc_core",
-        "safwk:system_ability_fwk",
-        "samgr_standard:samgr_proxy",
     ]
 }

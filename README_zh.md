@@ -18,29 +18,29 @@ TeeClient模块可以分为如下三大部分：
 
 ```
 base/tee/tee_client
-├── libteec
-│   ├── frameworks
-│   │   ├── build                          # sdk库编译配置文件，在标准及小型化系统使能
-│   │   │   ├── lite                       # 标准系统sdk库编译配置文件
-│   │   │   └── standard                   # 小型化系统sdk库编译配置文件
-│   │   ├── libteec_client                 # 标准系统sdk库实现代码
-│   │   └── libteec_vendor                 # 小型化系统sdk库实现代码
-│   ├── interfaces                         # teeClient对外头文件
-│   │   └── libteec
-│   └── services                           # 标准系统给上层应用提供访问TEEOS的服务
-│       ├── build
-│       │   └── standard
-│       └── src
-├── teecd                                  # 为TEEOS实现安全存储、时间同步等基础功能，在标准及小型化系统使能
-│   ├── build
-│   │   ├── lite
-│   │   └── standard
-│   └── src
-└── tlogcat                                # TEEOS日志输出及落盘服务，在标准及小型化系统使能
-    ├── build
-    │   ├── lite
-    │   └── standard
-    └── src
+├── frameworks
+│   ├── build                          # sdk库编译配置文件，在标准及小型化系统使能
+│   │   ├── lite                       # 标准系统sdk库编译配置文件
+│   │   └── standard                   # 小型化系统sdk库编译配置文件
+│   ├── libteec_client                 # 标准系统sdk库实现代码
+│   └── libteec_vendor                 # 小型化系统sdk库实现代码
+├── interfaces                         # teeClient对外头文件
+│   └── libteec
+└── services
+    ├── cadaemon                       # 标准系统给上层应用提供访问TEEOS的服务
+    │   ├── build
+    │   │   └── standard
+    │   └── src
+    ├── teecd                          # 为TEEOS实现安全存储、时间同步等基础功能，在标准及小型化系统使能
+    │   ├── build
+    │   │   ├── lite
+    │   │   └── standard
+    │   └── src
+    └── tlogcat                        # TEEOS日志输出及落盘服务，在标准及小型化系统使能
+        ├── build
+        │   ├── lite
+        │   └── standard
+        └── src
 ```
 
 ## 相关仓<a name="section1371113476307"></a>

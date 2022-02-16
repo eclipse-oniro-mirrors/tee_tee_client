@@ -11,37 +11,34 @@
 import("//build/ohos.gni")
 import("//build/ohos_var.gni")
 
-ohos_executable("tlogcat") {
+ohos_shared_library("libteec") {
     part_name = "tee_client"
     subsystem_name = "tee"
 
-    defines = [
-        "TEE_LOG_PATH_BASE=\"/data/log\"",
-        "CONFIG_TLOGCAT_TAG",
-        "CONFIG_TEE_PRIVATE_LOGFILE"
-    ]
-
     sources = [
-        "../../src/proc_tag.c",
-        "../../src/sys_hilog_cfg.c",
-        "../../src/tarzip.c",
-        "../../src/tlogcat.c",
+        "../../libteec_client/tee_client.cpp",
     ]
 
     include_dirs = [
-        "//base/hiviewdfx/hilog/interfaces/native/innerkits/include",
+        "//utils/native/base/include",
+        "//utils/system/safwk/native/include",
+        "//developtools/liblog",
+        "//base/tee/tee_client/interfaces/libteec",
         "../../include",
-        "../../../libteec/frameworks/include",
-        "../../../libteec/frameworks/include/standard",
-        "//base/tee/tee_client/libteec/interfaces/libteec",
+        "../../include/standard",
+        "../../libteec_client/",
+        "../../libteec_vendor/",
     ]
 
     deps = [
         "//utils/native/base:utils",
-        "//third_party/zlib:libz",
+        "//third_party/bounds_checking_function:libsec_shared",
     ]
 
     external_deps = [
         "hiviewdfx_hilog_native:libhilog",
+        "ipc:ipc_core",
+        "safwk:system_ability_fwk",
+        "samgr_standard:samgr_proxy",
     ]
 }
