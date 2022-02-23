@@ -797,7 +797,6 @@ TEEC_Result CaDaemonService::InvokeCommand(TEEC_Context *context, TEEC_Session *
     PutBnContextAndReleaseFd(pid, outContext);
 
 END:
-
     writeRet = reply.WriteUint32(returnOrigin);
     CHECK_ERR_RETURN(writeRet, true, TEEC_FAIL);
 
@@ -951,30 +950,32 @@ TEEC_Result CaDaemonService::AllocateSharedMemory(TEEC_Context *context,
         goto ERROR;
     }
 
-    if ((memset_s(outShm, sizeof(*outShm), 0, sizeof(*outShm)) != EOK) ||
-        (memcpy_s(outShm, sizeof(*outShm), sharedMem, sizeof(*sharedMem)) != EOK)) {
-        tloge("prepare out shm failed\n");
-        goto ERROR;
-    }
+    (void)memset_s(outShm, sizeof(*outShm), 0, sizeof(*outShm));
+    (void)memcpy_s(outShm, sizeof(*outShm), sharedMem, sizeof(*sharedMem));
 
     ret = TEEC_AllocateSharedMemoryInner(outContext, outShm);
     if (ret != TEEC_SUCCESS) {
-        free(outShm);
         goto ERROR;
     }
 
     sharedMem->ops_cnt = outShm->ops_cnt;
     sharedMem->is_allocated = outShm->is_allocated;
 
+    writeRet = RecAllocReply(ret, sharedMem, outShm->offset, outContext->fd, reply);
     PutBnShrMem(outShm);
     PutBnContextAndReleaseFd(pid, outContext);
-
-    writeRet = RecAllocReply(ret, sharedMem, outShm->offset, outContext->fd, reply);
-    CHECK_ERR_RETURN(writeRet, true, TEEC_FAIL);
+    if (!writeRet) {
+        ListRemoveEntry(&outShm->head);
+        PutBnShrMem(outShm);
+        return TEEC_FAIL;
+    }
 
     return TEEC_SUCCESS;
 
 ERROR:
+    if (outShm != nullptr) {
+        free(outShm);
+    }
     PutBnContextAndReleaseFd(pid, outContext);
     writeRet = reply.WriteInt32((int32_t)ret);
     CHECK_ERR_RETURN(writeRet, true, TEEC_FAIL);
