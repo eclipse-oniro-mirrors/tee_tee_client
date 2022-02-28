@@ -16,9 +16,9 @@
  * @addtogroup TeeClient
  * @{
  *
- * @brief TEEC_API 客户端(非安全侧)接口。
+ * @brief Provides APIs for the client applications (CAs) in the Rich Execution Environment (normal mode) to
+ * access the trusted applications (TAs) in a Trusted Execution Environment (TEE).
  *
- * 提供非安全侧(正常模式)下客户端程序访问安全模式下安全应用相关接口。
  *
  * @since 8
  */
@@ -26,14 +26,14 @@
 /**
  * @file tee_client_api.h
  *
- * @brief 客户端应用访问安全应用相关接口定义。
+ * @brief Defines APIs for CAs to access TAs.
  *
- * <p>使用示例：
- * <p> 1.打开TEE环境：调用TEEC_InitializeContext初始化TEE环境；
- * <p> 2.打开会话：调用TEEC_OpenSession，参数为安全应用TA的UUID；
- * <p> 3.发送命令：调用TEEC_InvokeCommand向安全应用发送命令；
- * <p> 4.关闭会话：调用接口TEEC_CloseSession，关闭会话；
- * <p> 5.关闭TEE环境：调用接口TEEC_FinalizeContext，关闭TEE环境。
+ * <p> Example:
+ * <p>1. Initialize a TEE: Call <b>TEEC_InitializeContext</b> to initialize the TEE.
+ * <p>2. Open a session: Call <b>TEEC_OpenSession</b> with the Universal Unique Identifier (UUID) of the TA.
+ * <p>3. Send a command: Call <b>TEEC_InvokeCommand</b> to send a command to the TA.
+ * <p>4. Close the session: Call <b>TEEC_CloseSession</b> to close the session.
+ * <p>5. Close the TEE: Call <b>TEEC_FinalizeContext</b> to close the TEE.
  *
  * @since 8
  */
@@ -46,7 +46,7 @@ extern "C" {
 #endif
 
 /**
- * @brief 用于计算非安全世界与安全世界传递参数的数值
+ * @brief Defines the values of the parameters transmitted between the REE and TEE.
  *
  * @since 8
  */
@@ -54,7 +54,7 @@ extern "C" {
     ((param3Type) << 12 | (param2Type) << 8 | (param1Type) << 4 | (param0Type))
 
 /**
- * @brief 用于计算paramTypes中字段index的数值
+ * @brief Defines the value of the parameter specified by <b>paramTypes</b> and <b>index</b>.
  *
  * @since 8
  */
@@ -62,167 +62,154 @@ extern "C" {
     (((paramTypes) >> (4*(index))) & 0x0F)
 
 /**
- * @brief 初始化TEE环境
+ * @brief Initializes a TEE.
  *
- * @par 描述:
- * 初始化路径为name的TEE环境，参数name可以为空，
- * 初始化TEE环境是打开会话、发送命令的基础，
- * 初始化成功后，客户端应用与TEE建立一条连接。
  *
- * @param name [IN] TEE环境路径
- * @param context [IN/OUT] context指针，安全世界环境句柄
+ * The TEE must be initialized before a session is open or commands are sent.
+ * After the initialization, a connection is set up between the CA and the TEE.
  *
- * @return #TEEC_SUCCESS 初始化TEE环境成功
- *         #TEEC_ERROR_BAD_PARAMETERS 参数不正确，name不正确或context为空
- *         #TEEC_ERROR_GENERIC 系统可用资源不足等原因
+ * @param name [IN] Indicates the pointer to the TEE path.
+ * @param context [IN/OUT] Indicates the context pointer, which is the handle of the TEE.
+ *
+ * @return Returns {@code TEEC_SUCCESS} if the TEE is successfully initialized.
+ *         Returns {@code TEEC_ERROR_BAD_PARAMETERS} if <b>name</b> is incorrect or <b>context</b> is null.
+ *         Returns {@code TEEC_ERROR_GENERIC} if the available system resources are insufficient.
  * @since 8
  */
 TEEC_Result TEEC_InitializeContext(const char *name, TEEC_Context *context);
 
 /**
- * @brief 关闭TEE环境
+ * @brief Closes the TEE.
  *
- * @par 描述:
- * 关闭context指向的TEE环境，断开客户端应用与TEE环境的连接
+ * After the TEE is closed, the CA is disconnected from the TEE.
  *
- * @param context [IN/OUT] 指向已初始化成功的TEE环境
+ * @param context [IN/OUT] Indicates the pointer to the TEE that is successfully initialized.
  *
- * @return 无
  * @since 8
  */
 void TEEC_FinalizeContext(TEEC_Context *context);
 
 /**
- * @brief 打开会话
+ * @brief Opens a session.
  *
- * @par 描述:
- * 在指定的TEE环境context下，为客户端应用与UUID为destination的安全应用建立一条连接，
- * 连接方式是connectionMethod，连接数据是connectionData，传递的数据包含在opetation里。
- * 打开会话成功后，输出参数session是对该连接的一个描述；
- * 如果打开会话失败，输出参数returnOrigin为错误来源。
+ * This function is used to set up a connection between the CA and the TA of the specified UUID in the specified TEE context.
+ * The data to be transferred is contained in <b>operation</b>.
+ * If a session is opened successfully, <b>session</b> is returned providing a description of the connection.
+ * If the session fails to open, <b>returnOrigin</b> is returned indicating the cause of the failure.
  *
- * @param context [IN/OUT] 指向已初始化成功的TEE环境
- * @param session [OUT] 指向会话，取值不能为空
- * @param destination [IN] 安全应用的UUID，一个安全应用拥有唯一的UUID
- * @param connectionMethod [IN] 连接方式，取值范围为#TEEC_LoginMethod
- * @param connectionData [IN] 与连接方式相对应的连接数据，
- * 如果连接方式为#TEEC_LOGIN_PUBLIC、#TEEC_LOGIN_USER、
- * #TEEC_LOGIN_USER_APPLICATION、#TEEC_LOGIN_GROUP_APPLICATION，连接数据取值必须为空，
- * 如果连接方式为#TEEC_LOGIN_GROUP、#TEEC_LOGIN_GROUP_APPLICATION，
- * 连接数据必须指向类型为uint32_t的数据，此数据表示客户端应用期望连接的组用户
- * @param operation [IN/OUT] 客户端应用与安全应用传递的数据
- * @param returnOrigin [IN/OUT] 错误来源，取值范围为#TEEC_ReturnCodeOrigin
+ * @param context [IN/OUT] Indicates the pointer to the TEE that is successfully initialized.
+ * @param session [OUT] Indicates the pointer to the session. The value cannot be null.
+ * @param destination [IN] Indicates the pointer to the UUID of the target TA. Each TA has a unique UUID.
+ * @param connectionMethod [IN] Indicates the connection method. For details, see {@link TEEC_LoginMethod}.
+ * @param connectionData [IN] Indicates the pointer to the connection data, which varies with the connection mode.
+ * If the connection mode is {@code TEEC_LOGIN_PUBLIC}, {@code TEEC_LOGIN_USER},
+ * {@code TEEC_LOGIN_USER_APPLICATION}, or {@code TEEC_LOGIN_GROUP_APPLICATION}, the connection data must be null.
+ * If the connection mode is {@code TEEC_LOGIN_GROUP} or {@code TEEC_LOGIN_GROUP_APPLICATION},
+ * the connection data must point to data of the uint32_t type, which indicates the target group user to be connected by the CA.
+ * @param operation [IN/OUT] Indicates the pointer to the data to be transmitted between the CA and TA.
+ * @param returnOrigin [IN/OUT] Indicates the pointer to the error source. For details, see {@code TEEC_ReturnCodeOrigin}.
  *
- * @return #TEEC_SUCCESS 打开会话成功
- *         #TEEC_ERROR_BAD_PARAMETERS 参数不正确，参数context为空或session为空或destination为空
- *         #TEEC_ERROR_ACCESS_DENIED 系统调用权限访问失败
- *         #TEEC_ERROR_OUT_OF_MEMORY 系统可用资源不足
- *         #TEEC_ERROR_TRUSTED_APP_LOAD_ERROR 加载安全应用失败
- *         其它返回值参考 #TEEC_ReturnCode
+ * @return Returns {@code TEEC_SUCCESS} if the session is open successfully.
+ *         Returns {@code TEEC_ERROR_BAD_PARAMETERS} if <b>context</b>, <b>session</b>, or <b>destination</b> is null.
+ *         Returns {@code TEEC_ERROR_ACCESS_DENIED} if the access request is denied.
+ *         Returns {@code TEEC_ERROR_OUT_OF_MEMORY} if the available system resources are insufficient.
+ *         Returns {@code TEEC_ERROR_TRUSTED_APP_LOAD_ERROR} if the TA failed to be loaded.
+ *         For details about other return values, see {@code TEEC_ReturnCode}.
  * @since 8
  */
 TEEC_Result TEEC_OpenSession(TEEC_Context *context, TEEC_Session *session, const TEEC_UUID *destination,
     uint32_t connectionMethod, const void *connectionData, TEEC_Operation *operation, uint32_t *returnOrigin);
 
 /**
- * @brief 关闭会话
+ * @brief Closes a session.
  *
- * @par 描述:
- * 关闭session指向的会话，断开客户端应用与安全应用的连接
+ * After the session is closed, the CA is disconnected from the TA.
  *
- * @param session [IN/OUT] 指向已成功打开的会话
+ * @param session [IN/OUT] Indicates the pointer to the session to close.
  *
- * @return 无
  * @since 8
  */
 void TEEC_CloseSession(TEEC_Session *session);
 
 /**
- * @brief 发送命令
+ * @brief Sends a command to a TA.
  *
- * @par 描述:
- * 在指定的会话session里，由客户端应用向安全应用发送命令commandID，
- * 发送的数据为operation，如果发送命令失败，输出参数returnOrigin为错误来源
+ * The CA sends the command ID to the TA through the specified session.
+ * 
  *
- * @param session [IN/OUT] 指向已打开成功的会话
- * @param commandID [IN] 安全应用支持的命令ID，由安全应用定义
- * @param operation [IN/OUT] 包含了客户端应用向安全应用发送的数据内容
- * @param returnOrigin [IN/OUT] 错误来源，取值范围为#TEEC_ReturnCodeOrigin
+ * @param session [IN/OUT] Indicates the pointer to the session opened.
+ * @param commandID [IN] Indicates the command ID supported by the TA. It is defined by the TA.
+ * @param operation [IN/OUT] Indicates the pointer to the data to be sent from the CA to the TA.
+ * @param returnOrigin [IN/OUT] Indicates the pointer to the error source. For details, see {@code TEEC_ReturnCodeOrigin}.
  *
- * @return #TEEC_SUCCESS 发送命令成功
- *         #TEEC_ERROR_BAD_PARAMETERS 参数不正确，参数session为空或参数operation格式不正确
- *         #TEEC_ERROR_ACCESS_DENIED 系统调用权限访问失败
- *         #TEEC_ERROR_OUT_OF_MEMORY 系统可用资源不足
- *         其它返回值参考 #TEEC_ReturnCode
+ * @return Returns {@code TEEC_SUCCESS} if the command is sent successfully.
+ *         Returns {@code TEEC_ERROR_BAD_PARAMETERS} if <b>session</b> is null or <b>operation</b> is in incorrect format.
+ *         Returns {@code TEEC_ERROR_ACCESS_DENIED} if the access request is denied.
+ *         Returns {@code TEEC_ERROR_OUT_OF_MEMORY} if the available system resources are insufficient.
+ *         For details about other return values, see {@code TEEC_ReturnCode}.
  * @since 8
  */
 TEEC_Result TEEC_InvokeCommand(TEEC_Session *session, uint32_t commandID,
     TEEC_Operation *operation, uint32_t *returnOrigin);
 
 /**
- * @brief 注册共享内存
+ * @brief Registers shared memory in the specified TEE context.
  *
- * @par 描述:
- * 在指定的TEE环境context内注册共享内存sharedMem，
- * 通过注册的方式获取共享内存来实现零拷贝，需要操作系统的支持，
- * 目前的实现中，该方式不能实现零拷贝
+ * The registered shared memory can implement zero-copy.
+ * The zero-copy function, however, also requires support by the operating system.
+ * At present, zero-copy cannot be implemented in this manner.
  *
- * @param context [IN/OUT] 已初始化成功的TEE环境
- * @param sharedMem [IN/OUT] 共享内存指针，共享内存所指向的内存不能为空、大小不能为零
+ * @param context [IN/OUT] Indicates the pointer to the TEE that is successfully initialized.
+ * @param sharedMem [IN/OUT] Indicates the pointer to the shared memory. The pointed shared memory cannot be null and the size cannot be 0.
  *
- * @return #TEEC_SUCCESS 发送命令成功
- *         #TEEC_ERROR_BAD_PARAMETERS 参数不正确，参数context为空或sharedMem为空，或共享内存所指向的内存为空
+ * @return Returns {@code TEEC_SUCCESS} if the operation is successful.
+ *         Returns {@code TEEC_ERROR_BAD_PARAMETERS} if <b>context</b> or <b>sharedMem</b> is null or the pointed memory is empty.
  * @since 8
  */
 TEEC_Result TEEC_RegisterSharedMemory(TEEC_Context *context, TEEC_SharedMemory *sharedMem);
 
 /**
- * @brief 申请共享内存
+ * @brief Requests shared memory in the specified TEE context.
  *
- * @par 描述:
- * 在指定的TEE环境context内申请共享内存sharedMem，
- * 通过共享内存可以实现非安全世界与安全世界传递数据时的零拷贝，需要操作系统的支持，
- * 目前的实现中，该方式不能实现零拷贝
+ * The shared memory can be used to implement zero-copy during data transmission between the REE and TEE.
+ * The zero-copy function, however, also requires support by the operating system.
+ * At present, zero-copy cannot be implemented in this manner.
  *
- * @attention 如果入参sharedMem的size域设置为0，函数会返回成功，但无法使用这块
- * 共享内存，因为这块内存既没有地址也没有大小
- * @param context [IN/OUT] 已初始化成功的TEE环境
- * @param sharedMem [IN/OUT] 共享内存指针，共享内存的大小不能为零
+ * @attention If the <b>size</b> field of the input parameter <b>sharedMem</b> is set to <b>0</b>, <b>TEEC_SUCCESS</b> will be returned but 
+ * the shared memory cannot be used because this memory has neither an address nor size.
+ * @param context [IN/OUT] Indicates the pointer to the TEE that is successfully initialized.
+ * @param sharedMem [IN/OUT] Indicates the pointer to the shared memory. The size of the shared memory cannot be 0.
  *
- * @return #TEEC_SUCCESS 发送命令成功
- *         #TEEC_ERROR_BAD_PARAMETERS 参数不正确，参数context为空或sharedMem为空
- *         #TEEC_ERROR_OUT_OF_MEMORY 系统可用资源不足，分配失败
+ * @return Returns {@code TEEC_SUCCESS} if the operation is successful.
+ *         Returns {@code TEEC_ERROR_BAD_PARAMETERS} if <b>context</b> or <b>sharedMem</b> is null.
+ *         Returns {@code TEEC_ERROR_OUT_OF_MEMORY} if the available system resources are insufficient.
  * @since 8
  */
 TEEC_Result TEEC_AllocateSharedMemory(TEEC_Context *context, TEEC_SharedMemory *sharedMem);
 
 /**
- * @brief 释放共享内存
+ * @brief Releases the shared memory registered or acquired.
  *
- * @par 描述:
- * 释放已注册成功的的或已申请成功的共享内存sharedMem
+ * 
  *
- * @attention 如果是通过#TEEC_AllocateSharedMemory方式获取的共享内存，
- * 释放时会回收这块内存；如果是通过#TEEC_RegisterSharedMemory方式
- * 获取的共享内存，释放时不会回收共享内存所指向的本地内存
- * @param sharedMem [IN/OUT] 指向已注册成功或申请成功的共享内存
+ * @attention If the shared memory is acquired by using {@code TEEC_AllocateSharedMemory},
+ * the memory released will be reclaimed. If the shared memory is acquired by using {@code TEEC_RegisterSharedMemory},
+ * the local memory released will not be reclaimed.
+ * @param sharedMem [IN/OUT] Indicates the pointer to the shared memory to release.
  *
- * @return 无
  * @since 8
  */
 void TEEC_ReleaseSharedMemory(TEEC_SharedMemory *sharedMem);
 
 /**
- * @brief cancel API
+ * @brief Cancels an operation.
  *
- * @par 描述:
- * 取消掉一个正在运行的open Session或者是一个invoke command
- * 发送一个cancel的signal后立即返回
+ * 
+ * 
  *
- * @attention 此操作仅仅是发送一个cancel的消息，是否进行cancel操作由TEE或TA决定，目前为空实现
- * @param operation [IN/OUT] 包含了客户端应用向安全应用发送的数据内容
+ * @attention This operation is only used to send a cancel message. Whether to perform the cancel operation is determined by the TEE or TA. At present, the cancel operation does not take effect.
+ * @param operation [IN/OUT] Indicates the pointer to the data to be sent from the CA to the TA.
  *
- * @return 无
  * @since 8
  */
 void TEEC_RequestCancellation(TEEC_Operation *operation);

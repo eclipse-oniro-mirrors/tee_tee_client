@@ -16,9 +16,9 @@
  * @addtogroup TeeClient
  * @{
  *
- * @brief TEEC_API 客户端(非安全侧)接口。
+ * @brief Provides APIs for the client applications (CAs) in the Rich Execution Environment (normal mode) to
+ * access the trusted applications (TAs) in a Trusted Execution Environment (TEE).
  *
- * 提供非安全侧(正常模式)下客户端程序访问安全模式下安全应用相关接口。
  *
  * @since 8
  */
@@ -26,7 +26,7 @@
 /**
  * @file tee_client_type.h
  *
- * @brief 基本数据类型和数据结构定义。
+ * @brief Defines basic data types and data structures.
  *
  * @since 8
  */
@@ -39,24 +39,24 @@
 #include "tee_client_constants.h"
 
 /**
- * @brief 链表类型定义
+ * @brief Defines the linked list type.
  *
  * @since 8
  */
 struct ListNode {
-    struct ListNode *next;  /* point to next node  */
-    struct ListNode *prev;  /* point to prev node */
+    struct ListNode *next;
+    struct ListNode *prev;
 };
 
 /**
- * @brief 函数返回值类型定义。
+ * @brief Defines the return values.
  *
  * @since 8
  */
 typedef enum TEEC_ReturnCode TEEC_Result;
 
 /**
- * @brief UID类型类型定义，遵循RFC4122 [2]，用于标识安全应用。
+ * @brief Defines the universally unique identifier (UUID) as defined in RFC4122 [2]. The UUIDs are used to identify TAs.
  *
  * @since 8
  */
@@ -68,7 +68,7 @@ typedef struct {
 } TEEC_UUID;
 
 /**
- * @brief 描述客户端应用与安全世界之间建立的连接环境。
+ * @brief Defines the context, a logical connection between a CA and a TEE.
  *
  * @since 8
  */
@@ -87,7 +87,7 @@ typedef struct {
 } TEEC_Context;
 
 /**
- * @brief 描述客户端应用与安全世界之间建立的会话。
+ * @brief Defines the session between a CA and a TA.
  *
  * @since 8
  */
@@ -103,14 +103,14 @@ typedef struct {
 } TEEC_Session;
 
 /**
- * @brief 描述一块共享内存，可以注册，也可以分配。
+ * @brief Defines a shared memory block, which can be registered or allocated.
  *
  * @since 8
  */
 typedef struct {
     void *buffer;
     uint32_t size;
-    uint32_t flags;         /* TEEC_SharedMemCtl */
+    uint32_t flags;
     uint32_t ops_cnt;
     bool is_allocated;
     union {
@@ -121,7 +121,7 @@ typedef struct {
 } TEEC_SharedMemory;
 
 /**
- * @brief 描述一块临时缓冲区指针。
+ * @brief Defines a pointer to a temporary buffer.
  *
  * @since 8
  */
@@ -131,7 +131,7 @@ typedef struct {
 } TEEC_TempMemoryReference;
 
 /**
- * @brief 描述共享内存指针，指向事先注册或分配好的共享内存。
+ * @brief Defines a pointer to the shared memory that is registered or allocated.
  *
  * @since 8
  */
@@ -142,7 +142,7 @@ typedef struct {
 } TEEC_RegisteredMemoryReference;
 
 /**
- * @brief 描述少量数据。
+ * @brief Describes a parameter that carries small raw data passed by <b>value</b>.
  *
  * @since 8
  */
@@ -152,7 +152,7 @@ typedef struct {
 } TEEC_Value;
 
 /**
- * @brief 描述#TEEC_Operation所对应的参数类型。
+ * @brief Defines a parameter of {@code TEEC_Operation}.
  *
  * @since 8
  */
@@ -163,13 +163,15 @@ typedef union {
 } TEEC_Parameter;
 
 /**
- * @brief 打开会话或发送命令时的参数。
+ * @brief Defines the parameters for opening a session or sending a command.
  *
  * @since 8
  */
 typedef struct {
-    uint32_t started;     /* 0 代表取消该命令，其他表示执行该命令 */
-    uint32_t paramTypes;  /* 使用 TEEC_PARAM_TYPES 来创建该参数 */
+    /** The value 0 means to cancel the command, and other values mean to execute the command. */
+    uint32_t started;
+    /** Use {@code TEEC_PARAM_TYPES} to create this parameter. */
+    uint32_t paramTypes;
     TEEC_Parameter params[TEEC_PARAM_NUM];
     TEEC_Session *session;
     bool cancel_flag;

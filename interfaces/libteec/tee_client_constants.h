@@ -16,9 +16,9 @@
  * @addtogroup TeeClient
  * @{
  *
- * @brief TEEC_API 客户端(非安全侧)接口。
+ * @brief Provides APIs for the client applications (CAs) in the Rich Execution Environment (normal mode) to
+ * access the trusted applications (TAs) in a Trusted Execution Environment (TEE).
  *
- * 提供非安全侧(正常模式)下客户端程序访问安全模式下安全应用相关接口。
  *
  * @since 8
  */
@@ -26,133 +26,174 @@
 /**
  * @file tee_client_constants.h
  *
- * @brief 公共数据及常量定义。
+ * @brief Defines public data and constants.
  *
  * @since 8
  */
 
 /**
- * @brief 定义TEEC_Operation中TEEC_Parameter个数。
+ * @brief Defines the number of <b>TEEC_Parameter</b>s in <b>TEEC_Operation</b>.
  *
  * @since 8
  */
-#define TEEC_PARAM_NUM 4 /* teec param max number */
+#define TEEC_PARAM_NUM 4
 
 /**
- * @brief 函数返回的错误码
+ * @brief Defines the error codes returned.
  *
  * @since 8
  */
 enum TEEC_ReturnCode {
-    TEEC_SUCCESS = 0x0,                       /* 函数返回成功 */
-    TEEC_ERROR_INVALID_CMD,                   /* 非法命令，安全应用不支持的命令 */
-    TEEC_ERROR_SERVICE_NOT_EXIST,             /* 安全应用不存在 */
-    TEEC_ERROR_SESSION_NOT_EXIST,             /* 客户端应用与安全应用的连接不存在 */
-    TEEC_ERROR_SESSION_MAXIMUM,               /* 安全应用的连接数已满 */
-    TEEC_ERROR_REGISTER_EXIST_SERVICE,        /* 注册已经存在的安全应用 */
-    TEEC_ERROR_TAGET_DEAD_FATAL,              /* 安全OS框架错误 */
-    TEEC_ERROR_READ_DATA,                     /* 读取文件错误 */
-    TEEC_ERROR_WRITE_DATA,                    /* 写入文件错误 */
-    TEEC_ERROR_TRUNCATE_OBJECT,               /* 截断文件错误 */
-    TEEC_ERROR_SEEK_DATA,                     /* 查找文件错误 */
-    TEEC_ERROR_FSYNC_DATA,                    /* 同步文件错误 */
-    TEEC_ERROR_RENAME_OBJECT,                 /* 重命名文件错误 */
-    TEEC_ERROR_TRUSTED_APP_LOAD_ERROR,        /* 打开会话时，加载安全应用失败 */
-    TEEC_ERROR_GENERIC = 0xFFFF0000,          /* 通用错误，初始化安全应用失败 */
-    TEEC_ERROR_ACCESS_DENIED = 0xFFFF0001,    /* 权限校验失败，打开TEE环境、打开会话和发送命令都会进行权限的校验，
-                                                 权限校验不通过会返回此类错误 */
-    TEEC_ERROR_CANCEL = 0xFFFF0002,           /* 操作已取消，如果参数的取消标志位已置位，
-                                                 再对此参数进行操作时返回此类错误 */
-    TEEC_ERROR_ACCESS_CONFLICT = 0xFFFF0003,  /* 并发访问导致权限冲突，
-                                                 安全存储服务中对文件的并发访问可能会产生此类错误 */
-    TEEC_ERROR_EXCESS_DATA = 0xFFFF0004,      /* 操作包含的数据太多 ，安全应用无法解析 */
-    TEEC_ERROR_BAD_FORMAT = 0xFFFF0005,       /* 数据格式不正确，客户端应用填充的参数格式不满足客户端应用与
-                                                 安全应用的通信协议，安全应用无法解析 */
-    TEEC_ERROR_BAD_PARAMETERS = 0xFFFF0006,   /* 参数无效，入参为空或非法等错误 */
-    TEEC_ERROR_BAD_STATE = 0xFFFF0007,        /* 当前状态下的操作无效，请求安全存储服务操作时，
-                                                 如果没有初始化安全存储服务，会返回此类错误 */
-    TEEC_ERROR_ITEM_NOT_FOUND = 0xFFFF0008,   /* 请求的数据未找到 */
-    TEEC_ERROR_NOT_IMPLEMENTED = 0xFFFF0009,  /* 请求的操作存在但暂未实现，请求取消操作时返回此类错误 */
-    TEEC_ERROR_NOT_SUPPORTED = 0xFFFF000A,    /* 请求的操作有效但未支持，请求安全加解密服务的一些算法,
-                                                 如DSA等时返回此类错误 */
-    TEEC_ERROR_NO_DATA = 0xFFFF000B,          /* 数据错误 ，请求的操作找不到对应的数据 */
-    TEEC_ERROR_OUT_OF_MEMORY = 0xFFFF000C,    /* 系统可用资源不足，内存申请失败会返回此类错误 */
-    TEEC_ERROR_BUSY = 0xFFFF000D,             /* 系统繁忙，系统可能正在独占一些资源 */
-    TEEC_ERROR_COMMUNICATION = 0xFFFF000E,    /* 非安全世界应用程序与安全应用通信时发生错误 */
-    TEEC_ERROR_SECURITY = 0xFFFF000F,         /* 检测到安全错误，安全世界发生错误 */
-    TEEC_ERROR_SHORT_BUFFER = 0xFFFF0010,     /* 内存输入长度小于输出长度，
-                                                 使用类型为#TEEC_MEMREF_TEMP_OUTPUT时需要注意此类错误 */
-    TEEC_ERROR_MAC_INVALID = 0xFFFF3071,      /* MAC值校验错误 */
-    TEEC_ERROR_TARGET_DEAD = 0xFFFF3024,      /* 安全应用崩溃 */
-    TEEC_FAIL = 0xFFFF5002                    /* 通用错误 */
+    /** The operation is successful. */
+    TEEC_SUCCESS = 0x0,
+    /** Invalid command. The command is not supported by the TA. */
+    TEEC_ERROR_INVALID_CMD,
+    /** The TA does not exist. */
+    TEEC_ERROR_SERVICE_NOT_EXIST,
+    /** The session between the CA and TA does not exist. */
+    TEEC_ERROR_SESSION_NOT_EXIST,
+    /** The number of connections to the TA has reached the limit. */
+    TEEC_ERROR_SESSION_MAXIMUM,
+    /** The TA to be registered already exists. */
+    TEEC_ERROR_REGISTER_EXIST_SERVICE,
+    /** Secure OS framework error. */
+    TEEC_ERROR_TAGET_DEAD_FATAL,
+    /** Failed to read the file. */
+    TEEC_ERROR_READ_DATA,
+    /** Failed to write the file. */
+    TEEC_ERROR_WRITE_DATA,
+    /** Failed to truncate the file. */
+    TEEC_ERROR_TRUNCATE_OBJECT,
+    /** Failed to seek data. */
+    TEEC_ERROR_SEEK_DATA,
+    /** File synchronization error. */
+    TEEC_ERROR_FSYNC_DATA,
+    /** Failed to rename the file. */
+    TEEC_ERROR_RENAME_OBJECT,
+    /** Failed to load the TA when opening a session. */
+    TEEC_ERROR_TRUSTED_APP_LOAD_ERROR,
+    /** Failed to initialize the TA. */
+    TEEC_ERROR_GENERIC = 0xFFFF0000,
+    /** Permission verification failed. Permission verification is performed before a TEE or session is opened or a command is sent. */
+    TEEC_ERROR_ACCESS_DENIED = 0xFFFF0001,
+    /** The operation is canceled. This error code is returned when you operate the parameter with the cancallation flag. */
+    TEEC_ERROR_CANCEL = 0xFFFF0002,
+    /** Concurrent access causes permission conflict. Concurrent access to files in the trusted storage service may cause this error. */
+    TEEC_ERROR_ACCESS_CONFLICT = 0xFFFF0003, 
+    /** Too much data is passed in the requested operation for the TA to parse. */
+    TEEC_ERROR_EXCESS_DATA = 0xFFFF0004,
+    /** Incorrect data format. The TA failed to parse the parameters sent from the CA. */
+    TEEC_ERROR_BAD_FORMAT = 0xFFFF0005,
+    /** Invalid parameter. The input parameter is null or invalid. */
+    TEEC_ERROR_BAD_PARAMETERS = 0xFFFF0006,
+    /** The operation in the current state is invalid. This error code is returned if the trusted storage service is not initialized when a trusted storage service operation is requested. */
+    TEEC_ERROR_BAD_STATE = 0xFFFF0007,
+    /** The requested data is not found. */
+    TEEC_ERROR_ITEM_NOT_FOUND = 0xFFFF0008,
+    /** The requested operation has not been implemented yet. This error code is returned when <b>TEEC_RequestCancellation</b> is called. */
+    TEEC_ERROR_NOT_IMPLEMENTED = 0xFFFF0009,
+    /** The requested operation is valid but is not supported in this implementation. This error code is returned when certain algorithms of the secure encryption and decryption service, such as DSA, are requested. */
+    TEEC_ERROR_NOT_SUPPORTED = 0xFFFF000A,
+    /** Expected data for the requested operation is not found. */
+    TEEC_ERROR_NO_DATA = 0xFFFF000B,
+    /** The available system resources are insufficient. */
+    TEEC_ERROR_OUT_OF_MEMORY = 0xFFFF000C,
+    /** The system is busy. Some resources are exclusively used by the system. */
+    TEEC_ERROR_BUSY = 0xFFFF000D,
+    /** Communication between an application in the REE and a TA failed. */
+    TEEC_ERROR_COMMUNICATION = 0xFFFF000E,
+    /** A security fault is detected in the TEE. */
+    TEEC_ERROR_SECURITY = 0xFFFF000F,
+    /** The supplied buffer is too short for the output generated. This error may occur when {@code TEEC_MEMREF_TEMP_OUTPUT} is used. */
+    TEEC_ERROR_SHORT_BUFFER = 0xFFFF0010,
+    /** MAC value check error. */
+    TEEC_ERROR_MAC_INVALID = 0xFFFF3071,
+    /** The TA crashed.*/
+    TEEC_ERROR_TARGET_DEAD = 0xFFFF3024,
+    /** Common error. */
+    TEEC_FAIL = 0xFFFF5002
 };
 
 /**
- * @brief 函数返回错误码的来源
+ * @brief Defines the sources of the error codes returned.
  *
  * @since 8
  */
 enum TEEC_ReturnCodeOrigin {
-    TEEC_ORIGIN_API = 0x1,          /* 错误码来自客户端API */
-    TEEC_ORIGIN_COMMS = 0x2,        /* 错误码来自非安全世界与安全世界的通信 */
-    TEEC_ORIGIN_TEE = 0x3,          /* 错误码来自安全世界 */
-    TEEC_ORIGIN_TRUSTED_APP = 0x4,  /* 错误码来自安全应用 */
+    /** The error code indicates an error originated from the client API. */
+    TEEC_ORIGIN_API = 0x1,
+    /** The error code indicates an error originated from the communication between the REE and TEE. */
+    TEEC_ORIGIN_COMMS = 0x2,
+    /** The error code indicates an error originated within the TEE code. */
+    TEEC_ORIGIN_TEE = 0x3,
+    /** The error code indicates an error originated within the TA code. */
+    TEEC_ORIGIN_TRUSTED_APP = 0x4,
 };
 
 /**
- * @brief 共享内存标识
+ * @brief Defines the identifiers of the shared memory.
  *
  * @since 8
  */
 enum TEEC_SharedMemCtl {
-    TEEC_MEM_INPUT = 0x1,        /* 共享内存的数据流是从客户端应用到安全应用 */
-    TEEC_MEM_OUTPUT = 0x2,       /* 共享内存的数据流是从安全应用到客户端应用 */
-    TEEC_MEM_INOUT = 0x3,        /* 共享内存可在客户端应用与安全应用之间双向传递 */
+    /** The shared memory can carry data from CAs to TAs. */
+    TEEC_MEM_INPUT = 0x1,
+    /** The shared memory can carry data from TAs to CAs. */
+    TEEC_MEM_OUTPUT = 0x2,
+    /** The shared memory can carry data transmitted between CAs and TAs. */
+    TEEC_MEM_INOUT = 0x3,
 };
 
 /**
- * @brief 参数类型定义
+ * @brief Defines the parameter types.
  *
  * @since 8
  */
 enum TEEC_ParamType {
-    TEEC_NONE = 0x0,                  /* 参数没有使用 */
-    TEEC_VALUE_INPUT = 0x01,          /* 与类型#TEEC_Value相对应，只能作为输入，
-                                         数据流是从客户端应用到安全应用 */
-    TEEC_VALUE_OUTPUT = 0x02,         /* 与类型#TEEC_Value相对应，只能作为输出，
-                                         数据流是从安全应用到客户端应用 */
-    TEEC_VALUE_INOUT = 0x03,          /* 与类型#TEEC_Value相对应，既可输入也可输出 */
-    TEEC_MEMREF_TEMP_INPUT = 0x05,    /* 与类型#TEEC_TempMemoryReference相对应，
-                                         只能作为输入，数据流是从客户端应用到安全应用 */
-    TEEC_MEMREF_TEMP_OUTPUT = 0x06,   /* 与类型#TEEC_TempMemoryReference相对应，
-                                         只能作为输出，数据流是从安全应用到客户端应用 */
-    TEEC_MEMREF_TEMP_INOUT = 0x07,    /* 与类型#TEEC_TempMemoryReference相对应，既可输入也可输出，
-                                         可在客户端应用与安全应用之间双向传递 */
-    TEEC_MEMREF_WHOLE = 0xc,          /* 与类型#TEEC_RegisteredMemoryReference相对应，引用整块内存，
-                                         数据流与所指向的共享内存的标识#TEEC_SharedMemCtl一致 */
-    TEEC_MEMREF_PARTIAL_INPUT = 0xd,  /* 与类型#TEEC_RegisteredMemoryReference相对应，只能作为输入，
-                                         数据流是从客户端应用到安全应用 */
-    TEEC_MEMREF_PARTIAL_OUTPUT = 0xe, /* 与类型#TEEC_RegisteredMemoryReference相对应，只能作为输出，
-                                         数据流是从安全应用到客户端应用 */
-    TEEC_MEMREF_PARTIAL_INOUT = 0xf   /* 与类型#TEEC_RegisteredMemoryReference相对应，既可输入也可输出，
-                                         可在客户端应用与安全应用之间双向传递 */
+    /** The parameter is not used. */
+    TEEC_NONE = 0x0,
+    /** The parameter is a {@code TEEC_Value} tagged as input. Data flows from a CA to a TA. */
+    TEEC_VALUE_INPUT = 0x01,
+    /** The parameter is a {@code TEEC_Value} tagged as output. Data flows from a TA to a CA. */
+    TEEC_VALUE_OUTPUT = 0x02,
+    /** The parameter is a {@code TEEC_Value} tagged as both input and output. */
+    TEEC_VALUE_INOUT = 0x03,
+    /** The parameter is a {@code TEEC_TempMemoryReference} tagged as input. Data flows from a CA to a TA. */
+    TEEC_MEMREF_TEMP_INPUT = 0x05,
+    /** The parameter is a {@code TEEC_TempMemoryReference} tagged as output. Data flows from a TA to a CA. */
+    TEEC_MEMREF_TEMP_OUTPUT = 0x06,
+    /** The parameter is a {@code TEEC_TempMemoryReference} tagged as both input and output. Data is transmitted between a TA and a CA. */
+    TEEC_MEMREF_TEMP_INOUT = 0x07,
+    /** The parameter is a {@code TEEC_RegisteredMemoryReference} that refers to the entire memory block. The data flow is the same as that of {@code TEEC_SharedMemCtl}. */
+    TEEC_MEMREF_WHOLE = 0xc,
+    /** The parameter is a {@code TEEC_RegisteredMemoryReference} tagged as input. Data flows from a CA to a TA. */
+    TEEC_MEMREF_PARTIAL_INPUT = 0xd,
+    /** The parameter is a {@code TEEC_RegisteredMemoryReference} tagged as output. Data flows from a TA to a CA. */
+    TEEC_MEMREF_PARTIAL_OUTPUT = 0xe,
+    /** The parameter is a {@code TEEC_RegisteredMemoryReference} tagged as both input and output. Data is transmitted between a TA and a CA. */
+    TEEC_MEMREF_PARTIAL_INOUT = 0xf
 };
 
 /**
- * @brief Login方式
+ * @brief Defines the login methods.
  *
  * @since 8
 */
 enum TEEC_LoginMethod {
-    TEEC_LOGIN_PUBLIC = 0x0,            /* 不需要Login数据 */
-    TEEC_LOGIN_USER,                    /* 提供用户运行客户端应用的Login数据 */
-    TEEC_LOGIN_GROUP,                   /* 提供组用户运行客户端应用的Login数据 */
-    TEEC_LOGIN_APPLICATION = 0x4,       /* 提供客户端应用自己的Login数据 */
-    TEEC_LOGIN_USER_APPLICATION = 0x5,  /* 提供用户运行客户端应用的Login数据，
-                                           以及客户端应用自己的Login数据 */
-    TEEC_LOGIN_GROUP_APPLICATION = 0x6, /* 提供组用户运行客户端应用的Login数据，
-                                           以及客户端应用自己的Login数据 */
-    TEEC_LOGIN_IDENTIFY = 0x7,          /* TEEOS预留LoginMethod */
+    /** No login data is provided. */
+    TEEC_LOGIN_PUBLIC = 0x0,
+    /** The login data about the user running the CA process is provided. */
+    TEEC_LOGIN_USER,
+    /** The login data about the group running the CA process is provided. */
+    TEEC_LOGIN_GROUP,
+    /** The login data about the running CA is provided. */
+    TEEC_LOGIN_APPLICATION = 0x4,
+    /** The login data about the user running the CA process and about the CA are provided. */
+    TEEC_LOGIN_USER_APPLICATION = 0x5,
+    /** The login data about the group running the CA process and about the CA are provided. */
+    TEEC_LOGIN_GROUP_APPLICATION = 0x6,
+    /** Login method reserved for TEEOS. */
+    TEEC_LOGIN_IDENTIFY = 0x7,
 };
 
 /** @} */
