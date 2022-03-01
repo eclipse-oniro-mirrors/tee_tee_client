@@ -108,7 +108,7 @@ enum TEEC_ReturnCode {
     TEEC_ERROR_SHORT_BUFFER = 0xFFFF0010,
     /** MAC value check error. */
     TEEC_ERROR_MAC_INVALID = 0xFFFF3071,
-    /** The TA crashed.*/
+    /** The TA crashed. */
     TEEC_ERROR_TARGET_DEAD = 0xFFFF3024,
     /** Common error. */
     TEEC_FAIL = 0xFFFF5002
