@@ -29,7 +29,7 @@
 void *InitLateWorkThread(void *dummy)
 {
     (void)dummy;
-    unsigned int index            = 0;
+    unsigned int index            = FS_LATE_INIT;
     struct timespec ts;
     ts.tv_sec  = 0;
     ts.tv_nsec = SLEEP_TIME;
@@ -40,14 +40,6 @@ void *InitLateWorkThread(void *dummy)
     if (fd < 0) {
         tloge("open tee client dev failed, fd is %d\n", fd);
         return NULL;
-    }
-    while (true) {
-        (void)nanosleep(&ts, NULL);
-        if (IsUserDataReady() == 1) {
-            index = FS_LATE_INIT;
-            break;
-        }
-        tloge("userdata is not ready, sleep!\n");
     }
 
     int ret = ioctl(fd, (int)TC_NS_CLIENT_IOCTL_LATEINIT, index);

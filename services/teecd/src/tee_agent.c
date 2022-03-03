@@ -187,11 +187,10 @@ static int SyncSysTimeToSecure(void)
 
 static void TrySyncSysTimeToSecure(void)
 {
-    int ret;
     static int syncSysTimed = 0;
 
     if (syncSysTimed == 0) {
-        ret = SyncSysTimeToSecure();
+        int ret = SyncSysTimeToSecure();
         if (ret) {
             tloge("failed to sync sys time to secure\n");
         } else {

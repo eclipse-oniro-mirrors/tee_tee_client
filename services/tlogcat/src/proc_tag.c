@@ -89,7 +89,6 @@ static char *QueryDriverTagNode(uint8_t driverType)
 
 static void GetMiddleChar(const char *startStr, const char *endStr, char **middleStr)
 {
-    char *p = NULL;
     uint32_t subLen;
     uint32_t i;
 
@@ -99,7 +98,7 @@ static void GetMiddleChar(const char *startStr, const char *endStr, char **middl
      * Find the position of the tail '-' character.
      * Reverses the position of the '-' character from the position of the ']' character.
      */
-    p = (char *)endStr;
+   char *p = (char *)endStr;
     subLen = endStr - startStr + 1;
     for (i = 0; i < subLen; i++) {
         if (*p == '-') {
@@ -112,14 +111,12 @@ static void GetMiddleChar(const char *startStr, const char *endStr, char **middl
 
 static uint32_t GetLogItemTag(const struct LogItem *logItem, char *tagStr, uint32_t tagStrLen)
 {
-    char *startStr = NULL;
     char *middleStr = NULL;
-    char *endStr = NULL;
     uint32_t tagLen;
 
     /* Ta log tag name is [taskname[-sessionid]] */
-    startStr = strchr((char *)logItem->logBuffer, '[');
-    endStr = strchr((char *)logItem->logBuffer, ']');
+    char *startStr = strchr((char *)logItem->logBuffer, '[');
+    char *endStr = strchr((char *)logItem->logBuffer, ']');
 
     bool conditon = ((startStr == NULL) || (endStr == NULL) || (endStr - startStr <= 1) ||
                      (endStr - startStr + 1 > TA_NAME_EXTENSION_LEN));

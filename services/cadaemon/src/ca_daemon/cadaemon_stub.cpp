@@ -269,10 +269,9 @@ static bool GetOptMemFromData(MessageParcel &data, sptr<Ashmem> &optMem, uint32_
 
 static int32_t ReadOpenData(MessageParcel &data, int32_t &fd, TEEC_UUID **uuid, uint32_t &connMethod)
 {
-    bool retTmp = false;
     size_t len = sizeof(**uuid);
 
-    retTmp = ReadFd(data, fd);
+    bool retTmp = ReadFd(data, fd);
     if (!retTmp) {
         tloge("read ta fd failed\n");
         goto ERROR;

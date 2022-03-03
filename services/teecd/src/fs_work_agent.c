@@ -53,11 +53,6 @@ static uint32_t GetCurrentStorageId(void)
     return g_storageId;
 }
 
-int32_t IsUserDataReady(void)
-{
-    return 1;
-}
-
 /* open file list head */
 static struct OpenedFile *g_firstFile = NULL;
 
@@ -727,13 +722,12 @@ ERROR:
 
 static void CloseWork(struct SecStorageType *transControl)
 {
-    int32_t ret;
     struct OpenedFile *selFile = NULL;
 
     tlogv("sec storage : close\n");
 
     if (FindOpenFile(transControl->args.close.fd, &selFile) != 0) {
-        ret = fclose(selFile->file);
+        int32_t ret = fclose(selFile->file);
         if (ret == 0) {
             tlogv("close file %d success\n", transControl->args.close.fd);
             DelOpenFile(selFile);
@@ -755,12 +749,11 @@ static void CloseWork(struct SecStorageType *transControl)
 static void ReadWork(struct SecStorageType *transControl)
 {
     struct OpenedFile *selFile = NULL;
-    size_t count;
 
     tlogv("sec storage : read count = %u\n", transControl->args.read.count);
 
     if (FindOpenFile(transControl->args.read.fd, &selFile) != 0) {
-        count = fread((void *)(transControl->args.read.buffer), 1, transControl->args.read.count, selFile->file);
+        size_t count = fread((void *)(transControl->args.read.buffer), 1, transControl->args.read.count, selFile->file);
         transControl->ret = (int32_t)count;
 
         if (count < transControl->args.read.count) {
@@ -787,12 +780,11 @@ static void ReadWork(struct SecStorageType *transControl)
 static void WriteWork(struct SecStorageType *transControl)
 {
     struct OpenedFile *selFile = NULL;
-    size_t count;
 
     tlogv("sec storage : write count = %u\n", transControl->args.write.count);
 
     if (FindOpenFile(transControl->args.write.fd, &selFile) != 0) {
-        count = fwrite((void *)(transControl->args.write.buffer), 1, transControl->args.write.count, selFile->file);
+        size_t count = fwrite((void *)(transControl->args.write.buffer), 1, transControl->args.write.count, selFile->file);
         if (count < transControl->args.write.count) {
             tloge("write file failed: %d\n", errno);
             transControl->ret   = (int32_t)count;
@@ -821,13 +813,12 @@ static void WriteWork(struct SecStorageType *transControl)
 
 static void SeekWork(struct SecStorageType *transControl)
 {
-    int32_t ret;
     struct OpenedFile *selFile = NULL;
 
     tlogv("sec storage : seek offset=%d, whence=%u\n", transControl->args.seek.offset, transControl->args.seek.whence);
 
     if (FindOpenFile(transControl->args.seek.fd, &selFile) != 0) {
-        ret = fseek(selFile->file, transControl->args.seek.offset, (int32_t)transControl->args.seek.whence);
+        int32_t ret = fseek(selFile->file, transControl->args.seek.offset, (int32_t)transControl->args.seek.whence);
         if (ret) {
             tloge("seek file failed: %d\n", errno);
             transControl->error = (uint32_t)errno;
@@ -844,7 +835,6 @@ static void SeekWork(struct SecStorageType *transControl)
 
 static void RemoveWork(struct SecStorageType *transControl)
 {
-    int32_t ret;
     char nameBuff[FILE_NAME_MAX_BUF] = { 0 };
 
     tlogv("sec storage : remove\n");
@@ -853,7 +843,7 @@ static void RemoveWork(struct SecStorageType *transControl)
     SetCurrentStorageId(transControl->storageId);
 
     if (JoinFileName((char *)(transControl->args.remove.name), nameBuff, sizeof(nameBuff)) == 0) {
-        ret = UnlinkRecursive(nameBuff);
+        int32_t ret = UnlinkRecursive(nameBuff);
         if (ret != 0) {
             tloge("remove file failed: %d\n", errno);
             transControl->error = (uint32_t)errno;
@@ -868,7 +858,6 @@ static void RemoveWork(struct SecStorageType *transControl)
 
 static void TruncateWork(struct SecStorageType *transControl)
 {
-    int32_t ret;
     char nameBuff[FILE_NAME_MAX_BUF] = { 0 };
 
     tlogv("sec storage : truncate, len=%u\n", transControl->args.truncate.len);
@@ -877,7 +866,7 @@ static void TruncateWork(struct SecStorageType *transControl)
     SetCurrentStorageId(transControl->storageId);
 
     if (JoinFileName((char *)(transControl->args.truncate.name), nameBuff, sizeof(nameBuff)) == 0) {
-        ret = truncate(nameBuff, (long)transControl->args.truncate.len);
+        int32_t ret = truncate(nameBuff, (long)transControl->args.truncate.len);
         if (ret != 0) {
             tloge("truncate file failed: %d\n", errno);
             transControl->error = (uint32_t)errno;
@@ -892,7 +881,6 @@ static void TruncateWork(struct SecStorageType *transControl)
 
 static void RenameWork(struct SecStorageType *transControl)
 {
-    int32_t ret;
     char nameBuff[FILE_NAME_MAX_BUF]  = { 0 };
     char nameBuff2[FILE_NAME_MAX_BUF] = { 0 };
 
@@ -903,7 +891,7 @@ static void RenameWork(struct SecStorageType *transControl)
     int32_t joinRet2 = JoinFileName((char *)(transControl->args.rename.buffer) + transControl->args.rename.oldNameLen,
                                     nameBuff2, sizeof(nameBuff2));
     if (joinRet1 == 0 && joinRet2 == 0) {
-        ret = rename(nameBuff, nameBuff2);
+        int32_t ret = rename(nameBuff, nameBuff2);
         if (ret != 0) {
             tloge("rename file failed: %d\n", errno);
             transControl->error = (uint32_t)errno;
@@ -1011,7 +999,6 @@ static int32_t CopyFile(const char *fromPath, const char *toPath)
 
 static void CopyWork(struct SecStorageType *transControl)
 {
-    int32_t ret;
     char fromPath[FILE_NAME_MAX_BUF] = { 0 };
     char toPath[FILE_NAME_MAX_BUF]   = { 0 };
 
@@ -1022,7 +1009,7 @@ static void CopyWork(struct SecStorageType *transControl)
     int32_t joinRet2 = JoinFileName((char *)(transControl->args.cp.buffer) + transControl->args.cp.fromPathLen, toPath,
                                     sizeof(toPath));
     if (joinRet1 == 0 && joinRet2 == 0) {
-        ret = CopyFile(fromPath, toPath);
+        int32_t ret = CopyFile(fromPath, toPath);
         if (ret != 0) {
             tloge("copy file failed: %d\n", errno);
             transControl->error = (uint32_t)errno;
@@ -1037,7 +1024,6 @@ static void CopyWork(struct SecStorageType *transControl)
 
 static void FileInfoWork(struct SecStorageType *transControl)
 {
-    int32_t ret;
     struct OpenedFile *selFile = NULL;
     struct stat statBuff;
 
@@ -1046,7 +1032,7 @@ static void FileInfoWork(struct SecStorageType *transControl)
     transControl->args.info.fileLen = transControl->args.info.curPos = 0;
 
     if (FindOpenFile(transControl->args.info.fd, &selFile) != 0) {
-        ret = fstat(transControl->args.info.fd, &statBuff);
+        int32_t ret = fstat(transControl->args.info.fd, &statBuff);
         if (ret == 0) {
             transControl->args.info.fileLen = (uint32_t)statBuff.st_size;
             transControl->args.info.curPos  = (uint32_t)ftell(selFile->file);
@@ -1064,11 +1050,11 @@ static void FileInfoWork(struct SecStorageType *transControl)
 static void FileAccessWork(struct SecStorageType *transControl)
 {
     int32_t ret;
-    char nameBuff[FILE_NAME_MAX_BUF] = { 0 };
 
     tlogv("sec storage : file access\n");
 
     if (transControl->cmd == SEC_ACCESS) {
+	char nameBuff[FILE_NAME_MAX_BUF] = { 0 };
         SetCurrentUserId(transControl->userId);
         SetCurrentStorageId(transControl->storageId);
 
@@ -1094,8 +1080,6 @@ static void FileAccessWork(struct SecStorageType *transControl)
 
 static void FsyncWork(struct SecStorageType *transControl)
 {
-    int32_t ret;
-    int32_t fd                 = -1;
     struct OpenedFile *selFile = NULL;
 
     tlogv("sec storage : file fsync\n");
@@ -1103,7 +1087,7 @@ static void FsyncWork(struct SecStorageType *transControl)
     /* opened file */
     if (transControl->args.fsync.fd != 0 && FindOpenFile(transControl->args.fsync.fd, &selFile) != 0) {
         /* first,flush memory from user to kernel */
-        ret = fflush(selFile->file);
+        int32_t ret = fflush(selFile->file);
         if (ret != 0) {
             tloge("fsync:fflush file failed: %d\n", errno);
             transControl->ret   = -1;
@@ -1112,7 +1096,7 @@ static void FsyncWork(struct SecStorageType *transControl)
         }
 
         /* second,fsync memory from kernel to disk */
-        fd  = fileno(selFile->file);
+        int32_t fd  = fileno(selFile->file);
         ret = fsync(fd);
         if (ret != 0) {
             tloge("fsync:fsync file failed: %d\n", errno);
@@ -1220,7 +1204,6 @@ static const struct FsWorkTbl g_fsWorkTbl[] = {
 void *FsWorkThread(void *control)
 {
     struct SecStorageType *transControl = NULL;
-    int32_t ret;
     int32_t fsFd;
 
     if (control == NULL) {
@@ -1237,7 +1220,7 @@ void *FsWorkThread(void *control)
     transControl->magic = AGENT_FS_ID;
     while (1) {
         tlogv("++ fs agent loop ++\n");
-        ret = ioctl(fsFd, (int32_t)TC_NS_CLIENT_IOCTL_WAIT_EVENT, AGENT_FS_ID);
+        int32_t	ret = ioctl(fsFd, (int32_t)TC_NS_CLIENT_IOCTL_WAIT_EVENT, AGENT_FS_ID);
         if (ret != 0) {
             tloge("fs agent  wait event failed, errno = %d\n", errno);
             break;
@@ -1245,19 +1228,11 @@ void *FsWorkThread(void *control)
 
         tlogv("fs agent wake up and working!!\n");
 
-        if (IsUserDataReady() == 0) {
-            transControl->ret = -1;
-            tloge("do secure storage while userdata is not ready, skip!\n");
-            goto FILE_WORK_DONE;
-        }
-
         if ((transControl->cmd < SEC_MAX) && (g_fsWorkTbl[transControl->cmd].fn != NULL)) {
             g_fsWorkTbl[transControl->cmd].fn(transControl);
         } else {
             tloge("fs agent error cmd:transControl->cmd=%x\n", transControl->cmd);
         }
-
-    FILE_WORK_DONE:
 
         __asm__ volatile("isb");
         __asm__ volatile("dsb sy");

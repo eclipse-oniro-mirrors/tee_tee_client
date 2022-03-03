@@ -170,7 +170,6 @@ PARAM_ERROR:
 
 TEEC_Result TeeClient::TEEC_CheckOperation(const TEEC_Operation *operation)
 {
-    uint32_t paramType;
     TEEC_Result ret = TEEC_SUCCESS;
 
     if (operation == NULL) {
@@ -182,7 +181,7 @@ TEEC_Result TeeClient::TEEC_CheckOperation(const TEEC_Operation *operation)
     }
 
     for (uint32_t i = 0; i < TEEC_PARAM_NUM; i++) {
-        paramType = TEEC_PARAM_TYPE_GET(operation->paramTypes, i);
+        uint32_t paramType = TEEC_PARAM_TYPE_GET(operation->paramTypes, i);
         if (IS_TEMP_MEM(paramType)) {
             ret = TEEC_CheckTmpRef(operation->params[i].tmpref);
         } else if (IS_PARTIAL_MEM(paramType)) {
@@ -298,7 +297,7 @@ void TeeClient::FreeAllShareMemoryInContext(const TEEC_Context *context)
             }
             vec = mShareMem.erase(vec);
         } else {
-            vec++;
+            ++vec;
         }
     }
     return;
@@ -449,9 +448,7 @@ END:
 static bool WriteOpenData(MessageParcel &data, TEEC_Context *context, int32_t fd,
     const TEEC_UUID *destination, uint32_t connectionMethod)
 {
-    bool retTmp = false;
-
-    retTmp = data.WriteInterfaceToken(INTERFACE_TOKEN);
+    bool retTmp = data.WriteInterfaceToken(INTERFACE_TOKEN);
     CHECK_ERR_RETURN(retTmp, true, TEEC_FAIL);
 
     retTmp = WriteContext(data, context);

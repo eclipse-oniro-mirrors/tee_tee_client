@@ -393,7 +393,6 @@ char g_logName[FILE_NAME_MAX_BUF] = {0};
 static char *GetCompressFile(const struct TeeUuid *uuid)
 {
     uint32_t i;
-    int32_t rc;
     struct FileNameAttr nameAttr = {0};
     bool isTa = IsTaUuid(uuid);
 
@@ -403,7 +402,7 @@ static char *GetCompressFile(const struct TeeUuid *uuid)
      */
     for (i = 0; i < LOG_FILE_INDEX_MAX; i++) {
         SetFileNameAttr(&nameAttr, g_uuidAscii, isTa, i);
-        rc = LogAssembleCompressFilename(g_logNameCompress, sizeof(g_logNameCompress), g_teePath, &nameAttr);
+        int32_t rc = LogAssembleCompressFilename(g_logNameCompress, sizeof(g_logNameCompress), g_teePath, &nameAttr);
         if (rc < 0) {
             tloge("snprintf log name compresserror error %d %s %s %u\n", rc, g_teePath, g_uuidAscii, i);
             continue;
@@ -649,8 +648,6 @@ static void LogFileFull(uint32_t fileNum)
 
 static int32_t LogFilesChecklimit(uint32_t fileNum)
 {
-    errno_t rc;
-
     if (g_files[fileNum].fileLen >= LOG_FILE_LIMIT) {
         (void)fclose(g_files[fileNum].file);
 
@@ -662,7 +659,7 @@ static int32_t LogFilesChecklimit(uint32_t fileNum)
             LogFileFull(fileNum);
         }
 
-        rc = memset_s(&g_files[fileNum], sizeof(g_files[fileNum]), 0, sizeof(struct LogFile));
+        errno_t rc = memset_s(&g_files[fileNum], sizeof(g_files[fileNum]), 0, sizeof(struct LogFile));
         if (rc != EOK) {
             tloge("memset failed %d\n", rc);
         }
@@ -708,7 +705,6 @@ static void GetFileIndex(const char *uuidAscii, bool isTa, uint32_t *fileIndex)
 {
     char logName[FILE_NAME_MAX_BUF] = {0};
     int32_t i;
-    int32_t ret;
     struct FileNameAttr nameAttr = {0};
 
     /* get the number of file */
@@ -716,7 +712,7 @@ static void GetFileIndex(const char *uuidAscii, bool isTa, uint32_t *fileIndex)
         *fileIndex = (uint32_t)i;
 
         SetFileNameAttr(&nameAttr, uuidAscii, isTa, (uint32_t)i);
-        ret = LogAssembleFilename(logName, sizeof(logName), g_teePath, &nameAttr);
+        int32_t ret = LogAssembleFilename(logName, sizeof(logName), g_teePath, &nameAttr);
         if (ret < 0) {
             tloge("snprintf log name error %d %s %s %d\n", ret, g_teePath, uuidAscii, i);
             continue;
@@ -895,9 +891,8 @@ static int32_t LogGetTlogcatF(void)
 static void WritePrivateLogFile(const struct LogItem *logItem, bool isTa)
 {
     size_t writeNum;
-    struct LogFile *logFile = NULL;
 
-    logFile = LogFilesGet((struct TeeUuid *)logItem->uuid, isTa);
+    struct LogFile *logFile = LogFilesGet((struct TeeUuid *)logItem->uuid, isTa);
     if ((logFile == NULL) || (logFile->file == NULL)) {
         tloge("can not save log, file is null\n");
         return;
@@ -944,10 +939,9 @@ static void OutputLog(struct LogItem *logItem, bool writeFile)
 static void ReadLogBuffer(bool writeFile, const char *logBuffer, size_t readLen)
 {
     size_t logItemTotalLen = 0;
-    struct LogItem *logItem = NULL;
 
     /* Cyclically processes all log records. */
-    logItem = LogItemGetNext(logBuffer, readLen);
+    struct LogItem *logItem = LogItemGetNext(logBuffer, readLen);
 
     while (logItem != NULL) {
         tlogd("get log length %u\n", logItem->logBufferLen);
@@ -1063,9 +1057,6 @@ static void Func(bool writeFile)
 
 static void GetTeePathGroup(void)
 {
-#ifdef AID_SYSTEM
-    g_teePathGroup = AID_SYSTEM;
-#else
     struct stat pathStat = {0};
 
     if (stat(TEE_LOG_PATH_BASE, &pathStat) != 0) {
@@ -1073,7 +1064,6 @@ static void GetTeePathGroup(void)
         return;
     }
     g_teePathGroup = pathStat.st_gid;
-#endif
 }
 
 #define MAX_TEE_LOG_SUBFOLDER_LEN      30U

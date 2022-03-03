@@ -92,19 +92,17 @@ END:
 
 void LoadDynamicDir()
 {
-    int32_t ret;
-    DIR *dir = NULL;
     struct dirent *dirFile = NULL;
     int fd = GetSecLoadAgentFd();
 
-    dir = OpenDynamicDir();
+    DIR *dir = OpenDynamicDir();
     if (dir == NULL) {
         tloge("dynamic_drv dir not exist\n");
         return;
     }
 
     while ((dirFile = readdir(dir)) != NULL) {
-        ret = LoadOneDrv(dirFile, fd);
+        int32_t ret = LoadOneDrv(dirFile, fd);
         if (ret != 0) {
             tloge("load dynamic drv failed\n");
             continue;

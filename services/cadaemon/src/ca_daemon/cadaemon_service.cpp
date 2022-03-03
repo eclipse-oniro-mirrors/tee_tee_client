@@ -145,7 +145,7 @@ static void TidMutexUnlock(int lockRet)
 
 static void SigUsr1Handler(int sign)
 {
-    sign = 0;
+    (void)sign;
     return;
 }
 
@@ -188,7 +188,6 @@ static TEEC_Result AddTidData(TidData **tidData, int pid)
 
 static void SendSigToTzdriver(int pid)
 {
-    int ret;
     int mutexRet;
     struct ListNode *ptr = nullptr;
 
@@ -204,7 +203,7 @@ static void SendSigToTzdriver(int pid)
         LIST_FOR_EACH(ptr, &g_teecTidList) {
             TidData *tmp = LIST_ENTRY(ptr, TidData, tidHead);
             if (tmp->callingPid == pid) {
-                ret = tgkill(getpid(), tmp->tid, SIGUSR1);
+                int ret = tgkill(getpid(), tmp->tid, SIGUSR1);
                 tlogd("send signal SIGUSR1 to tid: %{public}d! ret = %{public}d\n", tmp->tid, ret);
             }
         }
@@ -402,9 +401,7 @@ TEEC_Result CaDaemonService::FinalizeContext(TEEC_Context *context)
 
 TEEC_Result CaDaemonService::CallFinalizeContext(int32_t pid, const TEEC_Context *contextPtr)
 {
-    TEEC_ContextInner *outContext = nullptr;
-
-    outContext = FindAndRemoveBnContext(contextPtr);
+    TEEC_ContextInner *outContext = FindAndRemoveBnContext(contextPtr);
     if (outContext == nullptr) {
         tloge("no context found in service!\n");
         return TEEC_FAIL;
@@ -515,7 +512,6 @@ static void CopyToShareMemory(TEEC_SharedMemory *shareMemBuf, uint8_t *data,
     shmInfoOffset += sizeof(uint32_t);
 
     shareMemBuf->size = *reinterpret_cast<uint32_t *>(data + shmInfoOffset);
-    shmInfoOffset += sizeof(uint32_t);
 }
 
 #define STRUCT_SIZE (4 * (sizeof(uint32_t)) + 1 * (sizeof(bool)))  // fix me
@@ -820,8 +816,7 @@ TEEC_Result CaDaemonService::CloseSession(TEEC_Session *session, TEEC_Context *c
         return TEEC_FAIL;
     }
 
-    TEEC_ContextInner *outContext = nullptr;
-    outContext = GetBnContext(context);
+    TEEC_ContextInner *outContext = GetBnContext(context);
     if (outContext == nullptr) {
         tloge("closeSession: no context found in service!\n");
         return TEEC_FAIL;
@@ -858,15 +853,13 @@ TEEC_Result CaDaemonService::RegisterSharedMemory(TEEC_Context *context,
         return TEEC_FAIL;
     }
 
-    TEEC_ContextInner *outContext = nullptr;
-    outContext = GetBnContext(context);
+    TEEC_ContextInner *outContext = GetBnContext(context);
     if (outContext == nullptr) {
         tloge("registeMem: no context found in service!\n");
         return TEEC_ERROR_BAD_PARAMETERS;
     }
 
-    TEEC_SharedMemoryInner *outShm = nullptr;
-    outShm = static_cast<TEEC_SharedMemoryInner *>(malloc(sizeof(TEEC_SharedMemoryInner)));
+    TEEC_SharedMemoryInner *outShm = static_cast<TEEC_SharedMemoryInner *>(malloc(sizeof(TEEC_SharedMemoryInner)));
     if (outShm == nullptr) {
         tloge("registeMem: outShm malloc failed.\n");
         return TEEC_FAIL;
@@ -1085,8 +1078,8 @@ void CaDaemonService::Client::OnRemoteDied(const wptr<IRemoteObject> &binder)
     (void)binder;
     tloge("teec client is died, pid=%{public}d", mPid);
     vector<sptr<Client>>::iterator vec;
-    size_t index = 0;
     if (mService != nullptr) {
+        size_t index = 0;
         lock_guard<mutex> autoLock(mService->mClientLock);
         for (vec = mService->mClients.begin(); vec != mService->mClients.end();) {
             if (mService->mClients[index]->GetMyPid() == mPid) {
@@ -1095,7 +1088,7 @@ void CaDaemonService::Client::OnRemoteDied(const wptr<IRemoteObject> &binder)
                 mService->ProcessCaDied(mPid);
                 vec = mService->mClients.erase(vec);
             } else {
-                vec++;
+                ++vec;
                 index++;
             }
         }

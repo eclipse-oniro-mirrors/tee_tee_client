@@ -264,7 +264,6 @@ void *SecfileLoadAgentThread(void *control)
 {
     (void)prctl(PR_SET_NAME, "teecd_sec_load_agent", 0, 0, 0);
     struct SecAgentControlType *secAgentControl = NULL;
-    int ret;
     if (control == NULL) {
         tloge("control is NULL\n");
         return NULL;
@@ -276,7 +275,7 @@ void *SecfileLoadAgentThread(void *control)
     }
     secAgentControl->magic = SECFILE_LOAD_AGENT_ID;
     while (true) {
-        ret = ioctl(g_secLoadAgentFd, (int)TC_NS_CLIENT_IOCTL_WAIT_EVENT, SECFILE_LOAD_AGENT_ID);
+        int ret = ioctl(g_secLoadAgentFd, (int)TC_NS_CLIENT_IOCTL_WAIT_EVENT, SECFILE_LOAD_AGENT_ID);
         if (ret) {
             tloge("gtask agent wait event failed, errno = %d\n", errno);
             break;

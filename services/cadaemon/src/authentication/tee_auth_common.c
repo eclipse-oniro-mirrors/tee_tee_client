@@ -24,14 +24,14 @@ static size_t ReadCmdLine(const char *path, char *buffer, int bufferLen, char *c
     FILE *fd = fopen(path, "rb");
     if (fd == NULL) {
         tloge("fopen is error: %d\n", errno);
-        return -1;
+        return 0;
     }
     size_t bytesRead = fread(buffer, sizeof(char), (size_t)bufferLen - 1, fd);
-    bool readError = bytesRead <= 0 || ferror(fd);
+    bool readError = (bytesRead == 0 || ferror(fd));
     if (readError) {
         tloge("cannot read from cmdline\n");
         fclose(fd);
-        return -1;
+        return 0;
     }
     fclose(fd);
 
@@ -39,7 +39,7 @@ static size_t ReadCmdLine(const char *path, char *buffer, int bufferLen, char *c
     errno_t res = strncpy_s(caName, nameLen - 1, buffer, firstStringLen);
     if (res != EOK) {
         tloge("copy caName failed\n");
-        return -1;
+        return 0;
     }
 
     return bytesRead;
@@ -58,13 +58,13 @@ static size_t TeeGetCaName(int caPid, char *caName, size_t nameLen)
 
     if (caName == NULL || nameLen == 0) {
         tloge("input :caName invalid\n");
-        return -1;
+        return 0;
     }
 
     int ret = snprintf_s(path, sizeof(path), sizeof(path) - 1, "/proc/%d/cmdline", caPid);
     if (ret == -1) {
         tloge("tee get ca name snprintf_s err\n");
-        return ret;
+        return 0;
     }
 
     size_t bytesRead = ReadCmdLine(path, temp, CMD_MAX_SIZE, caName, nameLen);
@@ -79,7 +79,7 @@ int TeeGetPkgName(int caPid, char *path, size_t pathLen)
         return -1;
     }
 
-    if (TeeGetCaName(caPid, path, pathLen) <= 0) {
+    if (TeeGetCaName(caPid, path, pathLen) == 0) {
         tloge("get ca name failed\n");
         return -1;
     }

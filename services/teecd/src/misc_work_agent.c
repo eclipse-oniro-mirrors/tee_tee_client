@@ -29,18 +29,15 @@
 static void GetTimeWork(struct MiscControlType *transControl)
 {
     struct timeval timeVal;
-    errno_t rc;
 
     if (gettimeofday(&timeVal, NULL) == 0) {
         transControl->ret                  = 0;
         transControl->Args.GetTime.seconds = timeVal.tv_sec;
         transControl->Args.GetTime.millis  = (timeVal.tv_usec / 1000);
-        struct tm *tstruct                 = NULL;
-
-        tstruct = localtime(&(timeVal.tv_sec));
+        struct tm *tstruct                 = localtime(&(timeVal.tv_sec));
         if (tstruct != NULL) {
             /* year(from 1900) months(0~11) days hour min second */
-            rc = snprintf_s(transControl->Args.GetTime.timeStr, sizeof(transControl->Args.GetTime.timeStr),
+            errno_t rc = snprintf_s(transControl->Args.GetTime.timeStr, sizeof(transControl->Args.GetTime.timeStr),
                             sizeof(transControl->Args.GetTime.timeStr) - 1, "%04d-%02d-%02d %02d:%02d:%02d.%03d ",
                             tstruct->tm_year + 1900, tstruct->tm_mon + 1, tstruct->tm_mday, tstruct->tm_hour,
                             tstruct->tm_min, tstruct->tm_sec, (int)(timeVal.tv_usec / 1000));
@@ -61,7 +58,6 @@ static void GetTimeWork(struct MiscControlType *transControl)
 void *MiscWorkThread(void *control)
 {
     struct MiscControlType *transControl = NULL;
-    int ret;
     int miscFd;
 
     if (control == NULL) {
@@ -78,7 +74,7 @@ void *MiscWorkThread(void *control)
     transControl->magic = AGENT_MISC_ID;
     while (1) {
         tlogv("++ misc agent loop ++\n");
-        ret = ioctl(miscFd, (int)TC_NS_CLIENT_IOCTL_WAIT_EVENT, AGENT_MISC_ID);
+        int ret = ioctl(miscFd, (int)TC_NS_CLIENT_IOCTL_WAIT_EVENT, AGENT_MISC_ID);
         if (ret) {
             tloge("misc agent wait event failed, errno = %d\n", errno);
             break;

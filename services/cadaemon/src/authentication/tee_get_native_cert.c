@@ -57,7 +57,6 @@ static int SetPathToBuf(uint8_t *buffer, uint32_t *len, uint32_t *inputLen, cons
         return ret;
     }
 
-    buffer    += num;
     *len      += num;
     *inputLen -= num;
 
@@ -98,7 +97,6 @@ static int SetUidToBuf(uint8_t *buffer, uint32_t *len, uint32_t *inputLen, unsig
         return ret;
     }
 
-    buffer += pubkeyLen;
     *len   += pubkeyLen;
 
     return ret;
