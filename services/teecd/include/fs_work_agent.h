@@ -161,7 +161,6 @@ struct OpenedFile {
     struct OpenedFile *prev;
 };
 
-int IsUserDataReady(void);
 void *FsWorkThread(void *control);
 void SetFileNumLimit(void);
 
