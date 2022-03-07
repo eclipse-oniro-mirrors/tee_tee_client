@@ -1,0 +1,41 @@
+# Copyright (C) 2022 Huawei Technologies Co., Ltd.
+# Licensed under the Mulan PSL v2.
+# You can use this software according to the terms and conditions of the Mulan PSL v2.
+# You may obtain a copy of Mulan PSL v2 at:
+#     http://license.coscl.org.cn/MulanPSL2
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR
+# PURPOSE.
+# See the Mulan PSL v2 for more details.
+
+import("//build/lite/config/component/lite_component.gni")
+shared_library("libteec_vendor") {
+    output_dir = "$root_out_dir/vendor/lib"
+
+    sources = [
+        "../../libteec_vendor/tee_client_api.c",
+        "../../libteec_vendor/tee_client_app_load.c",
+        "../../libteec_vendor/load_sec_file.c",
+        "../../../services/cadaemon/src/authentication/tee_auth_common.c",
+        "../../../services/cadaemon/src/authentication/tee_get_native_cert.c",
+    ]
+
+    include_dirs = [
+        "//third_party/bounds_checking_function/include",
+        "//utils/native/base/include",
+        "//utils/system/safwk/native/include",
+        "//developtools/liblog",
+        "//base/hiviewdfx/hilog/interfaces/native/innerkits/include",
+        "//base/tee/tee_client/interfaces/libteec",
+        "../../include",
+        "../../include/lite",
+        "../../libteec_vendor/",
+        "../../../services/cadaemon/src/authentication",
+    ]
+
+    deps = [
+        "//third_party/bounds_checking_function:libsec_shared",
+        "//base/hiviewdfx/hilog_lite/frameworks/featured:hilog_shared",
+    ]
+    cflags = [ "-fPIC" ]
+}

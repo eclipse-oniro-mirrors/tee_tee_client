@@ -1,0 +1,52 @@
+{
+    "name": "@openharmony/tee_client",
+    "description": "tee_client",
+    "version": "1.0.0",
+    "license": "Mulan PSL v2",
+    "component": {
+      "name": "tee_client",
+      "subsystem": "tee",
+      "syscap": [],
+      "features": [],
+      "adapted_system_type": [ "small", "standard" ],
+      "rom": "250KB",
+      "ram": "5995KB",
+      "deps": {
+        "components": [
+          "libhilog",
+          "ipc_core",
+          "system_ability_fwk",
+          "samgr_proxy",
+          "utils_base"
+        ],
+        "third_party": [ 
+          "bounds_checking_function"
+        ]
+      },
+      "build": {
+        "sub_component": [
+            "//base/tee/tee_client/services/cadaemon/build/standard:libcadaemon",
+            "//base/tee/tee_client/services/cadaemon/build/standard/init:cadaemon.rc",
+            "//base/tee/tee_client/services/cadaemon/build/standard/sa_profile:cadaemon_profile",
+            "//base/tee/tee_client/services/teecd/build/standard:teecd",
+            "//base/tee/tee_client/services/teecd/build/standard/init:teecd.rc",
+	    "//base/tee/tee_client/services/tlogcat/build/standard:tlogcat",
+            "//base/tee/tee_client/services/tlogcat/build/standard/init:tlogcat.rc"
+        ],
+        "inner_kits": [
+          {
+            "name": "//base/tee/tee_client/frameworks/build/standard:libteec",
+            "header": {
+              "header_files": [
+                "tee_client_api.h",
+                "tee_client_type.h",
+                "tee_client_constants.h"
+              ],
+              "header_base": "//base/tee/tee_client/interfaces/libteec"
+            }
+          }
+        ],
+        "test": []
+      }
+    }
+  }
