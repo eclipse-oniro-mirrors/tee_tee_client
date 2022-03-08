@@ -1,39 +1,51 @@
-# tee_tee_client 
+# TeeClient<a name="EN-US_TOPIC_0000001148528849"></a>
 
-#### 介绍
-{**以下是 Gitee 平台说明，您可以替换此简介**
-Gitee 是 OSCHINA 推出的基于 Git 的代码托管平台（同时支持 SVN）。专为开发者提供稳定、高效、安全的云端软件开发协作平台
-无论是个人、团队、或是企业，都能够用 Gitee 实现代码托管、项目管理、协作开发。企业项目请看 [https://gitee.com/enterprises](https://gitee.com/enterprises)}
+-   [Introduction](#section11660541593)
+-   [Directory Structure](#section161941989596)
+-   [Repositories Involved](#section1371113476307)
 
-#### 软件架构
-软件架构说明
+## Introduction<a name="section11660541593"></a>
 
+TeeClient provides applications with access to secure OS (TEEOS) capabilities, allowing applications to access security applications running inside the secure OS.
 
-#### 安装教程
+TeeClient consists of the following modules:
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+- TeeClient SDK layer：Provide TeeClient API for application calls,  provides libteec.z.so library for standard, provides libteec_vendor.so for lite.
+- TeeClient base service layer：Including teecd and tlogcat services, provides for both standard and lite. teecd assists TEEOS to achieve basic functions such as secure storage and time synchronization, and tlogcat provides TEEOS log output services.
+- TeeClient service layer：The service provides the ability for applications to access TEEOS, only used in standard system. In lite system, the application will directly accesses the TEEOS capability.
 
-#### 使用说明
+## Directory Structure<a name="section161941989596"></a>
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+```
+base/tee/tee_client
+├── frameworks
+│   ├── build                          # sdk library compilation configuration file, enabled in standard and lite systems
+│   │   ├── lite                       # Standard system sdk library compilation configuration file
+│   │   └── standard                   # Lite system sdk library compilation configuration file
+│   ├── libteec_client                 # Standard system sdk library implementation code
+│   └── libteec_vendor                 # Lite system sdk library implementation code
+├── interfaces                         # TeeClient sdk header files for applications
+│   └── libteec
+└── services
+    ├── cadaemon                       # In standard system, provides applications with access to TEEOS services
+    |   ├── build
+    |   │   └── standard
+    |   └── src
+    ├── teecd                          # Implement basic functions such as secure storage and time synchronization for TEEOS,
+                                       # enabling it in standard and lite systems
+    │   ├── build
+    │   │   ├── lite
+    │   │   └── standard
+    │   └── src
+    └── tlogcat                        # TEEOS log output service, enabled in standard and lite systems
+        ├── build
+        │   ├── lite
+        │   └── standard
+        └── src
+```
 
-#### 参与贡献
+## Repositories Involved<a name="section1371113476307"></a>
 
-1.  Fork 本仓库
-2.  新建 Feat_xxx 分支
-3.  提交代码
-4.  新建 Pull Request
+**tee subsystem**
 
-
-#### 特技
-
-1.  使用 Readme\_XXX.md 来支持不同的语言，例如 Readme\_en.md, Readme\_zh.md
-2.  Gitee 官方博客 [blog.gitee.com](https://blog.gitee.com)
-3.  你可以 [https://gitee.com/explore](https://gitee.com/explore) 这个地址来了解 Gitee 上的优秀开源项目
-4.  [GVP](https://gitee.com/gvp) 全称是 Gitee 最有价值开源项目，是综合评定出的优秀开源项目
-5.  Gitee 官方提供的使用手册 [https://gitee.com/help](https://gitee.com/help)
-6.  Gitee 封面人物是一档用来展示 Gitee 会员风采的栏目 [https://gitee.com/gitee-stars/](https://gitee.com/gitee-stars/)
+tee_client
