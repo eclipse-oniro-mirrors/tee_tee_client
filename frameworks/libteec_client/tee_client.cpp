@@ -431,7 +431,7 @@ TEEC_Result TeeClient::OpenSession(TEEC_Context *context, TEEC_Session *session,
             TEEC_PARAM_TYPE_GET(operation->paramTypes, 1), TEEC_NONE, TEEC_NONE);
     }
 
-    fd      = GetFileFd((const char *)context->ta_path);
+    fd = GetFileFd((const char *)context->ta_path);
     teecRet = OpenSessionSendCmd(context, session, destination, connectionMethod, fd, operation, &retOrigin);
 
     if (fd >= 0) {
@@ -768,7 +768,6 @@ TEEC_Result TeeClient::TeecOptEncodeTempMem(const TEEC_Parameter *param, sptr<As
     }
 
     uint8_t *p = reinterpret_cast<uint8_t *>(param->tmpref.buffer);
-
     if (p == nullptr) {
         tloge("operation encode param tmpref buffer is nullptr\n");
         return TEEC_ERROR_BAD_PARAMETERS;

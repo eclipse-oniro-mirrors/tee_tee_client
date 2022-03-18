@@ -684,7 +684,7 @@ static void OpenWork(struct SecStorageType *transControl)
     }
 
     if (transControl->cmd == SEC_CREATE) {
-        /* create a exist file, remove it at first */
+        /* create an exist file, remove it at first */
         errno_t rc = strncpy_s(transControl->args.open.mode,
             sizeof(transControl->args.open.mode), "w+", sizeof("w+"));
         if (rc != EOK) {

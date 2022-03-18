@@ -579,7 +579,7 @@ static void TEEC_EncodeParam(TC_NS_ClientContext *cliContext, const TEEC_Operati
         } else if (IS_VALUE_MEM(paramType[paramCnt])) {
             TEEC_EncodeValueParam(&operation->params[paramCnt].value, &cliContext->params[paramCnt]);
         } else {
-            /* if type is none, ignore it */
+            tlogd("if type is none, ignore it");
         }
     }
 
@@ -1568,7 +1568,7 @@ PARAM_ERROR:
 
 /*
  * Function:       TEEC_CheckOperation
- * Description:   This function checks a operation is valid or not.
+ * Description:   This function checks an operation is valid or not.
  * Parameters:   operation: a pointer to an Operation to be checked.
  * Return:         TEEC_SUCCESS: success
  *                     other: failure
@@ -1598,9 +1598,9 @@ TEEC_Result TEEC_CheckOperation(TEEC_ContextInner *context, const TEEC_Operation
         } else if (IS_PARTIAL_MEM(paramType[paramCnt])) {
             ret = TEEC_CheckMemRef(context, operation->params[paramCnt].memref, paramType[paramCnt]);
         } else if (IS_VALUE_MEM(paramType[paramCnt])) {
-            /*  if type is value, ignore it */
+            tlogd("if type is value, ignore it");
         } else if (paramType[paramCnt] == TEEC_NONE) {
-            /*  if type is none, ignore it */
+            tlogd("if type is none, ignore it");
         } else {
             tloge("paramType is not support\n");
             ret = (TEEC_Result)TEEC_ERROR_BAD_PARAMETERS;

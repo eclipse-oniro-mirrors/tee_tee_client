@@ -10,7 +10,6 @@
  * See the Mulan PSL v2 for more details.
  */
 
-
 #ifndef SECFILE_LOAD_AGENT_H
 #define SECFILE_LOAD_AGENT_H
 
