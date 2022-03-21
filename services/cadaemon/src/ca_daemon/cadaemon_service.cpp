@@ -514,7 +514,7 @@ static void CopyToShareMemory(TEEC_SharedMemory *shareMemBuf, uint8_t *data,
     shareMemBuf->size = *reinterpret_cast<uint32_t *>(data + shmInfoOffset);
 }
 
-#define STRUCT_SIZE (4 * (sizeof(uint32_t)) + 1 * (sizeof(bool)))  // fix me
+#define STRUCT_SIZE (4 * (sizeof(uint32_t)) + 1 * (sizeof(bool)))
 TEEC_Result CaDaemonService::TeecOptDecodePartialMem(DecodePara *paraDecode, uint8_t *data,
     InputPara *inputPara, TEEC_Operation *operation, uint32_t paramCnt)
 {

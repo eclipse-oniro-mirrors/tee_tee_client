@@ -48,7 +48,7 @@ CaDaemonStub::~CaDaemonStub()
 int32_t CaDaemonStub::OnRemoteRequest(uint32_t code,
     MessageParcel& data, MessageParcel &reply, MessageOption &option)
 {
-    tlogi("CaDaemonStub::OnReceived, code = %{public}d, flags= %{public}d.", code, option.GetFlags());
+    tlogi("CaDaemonStub::OnReceived, code = %{public}u, flags= %{public}d.", code, option.GetFlags());
     auto itFunc = memberFuncMap_.find(code);
     if (itFunc != memberFuncMap_.end()) {
         auto memberFunc = itFunc->second;
