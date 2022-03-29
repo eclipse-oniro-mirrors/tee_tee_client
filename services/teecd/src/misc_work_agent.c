@@ -32,8 +32,8 @@ static void GetTimeWork(struct MiscControlType *transControl)
 
     if (gettimeofday(&timeVal, NULL) == 0) {
         transControl->ret                  = 0;
-        transControl->Args.GetTime.seconds = timeVal.tv_sec;
-        transControl->Args.GetTime.millis  = (timeVal.tv_usec / 1000);
+        transControl->Args.GetTime.seconds = (uint32_t)timeVal.tv_sec;
+        transControl->Args.GetTime.millis  = (uint32_t)(timeVal.tv_usec / 1000);
         struct tm *tstruct                 = localtime(&(timeVal.tv_sec));
         if (tstruct != NULL) {
             /* year(from 1900) months(0~11) days hour min second */
@@ -46,7 +46,7 @@ static void GetTimeWork(struct MiscControlType *transControl)
                 tloge("snprintf_s error %d\n", rc);
             }
         } else {
-            tloge("get localtiem error\n");
+            tloge("get localtime error\n");
         }
     } else {
         transControl->ret                  = -1;

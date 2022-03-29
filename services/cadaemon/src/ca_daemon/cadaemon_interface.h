@@ -52,6 +52,6 @@ public:
     virtual int32_t SetCallBack(const sptr<IRemoteObject> &notify) = 0;
     DECLARE_INTERFACE_DESCRIPTOR(u"OHOS.CaDaemon.CaDaemon");
 };
-}
-}
+} // namespace CaDaemon
+} // namespace OHOS
 #endif

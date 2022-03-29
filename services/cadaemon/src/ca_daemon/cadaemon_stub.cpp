@@ -24,9 +24,7 @@ using namespace std;
 
 namespace OHOS {
 namespace CaDaemon {
-namespace {
 const std::u16string INTERFACE_TOKEN = u"ohos.distributedhardware.accessToken";
-}
 CaDaemonStub::CaDaemonStub()
 {
     memberFuncMap_[INIT_CONTEXT] = &CaDaemonStub::InitContextRecvProc;
@@ -224,7 +222,7 @@ static bool ReadFd(MessageParcel &data, int32_t &fd)
     bool retTmp = data.ReadBool(fdFlag);
     CHECK_ERR_RETURN(retTmp, true, retTmp);
 
-    if (fdFlag == true) {
+    if (fdFlag) {
         fd = data.ReadFileDescriptor();
         if (fd < 0) {
             tloge("read fd failed\n");

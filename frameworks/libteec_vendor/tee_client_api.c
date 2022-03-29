@@ -578,8 +578,6 @@ static void TEEC_EncodeParam(TC_NS_ClientContext *cliContext, const TEEC_Operati
             }
         } else if (IS_VALUE_MEM(paramType[paramCnt])) {
             TEEC_EncodeValueParam(&operation->params[paramCnt].value, &cliContext->params[paramCnt]);
-        } else {
-            tlogd("if type is none, ignore it");
         }
     }
 

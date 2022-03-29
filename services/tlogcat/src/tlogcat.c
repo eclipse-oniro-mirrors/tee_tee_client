@@ -17,7 +17,6 @@
 #include <time.h>
 #include <errno.h>
 #include <ctype.h>
-#include <sys/stat.h>
 #include <dirent.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -900,7 +899,7 @@ static void WritePrivateLogFile(const struct LogItem *logItem, bool isTa)
 
     writeNum = fwrite(logItem->logBuffer, 1, (size_t)logItem->logRealLen, logFile->file);
     if (writeNum != (size_t)logItem->logRealLen) {
-        tloge("save file failed %zu, %d\n", writeNum, logItem->logRealLen);
+        tloge("save file failed %zu, %u\n", writeNum, logItem->logRealLen);
         (void)fclose(logFile->file);
         (void)memset_s(logFile, sizeof(struct LogFile), 0, sizeof(struct LogFile));
     }
