@@ -1129,7 +1129,7 @@ static void DiskUsageWork(struct SecStorageType *transControl)
         tloge("statfs /secStorageData failed, err=%d\n", errno);
         goto ERROR;
     }
-    dataRemain = (long)st.f_bfree * (long)st.f_bsize / KBYTE;
+    dataRemain = (uint32_t)st.f_bfree * (uint32_t)st.f_bsize / KBYTE;
 
     if (GetPersistentDir(nameBuff, FILE_NAME_MAX_BUF) != 0) {
         tloge("get persistent dir error\n");
@@ -1143,7 +1143,7 @@ static void DiskUsageWork(struct SecStorageType *transControl)
         tloge("statfs /secStorage failed, err=%d\n", errno);
         goto ERROR;
     }
-    secStorageRemain = (uint32_t)((long)st.f_bfree * (long)st.f_bsize / KBYTE);
+    secStorageRemain = (uint32_t)st.f_bfree * (uint32_t)st.f_bsize / KBYTE;
 
     transControl->ret                       = 0;
     transControl->args.diskUsage.data       = dataRemain;

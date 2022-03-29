@@ -169,7 +169,7 @@ static int SyncSysTimeToSecure(void)
         return -1;
     }
     tcNsTime.seconds = (uint32_t)timeVal.tv_sec;
-    tcNsTime.millis  = timeVal.tv_usec / 1000;
+    tcNsTime.millis  = (uint32_t)timeVal.tv_usec / 1000;
 
     int fd = open(TC_NS_CLIENT_DEV_NAME, O_RDWR);
     if (fd < 0) {

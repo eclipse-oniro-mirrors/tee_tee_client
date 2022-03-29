@@ -45,9 +45,7 @@ enum {
 };
 
 namespace OHOS {
-namespace {
 const std::u16string INTERFACE_TOKEN = u"ohos.distributedhardware.accessToken";
-}
 class TeeClient {
 public:
     static TeeClient &GetInstance()
@@ -75,7 +73,7 @@ public:
         }
         virtual ~DeathNotifier()
         {
-            if ((mServiceValid == true) && (serviceBinder != nullptr)) {
+            if (mServiceValid && (serviceBinder != nullptr)) {
                 serviceBinder->RemoveDeathRecipient(this);
             }
         }
@@ -149,5 +147,5 @@ private:
     sptr<IRemoteObject> mNotify;
     std::vector<TC_NS_ShareMem> mShareMem;
 };
-}
+} // namespace OHOS
 #endif

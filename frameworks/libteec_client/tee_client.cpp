@@ -119,7 +119,7 @@ void TeeClient::InitTeecService()
 
 static TEEC_Result TEEC_CheckTmpRef(TEEC_TempMemoryReference tmpref)
 {
-    if ((tmpref.buffer == NULL) || (tmpref.size == 0)) {
+    if ((tmpref.buffer == nullptr) || (tmpref.size == 0)) {
         tloge("tmpref buffer is null, or size is zero\n");
         return TEEC_ERROR_BAD_PARAMETERS;
     }
@@ -128,7 +128,7 @@ static TEEC_Result TEEC_CheckTmpRef(TEEC_TempMemoryReference tmpref)
 
 static TEEC_Result TEEC_CheckMemRef(TEEC_RegisteredMemoryReference memref, uint32_t paramType)
 {
-    if ((memref.parent == NULL) || (memref.parent->buffer == NULL)) {
+    if ((memref.parent == nullptr) || (memref.parent->buffer == nullptr)) {
         tloge("parent of memref is null, or the buffer is zero\n");
         return TEEC_ERROR_BAD_PARAMETERS;
     }
@@ -172,7 +172,7 @@ TEEC_Result TeeClient::TEEC_CheckOperation(const TEEC_Operation *operation)
 {
     TEEC_Result ret = TEEC_SUCCESS;
 
-    if (operation == NULL) {
+    if (operation == nullptr) {
         return ret;
     }
     if (!operation->started) {
@@ -309,7 +309,7 @@ TEEC_Result TeeClient::InitializeContextSendCmd(const char *name, MessageParcel 
     MessageOption option;
 
     InitTeecService();
-    if (mServiceValid == false) {
+    if (!mServiceValid) {
         return TEEC_FAIL;
     }
 
@@ -369,7 +369,7 @@ void TeeClient::FinalizeContext(TEEC_Context *context)
     }
 
     InitTeecService();
-    if (mServiceValid == false) {
+    if (!mServiceValid) {
         return;
     }
 
@@ -725,7 +725,7 @@ TEEC_Result TeeClient::OpenSessionSendCmd(TEEC_Context *context, TEEC_Session *s
     CHECK_ERR_RETURN(parRet, true, TEEC_FAIL);
 
     parRet = data.WriteUint32(optMemSize);
-    CHECK_ERR_RETURN(parRet, true, TEEC_FAIL); 
+    CHECK_ERR_RETURN(parRet, true, TEEC_FAIL);
     if (optMemSize > 0) {
         parRet = data.WriteAshmem(optMem);
         CHECK_ERR_GOTO(parRet, true, ERROR);
@@ -787,9 +787,7 @@ TEEC_Result TeeClient::TeecOptEncodeTempMem(const TEEC_Parameter *param, sptr<As
 
 bool TeeClient::CovertEncodePtr(sptr<Ashmem> &optMem, size_t *sizeLeft, TEEC_SharedMemory *shm)
 {
-    bool nRet;
-
-    nRet = optMem->WriteToAshmem(&(shm->is_allocated), (int32_t)(sizeof(bool)),
+    bool nRet = optMem->WriteToAshmem(&(shm->is_allocated), (int32_t)(sizeof(bool)),
         optMem->GetAshmemSize() - (int32_t)(*sizeLeft));
     CHECK_ERR_RETURN(nRet, true, false);
 
@@ -1138,7 +1136,7 @@ void TeeClient::CloseSession(TEEC_Session *session)
     }
 
     InitTeecService();
-    if (mServiceValid == false) {
+    if (!mServiceValid) {
         return;
     }
 
@@ -1239,7 +1237,7 @@ TEEC_Result TeeClient::RegisterSharedMemory(TEEC_Context *context, TEEC_SharedMe
     }
 
     InitTeecService();
-    if (mServiceValid == false) {
+    if (!mServiceValid) {
         tloge("teec service not valid\n");
         return TEEC_FAIL;
     }
@@ -1357,7 +1355,7 @@ TEEC_Result TeeClient::AllocateSharedMemory(TEEC_Context *context, TEEC_SharedMe
     }
 
     InitTeecService();
-    if (mServiceValid == false) {
+    if (!mServiceValid) {
         tloge("alloca share mem: teec service not valid\n");
         return TEEC_FAIL;
     }
@@ -1464,7 +1462,7 @@ void TeeClient::RequestCancellation(const TEEC_Operation *operation)
     (void)operation;
     return;
 }
-}
+} // namespace OHOS
 
 
 TEEC_Result TEEC_InitializeContext(const char *name, TEEC_Context *context)

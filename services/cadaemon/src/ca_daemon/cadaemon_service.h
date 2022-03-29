@@ -62,7 +62,7 @@ enum class ServiceRunningState {
 class CaDaemonService : public SystemAbility, public CaDaemonStub {
 DECLARE_SYSTEM_ABILITY(CaDaemonService);
 public:
-    CaDaemonService(int32_t systemAbilityId, bool runOnCreate):SystemAbility(systemAbilityId, runOnCreate) {};
+    CaDaemonService(int32_t systemAbilityId, bool runOnCreate):SystemAbility(systemAbilityId, runOnCreate) {}
     ~CaDaemonService() = default;
     void OnStart() override;
     void OnStop() override;
@@ -91,7 +91,6 @@ private:
     bool registerToService_ = false;
     std::mutex mProcDataLock;
     ServiceRunningState state_ = ServiceRunningState::STATE_NOT_START;
-    sptr<IRemoteObject> dmsdpManager_;
     TEEC_Result SetContextToProcData(int32_t pid, TEEC_ContextInner *outContext);
     DaemonProcdata *CallGetProcDataPtr(int pid);
     bool IsValidContext(const TEEC_Context *context, int pid);
@@ -130,6 +129,6 @@ private:
     std::mutex mClientLock;
     std::vector<sptr<Client>> mClients;
 };
-}
-}
+} // namespace CaDaemon
+} // namespace OHOS
 #endif

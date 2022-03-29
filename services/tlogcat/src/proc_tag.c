@@ -15,7 +15,6 @@
 #include <securec.h>
 #include <sys/types.h>
 #include <tee_client_list.h>
-#include "tlogcat.h"
 
 #include "tee_log.h"
 #include "tlogcat.h"
