@@ -19,14 +19,14 @@
 #endif
 #define LOG_TAG "teecd_auth"
 
-static size_t ReadCmdLine(const char *path, char *buffer, int bufferLen, char *caName, size_t nameLen)
+static int ReadCmdLine(const char *path, char *buffer, int bufferLen, char *caName, size_t nameLen)
 {
     FILE *fd = fopen(path, "rb");
     if (fd == NULL) {
         tloge("fopen is error: %d\n", errno);
         return 0;
     }
-    size_t bytesRead = fread(buffer, sizeof(char), (size_t)bufferLen - 1, fd);
+    int bytesRead = (int)fread(buffer, sizeof(char), (size_t)bufferLen - 1, fd);
     bool readError = (bytesRead == 0 || ferror(fd));
     if (readError) {
         tloge("cannot read from cmdline\n");
@@ -51,7 +51,7 @@ static size_t ReadCmdLine(const char *path, char *buffer, int bufferLen, char *c
  * the CA authentication strategy does not rely much on the pkgname,
  * this is mainly to make it compatible with POHNE_PLATFORM
  */
-static size_t TeeGetCaName(int caPid, char *caName, size_t nameLen)
+static int TeeGetCaName(int caPid, char *caName, size_t nameLen)
 {
     char path[MAX_PATH_LENGTH] = { 0 };
     char temp[CMD_MAX_SIZE] = { 0 };
@@ -67,7 +67,7 @@ static size_t TeeGetCaName(int caPid, char *caName, size_t nameLen)
         return 0;
     }
 
-    size_t bytesRead = ReadCmdLine(path, temp, CMD_MAX_SIZE, caName, nameLen);
+    int bytesRead = ReadCmdLine(path, temp, CMD_MAX_SIZE, caName, nameLen);
 
     return bytesRead;
 }

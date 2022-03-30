@@ -41,7 +41,7 @@ struct LogItem {
     uint16_t magic;
     uint16_t reserved0;
     uint32_t serialNo;
-    int16_t logRealLen;    /* log real len */
+    uint16_t logRealLen;    /* log real len */
     uint16_t logBufferLen; /* log buffer's len, multiple of 32 bytes */
     uint8_t uuid[TEE_UUID_LEN];
     uint8_t logSourceType;

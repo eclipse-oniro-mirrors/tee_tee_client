@@ -231,7 +231,7 @@ static int32_t TEEC_ReadApp(const TaFileInfo *taFile, const char *loadFile, bool
     }
 
     if (realpath(loadFile, realLoadFile) == NULL) {
-        if (defaultPath == false) {
+        if (!defaultPath) {
             tloge("get file realpath error%d\n", errno);
             return -1;
         }
@@ -269,7 +269,7 @@ int32_t TEEC_LoadSecfile(const char *filePath, int tzFd, FILE *fp)
     bool checkValue             = (tzFd < 0 || filePath == NULL);
     FILE *fpCur                 = NULL;
 
-    if (checkValue == true) {
+    if (checkValue) {
         tloge("Param err!\n");
         return -1;
     }

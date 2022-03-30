@@ -41,6 +41,6 @@ private:
     using CaDaemonFunc = int32_t (CaDaemonStub::*)(MessageParcel& data, MessageParcel& reply);
     std::map<uint32_t, CaDaemonFunc> memberFuncMap_;
 };
-}
-}
+} // namespace CaDaemon
+} // namespace OHOS
 #endif

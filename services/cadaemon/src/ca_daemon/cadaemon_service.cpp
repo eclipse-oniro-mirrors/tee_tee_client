@@ -307,7 +307,7 @@ void CaDaemonService::PutBnContextAndReleaseFd(int32_t pid, TEEC_ContextInner *o
 
     lock_guard<mutex> autoLock(mProcDataLock);
 
-    if (PutBnContext(outContext) != true) {
+    if (!PutBnContext(outContext)) {
         return;
     }
 
@@ -343,7 +343,7 @@ TEEC_Result CaDaemonService::InitializeContext(const char *name, MessageParcel &
     (void)memset_s(contextInner, sizeof(*contextInner), 0, sizeof(*contextInner));
     (void)memset_s(caInfo, sizeof(*caInfo), 0, sizeof(*caInfo));
     caInfo->pid = IPCSkeleton::GetCallingPid();
-    caInfo->uid = IPCSkeleton::GetCallingUid();
+    caInfo->uid = (unsigned int)IPCSkeleton::GetCallingUid();
 
     ret = TEEC_InitializeContextInner(contextInner, caInfo);
     if (ret != TEEC_SUCCESS) {
