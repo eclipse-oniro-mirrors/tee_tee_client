@@ -97,7 +97,7 @@ static void GetMiddleChar(const char *startStr, const char *endStr, char **middl
      * Find the position of the tail '-' character.
      * Reverses the position of the '-' character from the position of the ']' character.
      */
-   char *p = (char *)endStr;
+    char *p = (char *)endStr;
     subLen = endStr - startStr + 1;
     for (i = 0; i < subLen; i++) {
         if (*p == '-') {

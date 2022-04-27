@@ -784,7 +784,8 @@ static void WriteWork(struct SecStorageType *transControl)
     tlogv("sec storage : write count = %u\n", transControl->args.write.count);
 
     if (FindOpenFile(transControl->args.write.fd, &selFile) != 0) {
-        size_t count = fwrite((void *)(transControl->args.write.buffer), 1, transControl->args.write.count, selFile->file);
+        size_t count = fwrite((void *)(transControl->args.write.buffer), 1,
+                              transControl->args.write.count, selFile->file);
         if (count < transControl->args.write.count) {
             tloge("write file failed: %d\n", errno);
             transControl->ret   = (int32_t)count;
@@ -1054,7 +1055,7 @@ static void FileAccessWork(struct SecStorageType *transControl)
     tlogv("sec storage : file access\n");
 
     if (transControl->cmd == SEC_ACCESS) {
-	char nameBuff[FILE_NAME_MAX_BUF] = { 0 };
+        char nameBuff[FILE_NAME_MAX_BUF] = { 0 };
         SetCurrentUserId(transControl->userId);
         SetCurrentStorageId(transControl->storageId);
 
@@ -1220,7 +1221,7 @@ void *FsWorkThread(void *control)
     transControl->magic = AGENT_FS_ID;
     while (1) {
         tlogv("++ fs agent loop ++\n");
-        int32_t	ret = ioctl(fsFd, (int32_t)TC_NS_CLIENT_IOCTL_WAIT_EVENT, AGENT_FS_ID);
+        int32_t ret = ioctl(fsFd, (int32_t)TC_NS_CLIENT_IOCTL_WAIT_EVENT, AGENT_FS_ID);
         if (ret != 0) {
             tloge("fs agent  wait event failed, errno = %d\n", errno);
             break;

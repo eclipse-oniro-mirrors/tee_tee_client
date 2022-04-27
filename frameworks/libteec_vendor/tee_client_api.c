@@ -1596,9 +1596,9 @@ TEEC_Result TEEC_CheckOperation(TEEC_ContextInner *context, const TEEC_Operation
         } else if (IS_PARTIAL_MEM(paramType[paramCnt])) {
             ret = TEEC_CheckMemRef(context, operation->params[paramCnt].memref, paramType[paramCnt]);
         } else if (IS_VALUE_MEM(paramType[paramCnt])) {
-            tlogd("if type is value, ignore it");
+            /* if type is value, ignore it */
         } else if (paramType[paramCnt] == TEEC_NONE) {
-            tlogd("if type is none, ignore it");
+            /* if type is none, ignore it */
         } else {
             tloge("paramType is not support\n");
             ret = (TEEC_Result)TEEC_ERROR_BAD_PARAMETERS;

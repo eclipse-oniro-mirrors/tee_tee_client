@@ -55,8 +55,8 @@ int32_t TEEC_GetApp(const TaFileInfo *taFile, const TEEC_UUID *srvUuid, TC_NS_Cl
             tloge("teec load app erro, ta path is not NULL\n");
         }
     } else {
-	char fileName[MAX_FILE_NAME_LEN]                                        = { 0 };
-	char tempName[MAX_FILE_PATH_LEN + MAX_FILE_NAME_LEN + MAX_FILE_EXT_LEN] = { 0 };
+        char fileName[MAX_FILE_NAME_LEN]                                        = { 0 };
+        char tempName[MAX_FILE_PATH_LEN + MAX_FILE_NAME_LEN + MAX_FILE_EXT_LEN] = { 0 };
         const char *filePath = g_imagePath;
         ret = snprintf_s(fileName, sizeof(fileName), sizeof(fileName) - 1,
                          "%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x", srvUuid->timeLow, srvUuid->timeMid,
@@ -274,7 +274,7 @@ int32_t TEEC_LoadSecfile(const char *filePath, int tzFd, FILE *fp)
         return -1;
     }
     if (fp == NULL) {
-	char realPath[PATH_MAX + 1] = { 0 };
+        char realPath[PATH_MAX + 1] = { 0 };
         if (realpath(filePath, realPath) != NULL) {
             fpCur = fopen(realPath, "r");
         }

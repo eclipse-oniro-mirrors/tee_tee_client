@@ -1392,7 +1392,7 @@ TEEC_Result TeeClient::FreeShareMem(TEEC_SharedMemory *sharedMem)
     if (findFlag) {
         if ((sharedMem->buffer != nullptr) && (sharedMem->buffer != ZERO_SIZE_PTR) && (sharedMem->size != 0)) {
             int32_t ret = munmap(sharedMem->buffer, sharedMem->size);
-            if (ret) {
+            if (ret != 0) {
                 tloge("munmap share mem failed, ret=0x%x\n", ret);
             }
             sharedMem->buffer = nullptr;

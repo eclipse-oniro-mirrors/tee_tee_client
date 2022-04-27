@@ -26,7 +26,7 @@
 
 #define MAX_FILE_NAME_LEN 128
 
-static DIR *OpenDynamicDir()
+static DIR *OpenDynamicDir(void)
 {
     DIR *dir = opendir(DYNAMIC_DRV_DIR);
     if (dir == NULL) {
@@ -90,7 +90,7 @@ END:
     return ret;
 }
 
-void LoadDynamicDir()
+void LoadDynamicDir(void)
 {
     struct dirent *dirFile = NULL;
     int fd = GetSecLoadAgentFd();

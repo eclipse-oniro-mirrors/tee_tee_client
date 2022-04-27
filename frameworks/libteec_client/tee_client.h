@@ -24,6 +24,8 @@
 #include "tee_client_inner.h"
 #include "tee_log.h"
 
+namespace OHOS {
+const std::u16string INTERFACE_TOKEN = u"ohos.tee_client.accessToken";
 using TC_NS_ShareMem = struct {
     uint32_t offset;
     void *buffer;
@@ -44,8 +46,6 @@ enum {
     SET_CALL_BACK
 };
 
-namespace OHOS {
-const std::u16string INTERFACE_TOKEN = u"ohos.distributedhardware.accessToken";
 class TeeClient {
 public:
     static TeeClient &GetInstance()

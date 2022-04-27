@@ -15,5 +15,5 @@
 
 #include "dynamic_drv_dir.h"
 
-void LoadDynamicDir();
+void LoadDynamicDir(void);
 #endif

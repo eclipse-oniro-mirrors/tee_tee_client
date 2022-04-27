@@ -26,6 +26,13 @@
 #include "tee_client_inner_api.h"
 #include "tee_client_type.h"
 
+namespace OHOS {
+namespace CaDaemon {
+enum class ServiceRunningState {
+    STATE_NOT_START,
+    STATE_RUNNING
+};
+
 using DaemonProcdata = struct {
     int callingPid;
     uint32_t opsCnt;
@@ -50,13 +57,6 @@ using DecodePara = struct {
     TEEC_SharedMemory shm[TEEC_PARAM_NUM];
     TEEC_SharedMemoryInner *shmInner[TEEC_PARAM_NUM];
     TEEC_ContextInner *contextInner;
-};
-
-namespace OHOS {
-namespace CaDaemon {
-enum class ServiceRunningState {
-    STATE_NOT_START,
-    STATE_RUNNING
 };
 
 class CaDaemonService : public SystemAbility, public CaDaemonStub {

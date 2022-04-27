@@ -24,7 +24,7 @@ using namespace std;
 
 namespace OHOS {
 namespace CaDaemon {
-const std::u16string INTERFACE_TOKEN = u"ohos.distributedhardware.accessToken";
+const std::u16string INTERFACE_TOKEN = u"ohos.tee_client.accessToken";
 CaDaemonStub::CaDaemonStub()
 {
     memberFuncMap_[INIT_CONTEXT] = &CaDaemonStub::InitContextRecvProc;

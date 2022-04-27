@@ -19,6 +19,8 @@
 #include "iremote_broker.h"
 #include "tee_client_type.h"
 
+namespace OHOS {
+namespace CaDaemon {
 enum {
         INIT_CONTEXT = 0,
         FINAL_CONTEXT,
@@ -31,8 +33,6 @@ enum {
         SET_CALL_BACK
     };
 
-namespace OHOS {
-namespace CaDaemon {
 class CaDaemon : public OHOS::IRemoteBroker {
 public:
     virtual TEEC_Result InitializeContext(const char *name, MessageParcel &reply) = 0;
