@@ -172,7 +172,7 @@ TEEC_Result TEEC_RegisterSharedMemory(TEEC_Context *context, TEEC_SharedMemory *
  * The zero-copy function, however, also requires support by the operating system.
  * At present, zero-copy cannot be implemented in this manner.
  *
- * @attention If the <b>size</b> field of the input parameter <b>sharedMem</b> is set to <b>0</b>, <b>TEEC_SUCCESS</b> will be returned but 
+ * @attention If the <b>size</b> field of the input parameter <b>sharedMem</b> is set to <b>0</b>, <b>TEEC_SUCCESS</b> will be returned but
  * the shared memory cannot be used because this memory has neither an address nor size.
  * @param context [IN/OUT] Indicates the pointer to the TEE that is successfully initialized.
  * @param sharedMem [IN/OUT] Indicates the pointer to the shared memory. The size of the shared memory cannot be 0.
