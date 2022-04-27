@@ -191,7 +191,7 @@ static void TrySyncSysTimeToSecure(void)
 
     if (syncSysTimed == 0) {
         int ret = SyncSysTimeToSecure();
-        if (ret) {
+        if (ret != 0) {
             tloge("failed to sync sys time to secure\n");
         } else {
             syncSysTimed = 1;

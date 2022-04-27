@@ -19,7 +19,6 @@
  * @brief Provides APIs for the client applications (CAs) in the Rich Execution Environment (normal mode) to
  * access the trusted applications (TAs) in a Trusted Execution Environment (TEE).
  *
- *
  * @since 8
  */
 
@@ -79,7 +78,7 @@ enum TEEC_ReturnCode {
     /** The operation is canceled. This error code is returned when you operate the parameter with the cancallation flag. */
     TEEC_ERROR_CANCEL = 0xFFFF0002,
     /** Concurrent access causes permission conflict. Concurrent access to files in the trusted storage service may cause this error. */
-    TEEC_ERROR_ACCESS_CONFLICT = 0xFFFF0003, 
+    TEEC_ERROR_ACCESS_CONFLICT = 0xFFFF0003,
     /** Too much data is passed in the requested operation for the TA to parse. */
     TEEC_ERROR_EXCESS_DATA = 0xFFFF0004,
     /** Incorrect data format. The TA failed to parse the parameters sent from the CA. */
