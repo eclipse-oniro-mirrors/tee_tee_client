@@ -22,7 +22,6 @@ shared_library("libteec_vendor") {
 
     include_dirs = [
         "//third_party/bounds_checking_function/include",
-        "//utils/native/base/include",
         "//utils/system/safwk/native/include",
         "//developtools/liblog",
         "//base/hiviewdfx/hilog/interfaces/native/innerkits/include",

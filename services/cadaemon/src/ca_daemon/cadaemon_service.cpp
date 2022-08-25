@@ -12,6 +12,7 @@
 
 #include "cadaemon_service.h"
 #include <cerrno>
+#include <csignal>
 #include <memory>
 #include <pthread.h>
 #include <securec.h>
