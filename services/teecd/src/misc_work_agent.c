@@ -38,9 +38,9 @@ static void GetTimeWork(struct MiscControlType *transControl)
         if (tstruct != NULL) {
             /* year(from 1900) months(0~11) days hour min second */
             errno_t rc = snprintf_s(transControl->Args.GetTime.timeStr, sizeof(transControl->Args.GetTime.timeStr),
-                            sizeof(transControl->Args.GetTime.timeStr) - 1, "%04d-%02d-%02d %02d:%02d:%02d.%03d ",
-                            tstruct->tm_year + 1900, tstruct->tm_mon + 1, tstruct->tm_mday, tstruct->tm_hour,
-                            tstruct->tm_min, tstruct->tm_sec, (int)(timeVal.tv_usec / 1000));
+                sizeof(transControl->Args.GetTime.timeStr) - 1, "%04d-%02d-%02d %02d:%02d:%02d.%03d ",
+                tstruct->tm_year + 1900, tstruct->tm_mon + 1, tstruct->tm_mday, tstruct->tm_hour,
+                tstruct->tm_min, tstruct->tm_sec, (int)(timeVal.tv_usec / 1000));
             if (rc == -1) {
                 transControl->ret = -1;
                 tloge("snprintf_s error %d\n", rc);

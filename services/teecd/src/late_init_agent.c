@@ -29,7 +29,7 @@
 void *InitLateWorkThread(void *dummy)
 {
     (void)dummy;
-    unsigned int index            = FS_LATE_INIT;
+    unsigned int index = FS_LATE_INIT;
     struct timespec ts;
     ts.tv_sec  = 0;
     ts.tv_nsec = SLEEP_TIME;

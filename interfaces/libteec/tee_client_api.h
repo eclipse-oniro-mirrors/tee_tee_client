@@ -19,7 +19,6 @@
  * @brief Provides APIs for the client applications (CAs) in the Rich Execution Environment (normal mode) to
  * access the trusted applications (TAs) in a Trusted Execution Environment (TEE).
  *
- *
  * @since 8
  */
 
@@ -63,7 +62,6 @@ extern "C" {
 
 /**
  * @brief Initializes a TEE.
- *
  *
  * The TEE must be initialized before a session is open or commands are sent.
  * After the initialization, a connection is set up between the CA and the TEE.
@@ -135,7 +133,6 @@ void TEEC_CloseSession(TEEC_Session *session);
  * @brief Sends a command to a TA.
  *
  * The CA sends the command ID to the TA through the specified session.
- * 
  *
  * @param session [IN/OUT] Indicates the pointer to the session opened.
  * @param commandID [IN] Indicates the command ID supported by the TA. It is defined by the TA.
@@ -175,7 +172,7 @@ TEEC_Result TEEC_RegisterSharedMemory(TEEC_Context *context, TEEC_SharedMemory *
  * The zero-copy function, however, also requires support by the operating system.
  * At present, zero-copy cannot be implemented in this manner.
  *
- * @attention If the <b>size</b> field of the input parameter <b>sharedMem</b> is set to <b>0</b>, <b>TEEC_SUCCESS</b> will be returned but 
+ * @attention If the <b>size</b> field of the input parameter <b>sharedMem</b> is set to <b>0</b>, <b>TEEC_SUCCESS</b> will be returned but
  * the shared memory cannot be used because this memory has neither an address nor size.
  * @param context [IN/OUT] Indicates the pointer to the TEE that is successfully initialized.
  * @param sharedMem [IN/OUT] Indicates the pointer to the shared memory. The size of the shared memory cannot be 0.
@@ -190,8 +187,6 @@ TEEC_Result TEEC_AllocateSharedMemory(TEEC_Context *context, TEEC_SharedMemory *
 /**
  * @brief Releases the shared memory registered or acquired.
  *
- * 
- *
  * @attention If the shared memory is acquired by using {@code TEEC_AllocateSharedMemory},
  * the memory released will be reclaimed. If the shared memory is acquired by using {@code TEEC_RegisterSharedMemory},
  * the local memory released will not be reclaimed.
@@ -203,9 +198,6 @@ void TEEC_ReleaseSharedMemory(TEEC_SharedMemory *sharedMem);
 
 /**
  * @brief Cancels an operation.
- *
- * 
- * 
  *
  * @attention This operation is only used to send a cancel message. Whether to perform the cancel operation is determined by the TEE or TA. At present, the cancel operation does not take effect.
  * @param operation [IN/OUT] Indicates the pointer to the data to be sent from the CA to the TA.

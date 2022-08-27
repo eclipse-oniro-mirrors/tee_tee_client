@@ -175,7 +175,7 @@ static TEEC_Result AddTidData(TidData **tidData, int pid)
     ListInit(&(*tidData)->tidHead);
 
     mutexRet = TidMutexLock();
-    if (mutexRet) {
+    if (mutexRet != 0) {
         tloge("tid mutex lock failed\n");
         free(*tidData);
         *tidData = nullptr;
@@ -196,7 +196,7 @@ static void SendSigToTzdriver(int pid)
     tlogd("ignore signal SIGUSR1!\n");
 
     mutexRet = TidMutexLock();
-    if (mutexRet) {
+    if (mutexRet != 0) {
         tloge("tid mutex lock failed\n");
         return;
     }
@@ -215,10 +215,9 @@ static void SendSigToTzdriver(int pid)
 bool CaDaemonService::IsValidContextWithoutLock(const TEEC_Context *context, int pid)
 {
     int i;
-    int tmpCheckStatus;
     DaemonProcdata *outProcData = GetProcdataByPid(pid);
 
-    tmpCheckStatus = (outProcData == nullptr || context == nullptr);
+    bool tmpCheckStatus = (outProcData == nullptr || context == nullptr);
     if (tmpCheckStatus) {
         return false;
     }
@@ -729,8 +728,8 @@ TEEC_Result CaDaemonService::CallGetBnSession(int pid, const TEEC_Context *inCon
     TEEC_ContextInner *tmpContext = nullptr;
     TEEC_Session *tmpSession = nullptr;
 
-    int tmpCheckStatus = ((inContext == nullptr) || (inSession == nullptr) ||
-                          (!IsValidContext(inContext, pid)));
+    bool tmpCheckStatus = ((inContext == nullptr) || (inSession == nullptr) ||
+                           (!IsValidContext(inContext, pid)));
     if (tmpCheckStatus) {
         tloge("getSession: invalid context!\n");
         return TEEC_FAIL;
@@ -810,8 +809,8 @@ TEEC_Result CaDaemonService::CloseSession(TEEC_Session *session, TEEC_Context *c
 {
     pid_t pid = IPCSkeleton::GetCallingPid();
     TidData *tidData = nullptr;
-    int ret = (session == nullptr) || (context == nullptr) ||
-                          (!IsValidContext(context, pid));
+    bool ret = (session == nullptr) || (context == nullptr) ||
+               (!IsValidContext(context, pid));
     if (ret) {
         tloge("closeSession: invalid context!\n");
         return TEEC_FAIL;
@@ -1033,7 +1032,7 @@ int32_t CaDaemonService::SetCallBack(const sptr<IRemoteObject> &notify)
     tloge("SetCallBack, ca pid=%{public}d", pid);
 
     int32_t ret = AddClient(pid, notify);
-    if (ret) {
+    if (ret != 0) {
         tloge("client link to death failed, pid=%{public}d", pid);
     }
     return ret;
