@@ -63,7 +63,7 @@ class CaDaemonService : public SystemAbility, public CaDaemonStub {
 DECLARE_SYSTEM_ABILITY(CaDaemonService);
 public:
     CaDaemonService(int32_t systemAbilityId, bool runOnCreate):SystemAbility(systemAbilityId, runOnCreate) {}
-    ~CaDaemonService() = default;
+    ~CaDaemonService() override = default;
     void OnStart() override;
     void OnStop() override;
     ServiceRunningState QueryServiceState() const

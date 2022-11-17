@@ -900,9 +900,9 @@ TEEC_Result TeeClient::CopyTeecOptMem(TEEC_Operation *operation, size_t optMemSi
         return TEEC_SUCCESS;
     }
 
-    optMem = Ashmem::CreateAshmem("TeeClient", (int32_t)optMemSize);
+    optMem = Ashmem::CreateAshmem("TeeClient", static_cast<int32_t>(optMemSize));
     if (optMem == nullptr) {
-        tloge("not enough memory for opt size=%{public}u", (uint32_t)optMemSize);
+        tloge("not enough memory for opt size=%{public}u", static_cast<uint32_t>(optMemSize));
         goto ERROR;
     }
 
