@@ -37,11 +37,11 @@ ohos_executable("tlogcat") {
     ]
 
     deps = [
-        "//utils/native/base:utils",
         "//third_party/zlib:libz",
     ]
 
     external_deps = [
+        "c_utils:utils",
         "hiviewdfx_hilog_native:libhilog",
     ]
 }

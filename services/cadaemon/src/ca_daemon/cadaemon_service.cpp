@@ -12,10 +12,14 @@
 
 #include "cadaemon_service.h"
 #include <cerrno>
+#include <csignal>
 #include <memory>
 #include <pthread.h>
 #include <securec.h>
 #include <sys/syscall.h>
+#ifdef CADAEMON_USE_MUSL
+#include <sys/tgkill.h>
+#endif
 #include <sys/types.h>
 #include "if_system_ability_manager.h"
 #include "ipc_skeleton.h"
@@ -152,8 +156,9 @@ static void SigUsr1Handler(int sign)
 static void RemoveTidFromList(TidData *tidData)
 {
     int retMutexLock = TidMutexLock();
-    if (retMutexLock)
+    if (retMutexLock) {
         tloge("tid mutex lock failed\n");
+    }
 
     ListRemoveEntry(&tidData->tidHead);
     TidMutexUnlock(retMutexLock);

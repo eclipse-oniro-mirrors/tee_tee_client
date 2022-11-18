@@ -64,7 +64,7 @@ static int TeeGetCaName(int caPid, char *caName, size_t nameLen)
     int ret = snprintf_s(path, sizeof(path), sizeof(path) - 1, "/proc/%d/cmdline", caPid);
     if (ret == -1) {
         tloge("tee get ca name snprintf_s err\n");
-        return -1;
+        return ret;
     }
 
     int bytesRead = ReadCmdLine(path, temp, CMD_MAX_SIZE, caName, nameLen);

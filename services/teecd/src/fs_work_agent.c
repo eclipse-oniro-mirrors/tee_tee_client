@@ -150,10 +150,7 @@ static void ChownSecStorageDataToSystem(const char *path, bool flag)
      * we only need to change SEC_STORAGE_DATA_DIR from root to system
      */
     if (strstr(path, "sec_storage_data") != NULL) {
-        int32_t ret = chown(path, AID_SYSTEM, AID_SYSTEM);
-        if (ret < 0) {
-            tloge("chown erro\n");
-        }
+        int32_t ret;
         if (flag) {
             ret = chmod(path, S_IRUSR | S_IWUSR);
         } else {

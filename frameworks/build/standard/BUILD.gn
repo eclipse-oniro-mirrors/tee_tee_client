@@ -20,7 +20,7 @@ ohos_shared_library("libteec") {
     ]
 
     include_dirs = [
-        "//utils/native/base/include",
+        "//commonlibrary/c_utils/base/include",
         "//utils/system/safwk/native/include",
         "//developtools/liblog",
         "//base/tee/tee_client/interfaces/libteec",
@@ -31,14 +31,14 @@ ohos_shared_library("libteec") {
     ]
 
     deps = [
-        "//utils/native/base:utils",
         "//third_party/bounds_checking_function:libsec_shared",
     ]
 
     external_deps = [
+        "c_utils:utils",
         "hiviewdfx_hilog_native:libhilog",
         "ipc:ipc_core",
         "safwk:system_ability_fwk",
-        "samgr_standard:samgr_proxy",
+        "samgr:samgr_proxy",
     ]
 }

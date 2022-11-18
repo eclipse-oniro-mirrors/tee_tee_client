@@ -146,11 +146,6 @@ static int32_t LogFilesMkdirR(const char *path)
                 free(temp);
                 return -1;
             }
-
-            ret = chown(temp, (uid_t)-1, g_teePathGroup);
-            if (ret < 0) {
-                tloge("chown %s err %d\n", temp, ret);
-            }
             ret = chmod(temp, TLOGCAT_FILE_MODE);
             if (ret < 0) {
                 tloge("chmod %s err %d\n", temp, ret);
@@ -252,10 +247,6 @@ static FILE *LogFilesOpen(const char *logName, long *fileLen)
         tloge("fileno is error\n");
         (void)fclose(file);
         return NULL;
-    }
-    ret = fchown(fd2, (uid_t)-1, g_teePathGroup);
-    if (ret < 0) {
-        tloge("chown error\n");
     }
     ret = fchmod(fd2, S_IRUSR | S_IWUSR | S_IRGRP);
     if (ret < 0) {
@@ -1056,6 +1047,9 @@ static void Func(bool writeFile)
 
 static void GetTeePathGroup(void)
 {
+#ifdef AID_SYSTEM
+    g_teePathGroup = AID_SYSTEM;
+#else
     struct stat pathStat = {0};
 
     if (stat(TEE_LOG_PATH_BASE, &pathStat) != 0) {
@@ -1063,6 +1057,7 @@ static void GetTeePathGroup(void)
         return;
     }
     g_teePathGroup = pathStat.st_gid;
+#endif
 }
 
 #define MAX_TEE_LOG_SUBFOLDER_LEN      30U
