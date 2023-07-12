@@ -13,14 +13,15 @@
       "ram": "5995KB",
       "deps": {
         "components": [
-          "libhilog",
-          "ipc_core",
-          "system_ability_fwk",
-          "samgr_proxy",
+          "hiviewdfx_hilog_native",
+          "ipc",
+          "safwk",
+          "samgr",
           "c_utils"
         ],
         "third_party": [
-          "bounds_checking_function"
+          "bounds_checking_function",
+	  "zlib"
         ]
       },
       "build": {

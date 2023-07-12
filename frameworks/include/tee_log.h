@@ -24,6 +24,11 @@ extern "C" {
 #endif
 #define LOG_TAG "tee_client"
 
+#ifdef LOG_DOMAIN
+#undef LOG_DOMAIN
+#endif
+#define LOG_DOMAIN 0xD002F00
+
 #define tlogv(...) HILOG_DEBUG(LOG_CORE, __VA_ARGS__)
 
 #define tlogd(...) HILOG_DEBUG(LOG_CORE, __VA_ARGS__)

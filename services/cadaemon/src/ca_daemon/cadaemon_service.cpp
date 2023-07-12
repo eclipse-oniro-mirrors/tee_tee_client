@@ -17,9 +17,7 @@
 #include <pthread.h>
 #include <securec.h>
 #include <sys/syscall.h>
-#ifdef CADAEMON_USE_MUSL
 #include <sys/tgkill.h>
-#endif
 #include <sys/types.h>
 #include "if_system_ability_manager.h"
 #include "ipc_skeleton.h"
