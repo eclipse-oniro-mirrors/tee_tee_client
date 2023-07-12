@@ -41,10 +41,6 @@ ohos_shared_library("libcadaemon") {
         "//third_party/bounds_checking_function:libsec_shared",
     ]
 
-    if (use_musl) {
-        defines += [ "CADAEMON_USE_MUSL" ]
-    }
-
     external_deps = [
         "c_utils:utils",
         "hiviewdfx_hilog_native:libhilog",

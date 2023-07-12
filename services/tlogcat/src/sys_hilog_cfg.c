@@ -24,7 +24,7 @@
 #ifdef LOG_DOMAIN
 #undef LOG_DOMAIN
 #endif
-#define LOG_DOMAIN 0xD005000
+#define LOG_DOMAIN 0xD002F00
 
 static char g_logItemBuffer[LOG_ITEM_MAX_LEN];
 
