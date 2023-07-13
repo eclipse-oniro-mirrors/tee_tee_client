@@ -1,0 +1,12 @@
+{
+    "process": "cadaemon",
+    "systemability": [
+        {
+            "name": 8001,
+            "libpath": "libcadaemon.z.so",
+            "run-on-create": true,
+            "distributed": false,
+            "dump_level": 1
+        }
+    ]
+}
