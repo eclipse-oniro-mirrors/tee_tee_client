@@ -13,7 +13,7 @@
       "ram": "5995KB",
       "deps": {
         "components": [
-          "hiviewdfx_hilog_native",
+          "hilog",
           "ipc",
           "safwk",
           "samgr",
