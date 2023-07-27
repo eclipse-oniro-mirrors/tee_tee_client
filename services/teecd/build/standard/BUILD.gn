@@ -42,6 +42,6 @@ ohos_executable("teecd") {
 
     external_deps = [
         "c_utils:utils",
-        "hiviewdfx_hilog_native:libhilog",
+        "hilog:libhilog",
     ]
 }
