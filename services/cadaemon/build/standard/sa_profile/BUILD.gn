@@ -12,7 +12,7 @@ import("//build/ohos/sa_profile/sa_profile.gni")
 
 ohos_sa_profile("cadaemon_profile") {
   sources = [
-    "cadaemon.json",
+    "8001.json",
   ]
   part_name = "tee_client"
 }

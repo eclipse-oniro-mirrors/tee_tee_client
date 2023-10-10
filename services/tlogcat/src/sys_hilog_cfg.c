@@ -50,7 +50,7 @@ static void TeeHilogPrint(const struct LogItem *logItem, const char *logItemBuff
         logLevel = LOG_INFO;
     }
 
-    (void)HiLogPrint(LOG_CORE, logLevel, LOG_DOMAIN, logTag, "index: %u: %s",
+    (void)HiLogPrint(LOG_CORE, logLevel, LOG_DOMAIN, logTag, "index: %{public}u: %{public}s",
         logItem->serialNo, logItemBuffer);
 }
 

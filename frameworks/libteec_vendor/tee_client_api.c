@@ -30,6 +30,8 @@
 #include "tee_client_list.h"
 #include "tee_get_native_cert.h"
 #include "tee_log.h"
+#include "tee_client_socket.h"
+#include "tee_auth_system.h"
 
 #define TEE_ERROR_CA_AUTH_FAIL 0xFFFFCFE5
 
@@ -549,6 +551,14 @@ static void TEEC_EncodeValueParam(const TEEC_Value *val, TC_NS_ClientParam *para
     param->value.b_h_addr = ((unsigned long long)(uintptr_t)&val->b) >> H_OFFSET;
 }
 
+static void TEEC_EncodeIonParam(const TEEC_IonReference *ionRef, TC_NS_ClientParam *param)
+{
+    param->value.a_addr   = (unsigned int)(uintptr_t)&ionRef->ionShareFd;
+    param->value.a_h_addr = (unsigned int)(((unsigned long long)(uintptr_t)&ionRef->ionShareFd) >> H_OFFSET);
+    param->value.b_addr   = (unsigned int)(uintptr_t)&ionRef->ionSize;
+    param->value.b_h_addr = (unsigned int)(((unsigned long long)(uintptr_t)&ionRef->ionSize) >> H_OFFSET);
+}
+
 static void TEEC_EncodeParam(TC_NS_ClientContext *cliContext, const TEEC_Operation *operation)
 {
     uint32_t paramType[TEEC_PARAM_NUM];
@@ -559,6 +569,7 @@ static void TEEC_EncodeParam(TC_NS_ClientContext *cliContext, const TEEC_Operati
 
     for (paramCnt = 0; paramCnt < TEEC_PARAM_NUM; paramCnt++) {
         paramType[paramCnt] = TEEC_PARAM_TYPE_GET(operation->paramTypes, paramCnt);
+        bool checkValue     = (paramType[paramCnt] == TEEC_ION_INPUT || paramType[paramCnt] == TEEC_ION_SGLIST_INPUT);
         if (IS_TEMP_MEM(paramType[paramCnt])) {
             TEEC_EncodeTempParam(&operation->params[paramCnt].tmpref, &cliContext->params[paramCnt]);
         } else if (IS_PARTIAL_MEM(paramType[paramCnt])) {
@@ -578,6 +589,8 @@ static void TEEC_EncodeParam(TC_NS_ClientContext *cliContext, const TEEC_Operati
             }
         } else if (IS_VALUE_MEM(paramType[paramCnt])) {
             TEEC_EncodeValueParam(&operation->params[paramCnt].value, &cliContext->params[paramCnt]);
+        } else if (checkValue == true) {
+            TEEC_EncodeIonParam(&operation->params[paramCnt].ionref, &cliContext->params[paramCnt]);
         }
     }
 
@@ -619,7 +632,23 @@ static TEEC_Result TEEC_Encode(TC_NS_ClientContext *cliContext, const TEEC_Sessi
     return TEEC_SUCCESS;
 }
 
-static int32_t ObtainTzdriveFd()
+#ifdef LIB_TEEC_VENDOR
+static int CaDaemonConnectWithoutCaInfo(void)
+{
+    int ret;
+    errno_t rc;
+    CaAuthInfo caInfo;
+
+    rc = memset_s(&caInfo, sizeof(caInfo), 0, sizeof(caInfo));
+    if (rc != EOK) {
+        return -1;
+    }
+
+    ret = CaDaemonConnectWithCaInfo(&caInfo, GET_FD);
+    return ret;
+}
+#else
+static int32_t ObtainTzdriveFd(void)
 {
     int32_t fd = open(TC_NS_CLIENT_DEV_NAME, O_RDWR);
     if (fd < 0) {
@@ -629,59 +658,78 @@ static int32_t ObtainTzdriveFd()
     return fd;
 }
 
-static TEEC_Result SetLoginInfo(const CaAuthInfo *caInfo, int32_t fd)
+static int32_t SetLoginInfo(const CaAuthInfo *caInfo, int32_t fd)
 {
-    uint8_t *buf = NULL;
-    TEEC_Result teeRet = TEEC_ERROR_GENERIC;
     int32_t ret;
-
-    if (caInfo != NULL) {
-        uint32_t bufLen = BUFF_LEN_MAX;
-        buf = (uint8_t *)malloc(bufLen);
-        if (buf == NULL) {
-            tloge("malloc failed\n");
-            goto END;
-        }
-
-        ret = memset_s(buf, bufLen, 0, bufLen);
-        if (ret != EOK) {
-            tloge("memset buf failed\n");
-            goto END;
-        }
-
-        ret = TeeGetNativeCert(caInfo->pid, caInfo->uid, &bufLen, buf);
-        if (ret) {
-            tloge("CERT check failed\n");
-            goto END;
-        }
+    int32_t rc = 0;
+    uint32_t bufLen = BUF_MAX_SIZE;
+    uint8_t *buf = (uint8_t *)malloc(bufLen);
+    if (buf == NULL) {
+        tloge("malloc failed\n");
+        return -1;
+    }
+    ret = memset_s(buf, bufLen, 0, bufLen);
+    if (ret != EOK) {
+        tloge("memset buf failed\n");
+        goto END;
     }
 
-    if (buf != NULL) {
+    switch (caInfo->type) {
+        case SYSTEM_CA:
+            tlogd("system ca type\n");
+            rc = TeeGetNativeCert(caInfo->pid, caInfo->uid, &bufLen, buf);
+            break;
+        case SA_CA:
+            tlogd("sa ca type\n");
+            rc = TEEGetNativeSACaInfo(caInfo, buf, bufLen);
+            break;
+        case APP_CA:
+            tlogd("hap ca type\n");
+            if (memcpy_s(buf, bufLen, caInfo->certs, sizeof(caInfo->certs)) != EOK) {
+                tloge("memcpy hap cainfo failed\n");
+                rc = -1;
+            }
+            break;
+        default:
+            tloge("invaild ca type %d\n", caInfo->type);
+            rc = -1;
+            break;
+    }
+
+    if (rc != 0) {
+        /* Inform the driver the cert could not be set */
+        ret = ioctl(fd, TC_NS_CLIENT_IOCTL_LOGIN, NULL);
+    } else {
         ret = ioctl(fd, TC_NS_CLIENT_IOCTL_LOGIN, buf);
-    } else {
-        ret = ioctl(fd, TC_NS_CLIENT_IOCTL_LOGIN, 0);
     }
 
-    if (ret) {
-        tloge("Failed to set login information for client err = %d\n", ret);
-        teeRet = TEEC_ERROR_GENERIC;
+    if (ret != 0) {
+        tloge("Failed to set login information for client err = %d, %d\n", ret, caInfo->type);
     } else {
-        teeRet = TEEC_SUCCESS;
+        ret = rc;
     }
 
 END:
-    if (buf != NULL) {
-        free(buf);
-        buf = NULL;
-    }
-
-    return teeRet;
+    free(buf);
+    buf = NULL;
+    return ret;
 }
+#endif
 
 TEEC_Result TEEC_InitializeContextInner(TEEC_ContextInner *context, const CaAuthInfo *caInfo)
 {
     if (context == NULL) {
         tloge("Initial context: context is NULL\n");
+        return TEEC_ERROR_BAD_PARAMETERS;
+    }
+#ifdef LIB_TEEC_VENDOR
+    int32_t fd = CaDaemonConnectWithoutCaInfo();
+    if (fd < 0) {
+        tloge("connect() failed, fd %d", fd);
+        return TEEC_ERROR_GENERIC;
+    }
+#else
+    if (caInfo == NULL) {
         return TEEC_ERROR_BAD_PARAMETERS;
     }
 
@@ -696,7 +744,7 @@ TEEC_Result TEEC_InitializeContextInner(TEEC_ContextInner *context, const CaAuth
         close(fd);
         return TEEC_ERROR_GENERIC;
     }
-
+#endif
     context->fd           = (uint32_t)fd;
     context->ops_cnt      = 1;
 
@@ -872,7 +920,6 @@ static TEEC_Result TEEC_DoOpenSession(int fd, TC_NS_ClientContext *cliContext, c
 {
     int32_t ret;
     TEEC_Result teecRet;
-
     int i = CA_AUTH_RETRY_TIMES;
     do {
         cliContext->returns.code   = 0;
@@ -884,7 +931,7 @@ static TEEC_Result TEEC_DoOpenSession(int fd, TC_NS_ClientContext *cliContext, c
         tloge("open session failed, ioctl errno = %d\n", ret);
         teecRet                    = TranslateRetValue(ret);
         cliContext->returns.origin = TEEC_ORIGIN_COMMS;
-        goto ERROR;
+        return teecRet;
     } else if (ret > 0) {
         tloge("open session failed(%d), code=0x%x, origin=%u\n", ret, cliContext->returns.code,
               cliContext->returns.origin);
@@ -893,13 +940,10 @@ static TEEC_Result TEEC_DoOpenSession(int fd, TC_NS_ClientContext *cliContext, c
         } else {
             teecRet = (TEEC_Result)TEEC_ERROR_GENERIC;
         }
-        goto ERROR;
+        return teecRet;
     }
 
     return AddSessionList(cliContext->session_id, destination, context, session);
-
-ERROR:
-    return teecRet;
 }
 
 TEEC_Result TEEC_OpenSessionInner(int callingPid, const TaFileInfo *taFile, TEEC_ContextInner *context,
@@ -1555,9 +1599,12 @@ static TEEC_Result TEEC_CheckMemRef(TEEC_ContextInner *context, TEEC_RegisteredM
         }
     }
 
-    if (!CheckSharedBufferExist(context, &memref)) {
-        return (TEEC_Result)TEEC_FAIL;
+    if (memref.parent->is_allocated) {
+        if (!CheckSharedBufferExist(context, &memref)) {
+            return (TEEC_Result)TEEC_FAIL;
+        }
     }
+
     return (TEEC_Result)TEEC_SUCCESS;
 PARAM_ERROR:
     tloge("type of memref not belong to the parent flags\n");
@@ -1591,14 +1638,22 @@ TEEC_Result TEEC_CheckOperation(TEEC_ContextInner *context, const TEEC_Operation
 
     for (paramCnt = 0; paramCnt < TEEC_PARAM_NUM; paramCnt++) {
         paramType[paramCnt] = TEEC_PARAM_TYPE_GET(operation->paramTypes, paramCnt);
+        bool checkValue     = (paramType[paramCnt] == TEEC_ION_INPUT || paramType[paramCnt] == TEEC_ION_SGLIST_INPUT);
         if (IS_TEMP_MEM(paramType[paramCnt])) {
             ret = TEEC_CheckTmpRef(operation->params[paramCnt].tmpref);
         } else if (IS_PARTIAL_MEM(paramType[paramCnt])) {
             ret = TEEC_CheckMemRef(context, operation->params[paramCnt].memref, paramType[paramCnt]);
         } else if (IS_VALUE_MEM(paramType[paramCnt])) {
-            /* if type is value, ignore it */
+            /*  if type is value, ignore it */
+        } else if (checkValue == true) {
+            if (operation->params[paramCnt].ionref.ionShareFd < 0 ||
+                operation->params[paramCnt].ionref.ionSize == 0) {
+                tloge("check failed: ion_share_fd and ion_size\n");
+                ret = (TEEC_Result)TEEC_ERROR_BAD_PARAMETERS;
+                break;
+            }
         } else if (paramType[paramCnt] == TEEC_NONE) {
-            /* if type is none, ignore it */
+            /*  if type is none, ignore it */
         } else {
             tloge("paramType is not support\n");
             ret = (TEEC_Result)TEEC_ERROR_BAD_PARAMETERS;
@@ -1662,4 +1717,121 @@ void TEEC_RequestCancellation(TEEC_Operation *operation)
     }
 
     return;
+}
+
+#ifdef LIB_TEEC_VENDOR
+TEEC_Result TEEC_EXT_RegisterAgent(uint32_t agentId, int *devFd, void **buffer)
+{
+    int ret;
+    struct AgentIoctlArgs args = { 0 };
+
+    if ((devFd == NULL) || (buffer == NULL)) {
+        tloge("Failed to open tee client dev!\n");
+        return (TEEC_Result)TEEC_ERROR_GENERIC;
+    }
+
+    int fd = CaDaemonConnectWithoutCaInfo();
+    if (fd < 0) {
+        tloge("Failed to open tee client dev!\n");
+        return (TEEC_Result)TEEC_ERROR_GENERIC;
+    }
+
+    args.id         = agentId;
+    args.bufferSize = AGENT_BUFF_SIZE;
+    ret             = ioctl(fd, TC_NS_CLIENT_IOCTL_REGISTER_AGENT, &args);
+    if (ret != 0) {
+        (void)close(fd);
+        tloge("ioctl failed, failed to register agent!\n");
+        return (TEEC_Result)TEEC_ERROR_GENERIC;
+    }
+
+    *devFd  = fd;
+    *buffer = args.buffer;
+    return TEEC_SUCCESS;
+}
+
+TEEC_Result TEEC_EXT_WaitEvent(uint32_t agentId, int devFd)
+{
+    int ret;
+
+    ret = ioctl(devFd, TC_NS_CLIENT_IOCTL_WAIT_EVENT, agentId);
+    if (ret != 0) {
+        tloge("Agent 0x%x wait failed, errno=%d\n", agentId, ret);
+        return TEEC_ERROR_GENERIC;
+    }
+
+    return TEEC_SUCCESS;
+}
+
+TEEC_Result TEEC_EXT_SendEventResponse(uint32_t agentId, int devFd)
+{
+    int ret;
+    ret = ioctl(devFd, TC_NS_CLIENT_IOCTL_SEND_EVENT_RESPONSE, agentId);
+    if (ret != 0) {
+        tloge("Agent %u failed to send response, ret is %d!\n", agentId, ret);
+        return (TEEC_Result)TEEC_ERROR_GENERIC;
+    }
+
+    return TEEC_SUCCESS;
+}
+
+TEEC_Result TEEC_EXT_UnregisterAgent(uint32_t agentId, int devFd, void **buffer)
+{
+    int ret;
+    TEEC_Result result = TEEC_SUCCESS;
+
+    if (buffer == NULL || *buffer == NULL) {
+        tloge("buffer is invalid!\n");
+        return TEEC_ERROR_BAD_PARAMETERS;
+    }
+    if (devFd < 0) {
+        tloge("fd is invalid!\n");
+        return TEEC_ERROR_BAD_PARAMETERS;
+    }
+    ret = ioctl(devFd, TC_NS_CLIENT_IOCTL_UNREGISTER_AGENT, agentId);
+    if (ret != 0) {
+        tloge("Failed to unregister agent %u, ret is %d\n", agentId, ret);
+        result = TEEC_ERROR_GENERIC;
+    }
+
+    (void)close(devFd);
+    *buffer = NULL;
+    return result;
+}
+
+TEEC_Result TEEC_SendSecfile(const char *path, TEEC_Session *session)
+{
+    TEEC_Result ret = (TEEC_Result)TEEC_SUCCESS;
+    TEEC_ContextInner *contextInner = NULL;
+
+    if (path == NULL || session == NULL || session->context == NULL) {
+        tloge("params error!\n");
+        return TEEC_ERROR_BAD_PARAMETERS;
+    }
+    contextInner = GetBnContext(session->context);
+    if (contextInner == NULL) {
+        tloge("find context hidl failed!\n");
+        return TEEC_ERROR_BAD_PARAMETERS;
+    }
+
+    ret = TEEC_SendSecfileInner(path, contextInner->fd, NULL);
+    (void)PutBnContext(contextInner);
+    return ret;
+}
+#endif
+
+TEEC_Result TEEC_SendSecfileInner(const char *path, int tzFd, FILE *fp)
+{
+    int32_t ret;
+    TEEC_Result teecRet = (TEEC_Result)TEEC_SUCCESS;
+
+    if (path == NULL) {
+        return TEEC_ERROR_BAD_PARAMETERS;
+    }
+    ret = TEEC_LoadSecfile(path, tzFd, fp);
+    if (ret < 0) {
+        tloge("Send secfile error\n");
+        teecRet = (TEEC_Result)TEEC_ERROR_TRUSTED_APP_LOAD_ERROR;
+    }
+    return teecRet;
 }

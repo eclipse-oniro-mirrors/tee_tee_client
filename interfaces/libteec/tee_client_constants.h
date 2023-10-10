@@ -163,6 +163,10 @@ enum TEEC_ParamType {
     TEEC_MEMREF_TEMP_OUTPUT = 0x06,
     /** The parameter is a {@code TEEC_TempMemoryReference} tagged as both input and output. Data is transmitted between a TA and a CA. */
     TEEC_MEMREF_TEMP_INOUT = 0x07,
+    /** The parameter is a {@code TEEC_IonReference} tagged as input. Data flows from a CA to a TA**/
+    TEEC_ION_INPUT = 0x08,
+    /** The parameter is a {@code TEEC_IonSglistReference} tagged as input. Data flows from a CA to a TA**/
+    TEEC_ION_SGLIST_INPUT = 0x09,
     /** The parameter is a {@code TEEC_RegisteredMemoryReference} that refers to the entire memory block. The data flow is the same as that of {@code TEEC_SharedMemCtl}. */
     TEEC_MEMREF_WHOLE = 0xc,
     /** The parameter is a {@code TEEC_RegisteredMemoryReference} tagged as input. Data flows from a CA to a TA. */

@@ -85,6 +85,8 @@ public:
     TEEC_Result ReleaseSharedMemory(TEEC_Context *context,
         TEEC_SharedMemory *sharedMem, uint32_t shmOffset, MessageParcel &reply) override;
     int32_t SetCallBack(const sptr<IRemoteObject> &notify) override;
+    TEEC_Result SendSecfile(const char *path, int fd, FILE *fp, MessageParcel &reply) override;
+    TEEC_Result GetTeeVersion(MessageParcel &reply) override;
 
 private:
     bool Init();
@@ -96,6 +98,7 @@ private:
     bool IsValidContext(const TEEC_Context *context, int pid);
     bool IsValidContextWithoutLock(const TEEC_Context *context, int pid);
     void PutBnContextAndReleaseFd(int32_t pid, TEEC_ContextInner *outContext);
+    void ReleaseContext(int32_t pid, TEEC_ContextInner **contextInner);
     TEEC_Result CallFinalizeContext(int32_t pid, const TEEC_Context *contextPtr);
     TEEC_Result CallGetBnContext(const TEEC_Context *inContext, int pid,
         TEEC_Session **outSession, TEEC_ContextInner **outContext);
@@ -110,6 +113,8 @@ private:
     int32_t AddClient(pid_t pid, const sptr<IRemoteObject> &notify);
     void CleanProcDataForOneCa(DaemonProcdata *procData);
     void ProcessCaDied(int32_t pid);
+    void CreateTuiThread();
+    int GetTEEVersion();
 
     class Client : public IRemoteObject::DeathRecipient {
     public:
@@ -128,6 +133,7 @@ private:
     };
     std::mutex mClientLock;
     std::vector<sptr<Client>> mClients;
+    int mTeeVersion;
 };
 } // namespace CaDaemon
 } // namespace OHOS

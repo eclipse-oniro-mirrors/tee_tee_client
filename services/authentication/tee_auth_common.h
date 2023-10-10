@@ -14,17 +14,32 @@
 #define TEE_AUTH_COMMON_H
 
 #include <stdint.h>
-#include <sys/stat.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 #define MAX_PATH_LENGTH        256
+
+#define BUF_MAX_SIZE           4096
 #define CMD_MAX_SIZE           1024
+#define BACKLOG_LEN            10
+
+typedef enum {
+    SYSTEM_CA = 1,
+    VENDOR_CA,
+    APP_CA,
+    SA_CA,
+    MAX_CA,
+} CaType;
 
 typedef struct {
+    uint8_t certs[BUF_MAX_SIZE]; /* for APP_CA\SA_CA */
+    CaType type;
     uid_t uid;
     pid_t pid;
 } CaAuthInfo;

@@ -14,9 +14,11 @@
 #include <cerrno>
 #include <csignal>
 #include <memory>
+#include <thread>
 #include <pthread.h>
 #include <securec.h>
 #include <sys/syscall.h>
+#include <dlfcn.h>
 #include <sys/tgkill.h>
 #include <sys/types.h>
 #include "if_system_ability_manager.h"
@@ -26,6 +28,11 @@
 #include "string_ex.h"
 #include "system_ability_definition.h"
 #include "tee_log.h"
+#include "tee_auth_system.h"
+#include "tcu_authentication.h"
+#include "tc_ns_client.h"
+#include "tee_ioctl_cmd.h"
+#include <sys/ioctl.h>
 
 using namespace std;
 namespace OHOS {
@@ -47,12 +54,60 @@ void CaDaemonService::OnStart()
         return;
     }
     state_ = ServiceRunningState::STATE_RUNNING;
-    tlogi("CaDaemonService::OnStart start service success.");
+    if (GetTEEVersion()) {
+        tloge("get the tee version failed\n");
+        mTeeVersion = 0;
+    }
+    tloge("the tee version is %x\n", mTeeVersion);
+    CreateTuiThread();
+}
+
+int CaDaemonService::GetTEEVersion()
+{
+    int ret;
+
+    int fd = open(TC_PRIVATE_DEV_NAME, O_RDWR);
+    if (fd == -1) {
+        tloge("Failed to open %s: %d\n", TC_PRIVATE_DEV_NAME, errno);
+        return -1;
+    }
+
+    ret = ioctl(fd, TC_NS_CLIENT_IOCTL_GET_TEE_VERSION, &mTeeVersion);
+    close(fd);
+    if (ret != 0) {
+        tloge("Failed to get tee version, err=%d\n", ret);
+        return -1;
+    }
+
+    return ret;
+}
+
+void CaDaemonService::CreateTuiThread()
+{
+#if defined(__LP64__)
+    void *handle = dlopen("/system/lib64/libcadaemon_tui.so", RTLD_LAZY);
+#else
+    void *handle = dlopen("/system/lib/libcadaemon_tui.so", RTLD_LAZY);
+#endif
+    if (handle == nullptr) {
+        tlogi("tui daemon handle is null");
+        return;
+    }
+
+    void (*teeTuiThreadFunc)(void) = nullptr;
+    teeTuiThreadFunc = (void(*)(void))dlsym(handle, "TeeTuiThreadWork");
+    if (teeTuiThreadFunc == nullptr) {
+        tloge("teeTuiThreadFunc is null\n");
+        return;
+    }
+    std::thread tuiThread(teeTuiThreadFunc);
+    tuiThread.detach();
+    tlogi("CaDaemonService teeTuiThreadWork start \n");
 }
 
 bool CaDaemonService::Init()
 {
-    tlogd("CaDaemonService::Init ready to init.");
+    tlogi("CaDaemonService::Init ready to init");
     if (!registerToService_) {
         bool ret = Publish(this);
         if (!ret) {
@@ -61,13 +116,13 @@ bool CaDaemonService::Init()
         }
         registerToService_ = true;
     }
-    tlogd("CaDaemonService::Init init success.");
+    tlogi("CaDaemonService::Init init success");
     return true;
 }
 
 void CaDaemonService::OnStop()
 {
-    tlogd("CaDaemonService::OnStop ready to stop service.");
+    tlogi("CaDaemonService service stop");
     state_ = ServiceRunningState::STATE_NOT_START;
     registerToService_ = false;
 }
@@ -273,27 +328,23 @@ DaemonProcdata *CaDaemonService::CallGetProcDataPtr(int pid)
 TEEC_Result CaDaemonService::SetContextToProcData(int32_t pid, TEEC_ContextInner *outContext)
 {
     int i;
-    TEEC_Context tempContext;
-    lock_guard<mutex> autoLock(mProcDataLock);
-    DaemonProcdata *outProcData = CallGetProcDataPtr(pid);
-    if (outProcData == nullptr) {
-        goto ERROR;
-    }
+    {
+        lock_guard<mutex> autoLock(mProcDataLock);
+        DaemonProcdata *outProcData = CallGetProcDataPtr(pid);
+        if (outProcData == nullptr) {
+            tloge("proc data not found\n");
+            return TEEC_FAIL;
+        }
 
-    for (i = 0; i < MAX_CXTCNT_ONECA; i++) {
-        if (outProcData->cxtFd[i] == -1) {
-            outProcData->cxtFd[i] = outContext->fd;
-            return TEEC_SUCCESS;
+        for (i = 0; i < MAX_CXTCNT_ONECA; i++) {
+            if (outProcData->cxtFd[i] == -1) {
+                outProcData->cxtFd[i] = outContext->fd;
+                return TEEC_SUCCESS;
+            }
         }
     }
-    tloge("the cnt of contexts in outProcData is already %{public}d, please finalize some of them\n", i);
 
-ERROR:
-    PutBnContextAndReleaseFd(pid, outContext); /* pair with ops_cnt++ when add to list */
-    tempContext.fd = outContext->fd;
-    if (CallFinalizeContext(pid, &tempContext) < 0) {
-        tloge("CallFinalizeContext failed!\n");
-    }
+    tloge("the cnt of contexts in outProcData is already %{public}d, please finalize some of them\n", i);
     return TEEC_FAIL;
 }
 
@@ -332,6 +383,42 @@ void CaDaemonService::PutBnContextAndReleaseFd(int32_t pid, TEEC_ContextInner *o
     }
 }
 
+static TEEC_Result InitCaAuthInfo(CaAuthInfo *caInfo)
+{
+    static bool sendXmlSuccFlag = false;
+    /* Trans the system xml file to tzdriver */
+    if (!sendXmlSuccFlag) {
+        tlogd("cadaemon send system hash xml file\n");
+        if (TcuAuthentication(HASH_TYPE_SYSTEM) != 0) {
+            tloge("send system hash xml file failed\n");
+        } else {
+            sendXmlSuccFlag = true;
+        }
+    }
+
+    uint32_t callingTokenID = IPCSkeleton::GetCallingTokenID();
+    TEEC_Result ret = (TEEC_Result)ConstructCaAuthInfo(callingTokenID, caInfo);
+    if (ret != 0) {
+        tloge("construct ca auth info failed, ret %d\n", ret);
+        return TEEC_FAIL;
+    }
+
+    return TEEC_SUCCESS;
+}
+
+void CaDaemonService::ReleaseContext(int32_t pid, TEEC_ContextInner **contextInner)
+{
+    TEEC_Context tempContext = { 0 };
+    PutBnContextAndReleaseFd(pid, *contextInner); /* pair with ops_cnt++ when add to list */
+    tempContext.fd = (*contextInner)->fd;
+    if (CallFinalizeContext(pid, &tempContext) < 0) {
+        tloge("CallFinalizeContext failed!\n");
+    }
+
+    /* contextInner have been freed by finalize context */
+    *contextInner = nullptr;
+}
+
 TEEC_Result CaDaemonService::InitializeContext(const char *name, MessageParcel &reply)
 {
     bool writeRet = false;
@@ -340,38 +427,46 @@ TEEC_Result CaDaemonService::InitializeContext(const char *name, MessageParcel &
     CaAuthInfo *caInfo = (CaAuthInfo *)malloc(sizeof(*caInfo));
     if (contextInner == nullptr || caInfo == nullptr) {
         tloge("malloc context and cainfo failed\n");
-        goto ERROR;
+        goto FREE_CONTEXT;
     }
     (void)memset_s(contextInner, sizeof(*contextInner), 0, sizeof(*contextInner));
     (void)memset_s(caInfo, sizeof(*caInfo), 0, sizeof(*caInfo));
     caInfo->pid = IPCSkeleton::GetCallingPid();
     caInfo->uid = (unsigned int)IPCSkeleton::GetCallingUid();
 
+    if (InitCaAuthInfo(caInfo) != TEEC_SUCCESS) {
+        goto FREE_CONTEXT;
+    }
+
     ret = TEEC_InitializeContextInner(contextInner, caInfo);
     if (ret != TEEC_SUCCESS) {
-        tloge("initialize context failed\n");
-        goto ERROR;
+        goto FREE_CONTEXT;
     }
+
     contextInner->callFromService = true;
     ret = SetContextToProcData(caInfo->pid, contextInner);
     if (ret != TEEC_SUCCESS) {
-        tloge("set context to proc data failed\n");
-        goto ERROR;
+        goto RELEASE_CONTEXT;
     }
-    PutBnContextAndReleaseFd(caInfo->pid, contextInner); /* pair with ops_cnt++ when add to list */
+
     writeRet = reply.WriteInt32((int32_t)ret);
     if (!writeRet) {
         ret = TEEC_FAIL;
-        goto ERROR;
+        goto RELEASE_CONTEXT;
     }
     writeRet = reply.WriteInt32(contextInner->fd);
     if (!writeRet) {
         ret = TEEC_FAIL;
+        goto RELEASE_CONTEXT;
     }
 
+    PutBnContextAndReleaseFd(caInfo->pid, contextInner); /* pair with ops_cnt++ when add to list */
     goto END;
 
-ERROR:
+RELEASE_CONTEXT:
+    ReleaseContext(caInfo->pid, &contextInner);
+
+FREE_CONTEXT:
     if (contextInner != nullptr) {
         free(contextInner);
     }
@@ -380,7 +475,6 @@ END:
     if (caInfo != nullptr) {
         (void)memset_s(caInfo, sizeof(*caInfo), 0, sizeof(*caInfo));
         free(caInfo);
-        caInfo = nullptr;
     }
     return ret;
 }
@@ -452,7 +546,14 @@ static bool WriteSession(MessageParcel &reply, TEEC_Session *session)
 
     bool parRet = reply.WriteBool(true);
     CHECK_ERR_RETURN(parRet, true, false);
-    return reply.WriteBuffer(session, sizeof(*session));
+
+    TEEC_Session retSession;
+    (void)memcpy_s(&retSession, sizeof(TEEC_Session), session, sizeof(TEEC_Session));
+
+    /* clear session ptr, avoid to write back to CA */
+    retSession.context = nullptr;
+    (void)memset_s(&(retSession.head), sizeof(struct ListNode), 0, sizeof(struct ListNode));
+    return reply.WriteBuffer(&retSession, sizeof(retSession));
 }
 
 static bool WriteOperation(MessageParcel &reply, TEEC_Operation *operation)
@@ -463,32 +564,45 @@ static bool WriteOperation(MessageParcel &reply, TEEC_Operation *operation)
 
     bool parRet = reply.WriteBool(true);
     CHECK_ERR_RETURN(parRet, true, false);
-    return reply.WriteBuffer(operation, sizeof(*operation));
+
+    TEEC_Operation retOperation;
+    (void)memcpy_s(&retOperation, sizeof(TEEC_Operation), operation, sizeof(TEEC_Operation));
+
+    /* clear operation ptr avoid writing back to CA */
+    retOperation.session = nullptr;
+    for (uint32_t i = 0; i < TEEC_PARAM_NUM; i++) {
+        uint32_t type = TEEC_PARAM_TYPE_GET(retOperation.paramTypes, i);
+        switch (type) {
+            case TEEC_MEMREF_TEMP_INPUT:
+            case TEEC_MEMREF_TEMP_OUTPUT:
+            case TEEC_MEMREF_TEMP_INOUT:
+                retOperation.params[i].tmpref.buffer = nullptr;
+                break;
+            case TEEC_MEMREF_WHOLE:
+            case TEEC_MEMREF_PARTIAL_INPUT:
+            case TEEC_MEMREF_PARTIAL_OUTPUT:
+            case TEEC_MEMREF_PARTIAL_INOUT:
+                retOperation.params[i].memref.parent = nullptr;
+                break;
+            default:
+                break;
+        }
+    }
+
+    return reply.WriteBuffer(&retOperation, sizeof(retOperation));
 }
 
 static bool WriteSharedMem(MessageParcel &data, TEEC_SharedMemory *shm)
 {
-    return data.WriteBuffer(shm, sizeof(*shm));
-}
+    TEEC_SharedMemory retShm;
+    (void)memcpy_s(&retShm, sizeof(TEEC_SharedMemory),
+        shm, sizeof(TEEC_SharedMemory));
 
-TEEC_Result CaDaemonService::TeecOptDecodeTempMem(TEEC_Parameter *param, uint8_t **data, size_t *dataSize)
-{
-    tloge("TeecOptDecodeTempMem enter\n");
-    size_t sizeLeft = *dataSize;
-    uint8_t *ptr    = *data;
-
-    if (sizeLeft < param->tmpref.size) {
-        tloge("decodeTempMem: size is error:%zu:%{public}u\n", sizeLeft, param->tmpref.size);
-        return TEEC_FAIL;
-    }
-
-    param->tmpref.buffer = static_cast<void *>(ptr);
-
-    ptr += param->tmpref.size;
-    sizeLeft -= param->tmpref.size;
-    *data     = ptr;
-    *dataSize = sizeLeft;
-    return TEEC_SUCCESS;
+    /* clear retShm ptr, avoid writing back to CA */
+    retShm.buffer = nullptr;
+    retShm.context = nullptr;
+    memset_s(&(retShm.head), sizeof(struct ListNode), 0, sizeof(struct ListNode));
+    return data.WriteBuffer(&retShm, sizeof(retShm));
 }
 
 static bool CheckSizeStatus(uint32_t shmInfoOffset, uint32_t refSize,
@@ -592,7 +706,15 @@ TEEC_Result CaDaemonService::GetTeecOptMem(TEEC_Operation *operation, size_t opt
     for (paramCnt = 0; paramCnt < TEEC_PARAM_NUM; paramCnt++) {
         paramType[paramCnt] = TEEC_PARAM_TYPE_GET(operation->paramTypes, paramCnt);
         if (IS_TEMP_MEM(paramType[paramCnt])) {
-            teeRet = TeecOptDecodeTempMem(&(operation->params[paramCnt]), &ptr, &sizeLeft);
+            uint32_t refSize = operation->params[paramCnt].tmpref.size;
+            if (CheckSizeStatus(shmInfoOffset, refSize, optMemSize, sizeLeft)) {
+                tloge("temp mem:%x greater than opt mem:%x:%x:%x\n",
+                    refSize, shmInfoOffset, (uint32_t)sizeLeft, (uint32_t)optMemSize);
+                return TEEC_FAIL;
+            }
+            operation->params[paramCnt].tmpref.buffer = static_cast<void *>(ptr + shmInfoOffset);
+            sizeLeft -= refSize;
+            shmInfoOffset += refSize;
         } else if (IS_PARTIAL_MEM(paramType[paramCnt])) {
             InputPara tmpInputPara;
             tmpInputPara.paraType = paramType[paramCnt];
@@ -690,6 +812,7 @@ TEEC_Result CaDaemonService::OpenSession(TEEC_Context *context, const char *taPa
     }
 
     if (AddTidData(&tidData, pid) != TEEC_SUCCESS) {
+        ret = TEEC_FAIL;
         goto ERROR;
     }
 
@@ -714,6 +837,12 @@ TEEC_Result CaDaemonService::OpenSession(TEEC_Context *context, const char *taPa
     return TEEC_SUCCESS;
 
 ERROR:
+    writeRet = reply.WriteUint32(returnOrigin);
+    CHECK_ERR_RETURN(writeRet, true, TEEC_FAIL);
+
+    writeRet = reply.WriteInt32((int32_t)ret);
+    CHECK_ERR_RETURN(writeRet, true, TEEC_FAIL);
+
     if (outSession != nullptr) {
         free(outSession);
         outSession = nullptr;
@@ -721,7 +850,7 @@ ERROR:
 
     CloseTaFile(taFile);
 
-    return TEEC_FAIL;
+    return TEEC_SUCCESS;
 }
 
 TEEC_Result CaDaemonService::CallGetBnSession(int pid, const TEEC_Context *inContext,
@@ -848,23 +977,26 @@ TEEC_Result CaDaemonService::RegisterSharedMemory(TEEC_Context *context,
 {
     pid_t pid = IPCSkeleton::GetCallingPid();
     TEEC_Result ret = TEEC_FAIL;
+    TEEC_SharedMemoryInner *outShm = nullptr;
+    TEEC_ContextInner *outContext = nullptr;
     bool writeRet = false;
 
     if ((context == nullptr) || (sharedMem == nullptr)) {
         tloge("registeMem: invalid context or sharedMem\n");
-        return TEEC_FAIL;
+        goto ERROR_END;
     }
 
-    TEEC_ContextInner *outContext = GetBnContext(context);
+    outContext = GetBnContext(context);
     if (outContext == nullptr) {
         tloge("registeMem: no context found in service!\n");
-        return TEEC_ERROR_BAD_PARAMETERS;
+        ret = TEEC_ERROR_BAD_PARAMETERS;
+        goto ERROR_END;
     }
 
-    TEEC_SharedMemoryInner *outShm = static_cast<TEEC_SharedMemoryInner *>(malloc(sizeof(TEEC_SharedMemoryInner)));
+    outShm = static_cast<TEEC_SharedMemoryInner *>(malloc(sizeof(TEEC_SharedMemoryInner)));
     if (outShm == nullptr) {
         tloge("registeMem: outShm malloc failed.\n");
-        return TEEC_FAIL;
+        goto ERROR_END;
     }
 
     (void)memset_s(outShm, sizeof(TEEC_SharedMemoryInner), 0, sizeof(TEEC_SharedMemoryInner));
@@ -872,16 +1004,14 @@ TEEC_Result CaDaemonService::RegisterSharedMemory(TEEC_Context *context,
     if (memcpy_s(outShm, sizeof(*outShm), sharedMem, sizeof(*sharedMem))) {
         tloge("registeMem: memcpy failed when copy data to shm, errno = %{public}d!\n", errno);
         free(outShm);
-        return TEEC_FAIL;
+        goto ERROR_END;
     }
 
     ret = TEEC_RegisterSharedMemoryInner(outContext, outShm);
     if (ret != TEEC_SUCCESS) {
         free(outShm);
         PutBnContextAndReleaseFd(pid, outContext);
-        writeRet = reply.WriteInt32((int32_t)ret);
-        CHECK_ERR_RETURN(writeRet, true, TEEC_FAIL);
-        return ret;
+        goto ERROR_END;
     }
 
     PutBnShrMem(outShm);
@@ -899,6 +1029,11 @@ TEEC_Result CaDaemonService::RegisterSharedMemory(TEEC_Context *context,
     writeRet = reply.WriteUint32(outShm->offset);
     CHECK_ERR_RETURN(writeRet, true, TEEC_FAIL);
 
+    return TEEC_SUCCESS;
+
+ERROR_END:
+    writeRet = reply.WriteInt32((int32_t)ret);
+    CHECK_ERR_RETURN(writeRet, true, TEEC_FAIL);
     return TEEC_SUCCESS;
 }
 
@@ -1134,6 +1269,24 @@ void CaDaemonService::ProcessCaDied(int32_t pid)
     SendSigToTzdriver(pid);
     CleanProcDataForOneCa(outProcData);
     free(outProcData);
+}
+
+TEEC_Result CaDaemonService::SendSecfile(const char *path, int fd, FILE *fp, MessageParcel &reply)
+{
+    if (path == nullptr || fp == nullptr) {
+        return TEEC_ERROR_BAD_PARAMETERS;
+    }
+    uint32_t ret = TEEC_SendSecfileInner(path, fd, fp);
+    bool retTmp = reply.WriteUint32(ret);
+    CHECK_ERR_RETURN(retTmp, true, TEEC_FAIL);
+    return TEEC_SUCCESS;
+}
+
+TEEC_Result CaDaemonService::GetTeeVersion(MessageParcel &reply)
+{
+    bool retTmp = reply.WriteUint32(mTeeVersion);
+    CHECK_ERR_RETURN(retTmp, true, TEEC_FAIL);
+    return TEEC_SUCCESS;
 }
 } // namespace CaDaemon
 } // namespace OHOS

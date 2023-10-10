@@ -10,31 +10,98 @@
 
 import("//build/ohos.gni")
 import("//build/ohos_var.gni")
+import("//out/products_ext/hmos_ext_var.gni")
+import("//base/tee/tee_client/tee_client.gni")
 
 ohos_shared_library("libcadaemon") {
     part_name = "tee_client"
     subsystem_name = "tee"
+    defines = []
 
+if (component_type == "system") {
     sources = [
         "../../../../frameworks/libteec_vendor/tee_client_api.c",
         "../../../../frameworks/libteec_vendor/tee_client_app_load.c",
         "../../../../frameworks/libteec_vendor/load_sec_file.c",
-        "../../src/authentication/tee_auth_common.c",
-        "../../src/authentication/tee_get_native_cert.c",
+        "../../../authentication/tee_auth_common.c",
+        "../../../authentication/tee_get_native_cert.c",
+        "../../../authentication/tee_auth_system.cpp",
+        "../../../authentication/tcu_authentication.c",
         "../../src/ca_daemon/cadaemon_service.cpp",
         "../../src/ca_daemon/cadaemon_stub.cpp",
         ]
 
     include_dirs = [
-        "//commonlibrary/c_utils/base/include",
-        "//utils/system/safwk/native/include",
-        "//developtools/liblog",
         "//base/tee/tee_client/interfaces/libteec",
         "../../../../frameworks/include/",
-        "../../../../frameworks/include/standard",
+        "../../../../frameworks/include/standard/",
+        "../../../../frameworks/include/standard/teec_system",
         "../../../../frameworks/libteec_vendor/",
-        "../../src/authentication",
+        "../../../authentication",
         "../../src/ca_daemon",
+        ]
+
+    deps = [
+        "//third_party/bounds_checking_function:libsec_shared",
+        "//third_party/openssl:libcrypto_shared"
+    ]
+
+    if (tee_client_features_tui) {
+        deps += [
+            "//base/tee/tee_client/services/cadaemon/build/standard:libcadaemon_tui"
+        ]
+    }
+
+    external_deps = [
+        "c_utils:utils",
+        "hilog:libhilog",
+        "ipc:ipc_core",
+        "safwk:system_ability_fwk",
+        "samgr:samgr_proxy",
+        "access_token:libaccesstoken_sdk",
+    ]
+}
+}
+
+if (component_type == "system") {
+declare_args() {
+    hash_string = ""
+}
+ohos_shared_library("libcadaemon_tui") {
+    part_name = "tee_client"
+    subsystem_name = "tee"
+    output_extension = "so"
+    defines = []
+
+    # ttf_calc_hash_script = rebase_path("//base/tee/tee_client/services/cadaemon/build/standard/calc_hash.sh")
+    # hash_string = exec_script(ttf_calc_hash_script, [], "string")
+    hash_string = "2deabf97eaf17958dc24746b922779d9913008526daf1c853903547505a8f9ca"
+    # md5sum ttf_calc_hash_script
+    # print("get hash_string :" + hash_string + " and file path :" + ttf_calc_hash_script)
+    if (hash_string != "") {
+        defines += [
+            "FONT_HASH_VAL=\"$hash_string\"",
+        ]
+    } else {
+        defines += [
+            "FONT_HASH_VAL=\"hash_string can not be set\"",
+        ]
+    }
+
+    sources = [
+        "../../src/tui_daemon/tee_tui_daemon.cpp",
+        "../../src/tui_daemon/tui_event.cpp",
+        ]
+
+    include_dirs = [
+        "//base/tee/tee_client/interfaces/libteec",
+        "../../../../frameworks/include/",
+        "../../../../frameworks/include/standard/",
+        "../../../../frameworks/include/standard/teec_system",
+        "../../../../frameworks/libteec_vendor/",
+        "../../../authentication",
+        "../../src/ca_daemon",
+        "../../src/tui_daemon",
         ]
 
     deps = [
@@ -47,5 +114,16 @@ ohos_shared_library("libcadaemon") {
         "ipc:ipc_core",
         "safwk:system_ability_fwk",
         "samgr:samgr_proxy",
+        "power_manager:powermgr_client",
+        "window_manager:libdm",
+        "image_framework:image_native",
+        "call_manager:tel_call_manager_api",
+        "ability_base:want",
     ]
+
+    ldflags = [
+        "-Wl,-z,max-page-size=4096",
+        "-Wl,-z,separate-code",
+    ]
+}
 }

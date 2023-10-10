@@ -36,7 +36,7 @@ void *InitLateWorkThread(void *dummy)
 
     tlogd("now start to late init\n");
 
-    int fd = open(TC_NS_CLIENT_DEV_NAME, O_RDWR);
+    int fd = open(TC_PRIVATE_DEV_NAME, O_RDWR);
     if (fd < 0) {
         tloge("open tee client dev failed, fd is %d\n", fd);
         return NULL;

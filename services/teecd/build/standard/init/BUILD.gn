@@ -16,4 +16,8 @@ ohos_prebuilt_etc("teecd.rc") {
     source = "teecd.cfg"
     part_name = "tee_client"
     subsystem_name = "tee"
+    install_images = [
+        "system",
+        "updater_vendor",
+    ]
 }

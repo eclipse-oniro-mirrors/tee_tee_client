@@ -34,7 +34,7 @@
 
 #define TRANS_BUFF_SIZE (4 * 1024) /* agent transfer share buffer size */
 
-#define SEC_STORAGE_ROOT_DIR      ROOT_DIR SFS_PARTITION_PERSISTENT
+#define SEC_STORAGE_ROOT_DIR      "/" SFS_PARTITION_PERSISTENT
 
 /* 0600 only root can read and write sec_storage folder */
 #define ROOT_DIR_PERM                   (S_IRUSR | S_IWUSR)
@@ -44,8 +44,8 @@
 
 #define FILE_NAME_INVALID_STR "../" // file name path must not contain ../
 
-#define SEC_STORAGE_DATA_CE         "/data/vendor_ce/"
-#define SEC_STORAGE_DATA_ROOT_DIR   ROOT_DIR SFS_PARTITION_TRANSIENT
+#define SEC_STORAGE_DATA_CE         "/data/service/el2/"
+#define SEC_STORAGE_DATA_CE_SUFFIX_DIR   "/tee/" SFS_PARTITION_TRANSIENT
 #define TEE_OBJECT_STORAGE_CE       0x80000002
 
 

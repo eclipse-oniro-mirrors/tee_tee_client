@@ -17,4 +17,4 @@
 
 int TeeGetNativeCert(int caPid, unsigned int caUid, uint32_t *len, uint8_t *buffer);
 
-#endif
+#endif /* TEE_GET_NATIVE_CERT */

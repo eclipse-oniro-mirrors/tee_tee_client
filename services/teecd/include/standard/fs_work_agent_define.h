@@ -13,7 +13,7 @@
 #ifndef LIBTEEC_FS_WORK_AGENT_DEFINE_H
 #define LIBTEEC_FS_WORK_AGENT_DEFINE_H
 
-#define USER_DATA_DIR   "/data/vendor/"
+#define USER_DATA_DIR   "/data/service/el1/public/"
 #define ROOT_DIR "/"
 
 #endif

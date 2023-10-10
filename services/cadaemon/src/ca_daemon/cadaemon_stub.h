@@ -38,6 +38,8 @@ private:
     int32_t ReleaseMemRecvProc(MessageParcel &data, MessageParcel &reply);
     int32_t SetCallBackRecvProc(MessageParcel &data, MessageParcel &reply);
     bool EnforceInterceToken(MessageParcel& data);
+    int32_t SendSecFileRecvProc(MessageParcel& data, MessageParcel &reply);
+    int32_t GetTeeVersionRecvProc(MessageParcel& data, MessageParcel &reply);
     using CaDaemonFunc = int32_t (CaDaemonStub::*)(MessageParcel& data, MessageParcel& reply);
     std::map<uint32_t, CaDaemonFunc> memberFuncMap_;
 };

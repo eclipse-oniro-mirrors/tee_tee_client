@@ -90,7 +90,7 @@ static int32_t GetTaVersion(FILE *fp, uint32_t *taHeadLen, uint32_t *version,
                             uint32_t *contextLen, uint32_t *totalImgLen)
 {
     int32_t ret;
-    TaImageHdrV3 imgIdentity = { { 0 }, 0, 0 };
+    TaImageHdrV3 imgHdr = { { 0 }, 0, 0 };
 
     if (fp == NULL) {
         tloge("invalid fp\n");
@@ -98,24 +98,24 @@ static int32_t GetTaVersion(FILE *fp, uint32_t *taHeadLen, uint32_t *version,
     }
 
     /* get magic-num & version-num */
-    ret = (int32_t)fread(&imgIdentity, sizeof(imgIdentity), 1, fp);
+    ret = (int32_t)fread(&imgHdr, sizeof(imgHdr), 1, fp);
     if (ret != 1) {
         tloge("read file failed, ret=%d, error=%d\n", ret, ferror(fp));
         return -1;
     }
 
-    bool condition = (imgIdentity.img_identity.magic_num1 == TA_HEAD_MAGIC1) &&
-                     (imgIdentity.img_identity.magic_num2 == TA_HEAD_MAGIC2) &&
-                     (imgIdentity.img_identity.version_num > 1);
+    bool condition = (imgHdr.imgIdentity.magicNum1 == TA_HEAD_MAGIC1) &&
+                     (imgHdr.imgIdentity.magicNum2 == TA_HEAD_MAGIC2) &&
+                     (imgHdr.imgIdentity.versionNum > 1);
     if (condition) {
         tlogd("new verison ta\n");
         *taHeadLen = sizeof(TeecTaHead);
-        *version   = imgIdentity.img_identity.version_num;
+        *version   = imgHdr.imgIdentity.versionNum;
         if (*version >= CIPHER_LAYER_VERSION) {
-            *contextLen  = imgIdentity.context_len;
-            *totalImgLen = *contextLen + sizeof(imgIdentity);
+            *contextLen  = imgHdr.contextLen;
+            *totalImgLen = *contextLen + sizeof(imgHdr);
         } else {
-            ret = fseek(fp, sizeof(imgIdentity.img_identity), SEEK_SET);
+            ret = fseek(fp, sizeof(imgHdr.imgIdentity), SEEK_SET);
             if (ret != 0) {
                 tloge("fseek error\n");
                 return -1;
@@ -161,7 +161,7 @@ static int32_t TEEC_GetImageLenth(FILE *fp, uint32_t *imgLen)
         tloge("read file failed, err=%u\n", readSize);
         return -1;
     }
-    contextLen  = imageHead.context_len;
+    contextLen  = imageHead.contextLen;
     totalImgLen = contextLen + taHeadLen;
 
 CHECK_LENTH:

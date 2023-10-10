@@ -11,23 +11,29 @@
 import("//build/ohos.gni")
 import("//build/ohos_var.gni")
 
+config("exported_header_files") {
+    include_dirs = [
+        "//base/tee/tee_client/interfaces/libteec",
+    ]
+}
+
 ohos_shared_library("libteec") {
     part_name = "tee_client"
     subsystem_name = "tee"
+    output_extension = "so"
 
     sources = [
         "../../libteec_client/tee_client.cpp",
     ]
 
     include_dirs = [
-        "//commonlibrary/c_utils/base/include",
-        "//utils/system/safwk/native/include",
-        "//developtools/liblog",
         "//base/tee/tee_client/interfaces/libteec",
         "../../include",
-        "../../include/standard",
+        "../../include/standard/teec_system/",
+        "../../include/standard/",
         "../../libteec_client/",
         "../../libteec_vendor/",
+        "../../authentication",
     ]
 
     deps = [
@@ -41,4 +47,59 @@ ohos_shared_library("libteec") {
         "safwk:system_ability_fwk",
         "samgr:samgr_proxy",
     ]
+
+    ldflags = [
+        "-Wl,-z,max-page-size=4096",
+        "-Wl,-z,separate-code",
+    ]
+    public_configs = [ ":exported_header_files" ]
+}
+
+ohos_shared_library("libteec_vendor") {
+    part_name = "tee_client"
+    subsystem_name = "tee"
+    output_extension = "so"
+    install_images = [
+        "vendor",
+        "updater_vendor",
+    ]
+
+    if (target_cpu == "arm64") {
+        module_install_dir = "lib64"
+    } else {
+        module_install_dir = "lib"
+    }
+
+    defines = [ "LIB_TEEC_VENDOR" ]
+
+    sources = [
+        "../../libteec_vendor/load_sec_file.c",
+        "../../libteec_vendor/tee_client_api.c",
+        "../../libteec_vendor/tee_client_app_load.c",
+        "../../libteec_vendor/tee_client_socket.c",
+    ]
+
+    include_dirs = [
+        "//base/tee/tee_client/interfaces/libteec",
+        "../../include",
+        "../../include/standard/teec_vendor/",
+        "../../include/standard/",
+        "../../libteec_vendor/",
+        "../../../services/authentication",
+    ]
+
+    deps = [
+        "//third_party/bounds_checking_function:libsec_shared",
+    ]
+
+    external_deps = [
+        "c_utils:utils",
+        "hilog:libhilog",
+    ]
+
+    ldflags = [
+        "-Wl,-z,max-page-size=4096",
+        "-Wl,-z,separate-code",
+    ]
+    public_configs = [ ":exported_header_files" ]
 }

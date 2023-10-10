@@ -9,6 +9,7 @@
  * PURPOSE.
  * See the Mulan PSL v2 for more details.
  */
+
 #include "tee_auth_common.h"
 #include <securec.h>
 #include <stdbool.h>
@@ -19,23 +20,23 @@
 #endif
 #define LOG_TAG "teecd_auth"
 
-static int ReadCmdLine(const char *path, char *buffer, int bufferLen, char *caName, size_t nameLen)
+static int ReadCmdLine(const char *path, char *buffer, size_t bufferLen, char *caName, size_t nameLen)
 {
     FILE *fd = fopen(path, "rb");
     if (fd == NULL) {
         tloge("fopen is error: %d\n", errno);
         return -1;
     }
-    int bytesRead = (int)fread(buffer, sizeof(char), (size_t)bufferLen - 1, fd);
-    bool readError = bytesRead <= 0 || ferror(fd);
+    int bytesRead = (int)fread(buffer, sizeof(char), bufferLen - 1, fd);
+    bool readError = (bytesRead <= 0 || (ferror(fd) != 0));
     if (readError) {
         tloge("cannot read from cmdline\n");
         fclose(fd);
         return -1;
     }
-    fclose(fd);
+    (void)fclose(fd);
 
-    int firstStringLen = (int)strnlen(buffer, bufferLen - 1);
+    size_t firstStringLen = strnlen(buffer, bufferLen - 1);
     errno_t res = strncpy_s(caName, nameLen - 1, buffer, firstStringLen);
     if (res != EOK) {
         tloge("copy caName failed\n");
@@ -79,7 +80,7 @@ int TeeGetPkgName(int caPid, char *path, size_t pathLen)
         return -1;
     }
 
-    if (TeeGetCaName(caPid, path, pathLen) <= 0) {
+    if (TeeGetCaName(caPid, path, pathLen) < 0) {
         tloge("get ca name failed\n");
         return -1;
     }

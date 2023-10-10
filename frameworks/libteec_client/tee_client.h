@@ -43,7 +43,9 @@ enum {
     REGISTER_MEM,
     ALLOC_MEM,
     RELEASE_MEM,
-    SET_CALL_BACK
+    SET_CALL_BACK,
+    SEND_SECFILE,
+    GET_TEE_VERSION
 };
 
 class TeeClient {
@@ -65,6 +67,7 @@ public:
     void ReleaseSharedMemory(TEEC_SharedMemory *sharedMem);
     void RequestCancellation(const TEEC_Operation *operation);
     TEEC_Result SendSecfile(const char *path, TEEC_Session *session);
+    TEEC_Result GetTeeVersion(uint32_t &teeVersion);
 
     class DeathNotifier : public IRemoteObject::DeathRecipient {
     public:

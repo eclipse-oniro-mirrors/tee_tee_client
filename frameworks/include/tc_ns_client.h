@@ -25,7 +25,13 @@
 #define TC_NS_CLIENT_IOC_MAGIC 't'
 #define TC_NS_CLIENT_DEV       "tc_ns_client"
 #define TC_NS_CLIENT_DEV_NAME  "/dev/tc_ns_client"
+#define TC_PRIVATE_DEV_NAME  "/dev/tc_private"
+#define TUI_LISTEN_PATH "/sys/kernel/tui/c_state"
 
+enum ConnectCmd {
+    GET_FD,
+    GET_TEEVERSION,
+};
 typedef struct {
     unsigned int method;
     unsigned int mdata;
@@ -82,15 +88,22 @@ enum SecFileType {
     LOAD_DYNAMIC_DRV,
 };
 
-struct SecLoadIoctlStruct {
+struct SecFileInfo {
     enum SecFileType fileType;
-    TEEC_UUID uuid;
     uint32_t fileSize;
+    int32_t secLoadErr;
+};
+struct SecLoadIoctlStruct {
+    struct SecFileInfo secFileInfo;
+    TEEC_UUID uuid;
     union {
         char *fileBuffer;
-        unsigned long long fileAddr;
+        struct {
+            uint32_t file_addr;
+            uint32_t file_h_addr;
+        } memref;
     };
-};
+}__attribute__((packed));
 
 struct AgentIoctlArgs {
     uint32_t id;

@@ -18,5 +18,6 @@
 
 int GetMiscFd(void);
 int GetFsFd(void);
+void TrySyncSysTimeToSecure(void);
 
 #endif
