@@ -1,52 +1,94 @@
-# TeeClient组件<a name="ZH-CN_TOPIC_0000001148528849"></a>
+# TEE Client组件
 
--   [简介](#section11660541593)
--   [目录](#section161941989596)
--   [相关仓](#section1371113476307)
+## 简介
 
-## 简介<a name="section11660541593"></a>
+TEE Client组件向OpenHarmony侧CA（Client APP，即客户端应用）提供访问TEE的API接口，同时也包含TEE的代理服务，配合TEE实现安全存储、日志打印等功能；
 
-TeeClient 向应用提供访问安全OS（TEEOS）能力，让非安全侧应用可以访问安全OS内运行的安全应用。
+TEE Client组件包含如下模块：
 
-TeeClient模块可以分为如下三大部分：
+- libteec.so：为HAP应用或者系统组件Native应用提供TEE Client API;
+- libteec_vendor.so：为芯片组件Native应用提供TEE Client API;
+- cadaemon：转发CA请求并对CA做身份识别；
+- teecd：作为TEE的代理服务，支持TEE实现安全存储等功能；同时支持对CA做身份识别；
+- tlogcat：支持打印TEE日志；
 
--   TeeClient SDK层：提供TeeClient API供应用调用，标准系统提供libteec.z.so库，小型系统提供libteec_vendor.so。
--   TeeClient 基础服务层：包括teecd、tlogcat服务，标准系统及小型系统均提供。teecd为TEEOS实现安全存储、时间同步等基础功能，tlogcat为TEEOS日志输出及落盘服务。
--   TeeClient 服务层：为应用访问TEEOS提供能力的服务，在标准系统提供；小型系统不需要，应用可直接访问TEEOS能力。
+图1 TEE Client组件架构图
 
-## 目录<a name="section161941989596"></a>
+![](figures\tee_client.drawio.png)
+
+## 目录
 
 ```
 base/tee/tee_client
 ├── frameworks
-│   ├── build                          # sdk库编译配置文件，在标准及小型系统使能
-│   │   ├── lite                       # 标准系统sdk库编译配置文件
-│   │   └── standard                   # 小型系统sdk库编译配置文件
-│   ├── libteec_client                 # 标准系统sdk库实现代码
-│   └── libteec_vendor                 # 小型系统sdk库实现代码
-├── interfaces                         # teeClient对外头文件
+│   ├── libteec_client                 # libteec.so库，提供TEE Client API
+│   └── libteec_vendor                 # libteec_vendor.so库，提供TEE Client API
+├── interfaces                         # 对CA提供的头文件
 │   └── libteec
 └── services
-    ├── cadaemon                       # 标准系统给上层应用提供访问TEEOS的服务
-    │   ├── build
-    │   │   └── standard
-    │   └── src
-    ├── teecd                          # 为TEEOS实现安全存储、时间同步等基础功能，在标准及小型系统使能
-    │   ├── build
-    │   │   ├── lite
-    │   │   └── standard
-    │   └── src
-    └── tlogcat                        # TEEOS日志输出及落盘服务，在标准及小型系统使能
-        ├── build
-        │   ├── lite
-        │   └── standard
-        └── src
+    ├── authentication                 # CA身份识别
+    ├── cadaemon                       # 转发CA请求
+    ├── teecd                          # TEE代理服务
+    └── tlogcat                        # TEE日志服务
 ```
 
-## 相关仓<a name="section1371113476307"></a>
+## 接口说明
 
-**tee子系统**
+TEE Client组件对CA提供的API列表如下：
 
-**tee_client**
+| 名称                                                         | 描述                 |
+| ------------------------------------------------------------ | -------------------- |
+| TEEC_InitializeContext (const char *name, TEEC_Context *context) | 初始化TEE上下文。    |
+| TEEC_FinalizeContext (TEEC_Context *context)                 | 结束TEE上下文。      |
+| TEEC_OpenSession (TEEC_Context *context, TEEC_Session *session, const TEEC_UUID *destination, uint32_t connectionMethod, const void *connectionData, TEEC_Operation *operation, uint32_t *returnOrigin) | 建立与TEE的会话。    |
+| TEEC_CloseSession (TEEC_Session *session)                    | 关闭与TEE的会话。    |
+| TEEC_InvokeCommand (TEEC_Session *session, uint32_t commandID, TEEC_Operation *operation, uint32_t *returnOrigin) | 向TEE发送命令。      |
+| TEEC_RegisterSharedMemory (TEEC_Context *context, TEEC_SharedMemory *sharedMem) | 注册共享内存。       |
+| TEEC_AllocateSharedMemory (TEEC_Context *context, TEEC_SharedMemory *sharedMem) | 申请共享内存。       |
+| TEEC_ReleaseSharedMemory (TEEC_SharedMemory *sharedMem)      | 释放共享内存。       |
+| TEEC_RequestCancellation (TEEC_Operation *operation)         | 取消正在运行的操作。 |
 
+上述API均是GlobalPlatform TEE标准规定的，可参考《[TEE Client API Specification v1.0 (GPD_SPE_007)](https://globalplatform.org/specs-library/?filter-committee=tee)》。少量实现与GlobalPlatform TEE规范有差异，差异点如下：
 
+1. TEEC_OpenSession接口的TEEC_Context结构体成员 ta_path支持指定TA的加载路径（限制在/data目录）
+
+   举例如下：
+
+   ```
+   TEEC_Context context;
+   context.ta_path = (uint8_t *)"/data/58dbb3b9-4a0c-42d2-a84d-7c7ab17539fc.sec"
+   ```
+
+2. TEEC_OpenSession接口入参connectionMethod只支持TEEC_LOGIN_IDENTIFY
+
+   对于TEEC_OpenSession函数中第四个入参connectionMethod，GP规范定义了六种Login Method，TEE Client组件拓展了TEEC_LOGIN_IDENTIFY的类型，且只支持该种connectionMethod。
+
+3. 调用TEEC_OpenSession时，TEEC_Operation参数有限制
+
+   在调用TEEC_OpenSession接口时，TEEC_Operation中params[2]和params[3]是预留给系统的，不允许CA使用，CA仅可以使用params[0]和params[1]。
+
+## 编译指导
+
+TEE Client组件支持单独编译调试，以RK3568芯片为例，运行以下命令编译TEE Client组件：
+
+```
+./build.sh --product-name rk3568 --ccache --build-target tee_client
+```
+
+编译产物路径：out/rk3568/tee/tee_client
+
+可将编译产物自行推入设备中进行调试：
+
+```
+hdc file send cadaemon.json /system/profile/
+hdc file send cadaemon.cfg /system/etc/init/
+hdc file send libteec.so /system/lib/
+hdc file send libcadaemon.so /system/lib/
+hdc file send tlogcat /system/bin/
+hdc file send libteec_vendor.so /vendor/lib/
+hdc file send teecd /vendor/bin/
+```
+
+## 相关仓
+
+[tee_tzdriver](https://gitee.com/openharmony-sig/tee_tee_tzdriver)
