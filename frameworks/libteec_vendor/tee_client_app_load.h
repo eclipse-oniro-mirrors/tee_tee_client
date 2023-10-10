@@ -40,39 +40,34 @@ enum TA_VERSION {
     TA_SIGN_VERSION_MAX
 };
 
+/* start: keep same with tee */
 typedef struct {
-    uint32_t file_buf;
-    uint32_t file_buf_h;
-    uint32_t file_size;
-    uint32_t reserved;
-} RegisterBufStruct;
-
-typedef struct {
-    uint32_t context_len;         /* manifest_crypto_len + cipher_bin_len */
-    uint32_t manifest_crypto_len; /* manifest crypto len */
-    uint32_t manifest_plain_len;  /* manfiest str + manifest binary */
-    uint32_t manifest_str_len;    /* manifest str len */
-    uint32_t cipher_bin_len;      /* cipher elf len */
-    uint32_t sign_len;            /* sign file len, now rsa 2048 this len is 256 */
+    uint32_t contextLen;         /* manifest_crypto_len + cipher_bin_len */
+    uint32_t manifestCryptoLen;  /* manifest crypto len */
+    uint32_t manifestPlainLen;   /* manfiest str + manifest binary */
+    uint32_t manifestStrLen;     /* manifest str len */
+    uint32_t cipherBinLen;       /* cipher elf len */
+    uint32_t signLen;            /* sign file len, now rsa 2048 this len is 256 */
 } TeecImageHead;
 
 typedef struct {
-    uint32_t magic_num1;
-    uint16_t magic_num2;
-    uint16_t version_num;
+    uint32_t magicNum1;
+    uint16_t magicNum2;
+    uint16_t versionNum;
 } TeecImageIdentity;
 
 typedef struct {
-    TeecImageIdentity img_identity;
-    uint32_t context_len;
-    uint32_t ta_key_version;
+    TeecImageIdentity imgIdentity;
+    uint32_t contextLen;
+    uint32_t taKeyVersion;
 } TaImageHdrV3;
 
 typedef struct {
-    TeecImageHead img_hd;
-    TeecImageIdentity img_identity;
+    TeecImageHead imgHd;
+    TeecImageIdentity imgIdentity;
     uint8_t reserved[NUM_OF_RESERVED_BITMAP];
 } TeecTaHead;
+/* end */
 
 int32_t TEEC_GetApp(const TaFileInfo *taFile, const TEEC_UUID *srvUuid, TC_NS_ClientContext *cliContext);
 int32_t TEEC_LoadSecfile(const char *filePath, int tzFd, FILE *fp);

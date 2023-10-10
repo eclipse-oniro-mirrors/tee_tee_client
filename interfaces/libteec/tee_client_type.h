@@ -151,6 +151,16 @@ typedef struct {
 } TEEC_Value;
 
 /**
+ * @brief Describes the size and handle of the ION memory.
+ *
+ * @since 8
+ */
+typedef struct {
+    int ionShareFd;
+    uint32_t ionSize;
+} TEEC_IonReference;
+
+/**
  * @brief Defines a parameter of {@code TEEC_Operation}.
  *
  * @since 8
@@ -159,6 +169,7 @@ typedef union {
     TEEC_TempMemoryReference tmpref;
     TEEC_RegisteredMemoryReference memref;
     TEEC_Value value;
+    TEEC_IonReference ionref;
 } TEEC_Parameter;
 
 /**

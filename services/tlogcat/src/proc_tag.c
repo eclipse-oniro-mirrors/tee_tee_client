@@ -57,7 +57,7 @@ static char *QueryTaTagNode(const struct TeeUuid *uuid)
 
     LIST_FOR_EACH(ptr, &g_taTagList) {
         tagInfo = CONTAINER_OF(ptr, struct TaTagInfo, taTagNode);
-        if ((tagInfo == NULL) || (memcmp(&(tagInfo->uuid), uuid, sizeof(*uuid)) != 0)) {
+        if (memcmp(&(tagInfo->uuid), uuid, sizeof(*uuid)) != 0) {
             continue;
         }
         return tagInfo->taTagName;
@@ -77,7 +77,7 @@ static char *QueryDriverTagNode(uint8_t driverType)
 
     LIST_FOR_EACH(ptr, &g_driverTagList) {
         tagInfo = CONTAINER_OF(ptr, struct DriverTagInfo, tagNode);
-        if ((tagInfo == NULL) || (tagInfo->driverType != driverType)) {
+        if (tagInfo->driverType != driverType) {
             continue;
         }
         return tagInfo->tagName;

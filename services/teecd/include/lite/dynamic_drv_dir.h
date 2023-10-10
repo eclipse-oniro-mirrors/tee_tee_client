@@ -14,5 +14,6 @@
 #define DYNAMIC_DRV_DIR_H
 
 #define DYNAMIC_DRV_DIR "/vendor/bin/tee_dynamic_drv/"
+#define DYNAMIC_SRV_DIR "/vendor/bin/tee_dynamic_srv/"
 
 #endif

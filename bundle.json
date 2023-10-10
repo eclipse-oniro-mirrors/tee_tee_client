@@ -7,21 +7,30 @@
       "name": "tee_client",
       "subsystem": "tee",
       "syscap": [],
-      "features": [],
-      "adapted_system_type": [ "small", "standard" ],
+      "features": [
+        "tee_client_features_tui"
+      ],
+      "adapted_system_type": [ "standard" ],
       "rom": "250KB",
       "ram": "5995KB",
       "deps": {
         "components": [
+          "ability_base",
+          "access_token",
+          "call_manager",
+          "c_utils",
           "hilog",
-          "ipc",
+          "image_framework",
+          "power_manager",
           "safwk",
           "samgr",
-          "c_utils"
+          "window_manager",
+          "ipc"
         ],
         "third_party": [
           "bounds_checking_function",
-	  "zlib"
+          "openssl",
+          "zlib"
         ]
       },
       "build": {
@@ -43,7 +52,20 @@
               "header_files": [
                 "tee_client_api.h",
                 "tee_client_type.h",
-                "tee_client_constants.h"
+                "tee_client_constants.h",
+                "tee_client_ext_api.h"
+              ],
+              "header_base": "//base/tee/tee_client/interfaces/libteec"
+            }
+          },
+          {
+            "name": "//base/tee/tee_client/frameworks/build/standard:libteec_vendor",
+            "header": {
+              "header_files": [
+                "tee_client_api.h",
+                "tee_client_type.h",
+                "tee_client_constants.h",
+                "tee_client_ext_api.h"
               ],
               "header_base": "//base/tee/tee_client/interfaces/libteec"
             }

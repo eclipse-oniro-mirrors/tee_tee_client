@@ -14,26 +14,35 @@ import("//build/ohos_var.gni")
 ohos_executable("teecd") {
     part_name = "tee_client"
     subsystem_name = "tee"
+    module_install_dir = "bin"
+    install_images = [
+        "vendor",
+        "updater_vendor",
+    ]
 
     sources = [
         "../../src/fs_work_agent.c",
         "../../src/late_init_agent.c",
         "../../src/misc_work_agent.c",
         "../../src/tee_agent.c",
+        "../../src/tee_ca_daemon.c",
+        "../../src/tee_ca_auth.c",
         "../../src/tee_load_dynamic_drv.c",
         "../../src/secfile_load_agent.c",
+        "../../../authentication/tee_get_native_cert.c",
+        "../../../authentication/tee_auth_common.c",
+        "../../../authentication/tcu_authentication.c",
     ]
 
     include_dirs = [
-        "//commonlibrary/c_utils/base/include",
-        "//utils/system/safwk/native/include",
-        "//developtools/liblog",
         "//base/tee/tee_client/interfaces/libteec",
         "../../include",
         "../../include/standard",
         "../../../../frameworks/include",
         "../../../../frameworks/include/standard",
+        "../../../../frameworks/include/standard/teec_vendor",
         "../../../../frameworks/libteec_vendor",
+        "../../../authentication",
     ]
 
     deps = [

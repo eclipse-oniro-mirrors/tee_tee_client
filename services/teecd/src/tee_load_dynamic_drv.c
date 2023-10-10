@@ -22,21 +22,11 @@
 #ifdef LOG_TAG
 #undef LOG_TAG
 #endif
-#define LOG_TAG "teecd_load_dynamic_drv"
+#define LOG_TAG "teecd_load_dynamic_elf"
 
 #define MAX_FILE_NAME_LEN 128
 
-static DIR *OpenDynamicDir(void)
-{
-    DIR *dir = opendir(DYNAMIC_DRV_DIR);
-    if (dir == NULL) {
-        tloge("open drv dir: %s failed\n", DYNAMIC_DRV_DIR);
-    }
-
-    return dir;
-}
-
-static int32_t LoadOneDrv(const struct dirent *dirFile, int32_t fd)
+static int32_t LoadOneFile(const char *dynDir, const struct dirent *dirFile, int32_t fd, uint32_t loadType)
 {
     char name[MAX_FILE_NAME_LEN];
     FILE *fp = NULL;
@@ -56,8 +46,8 @@ static int32_t LoadOneDrv(const struct dirent *dirFile, int32_t fd)
         tloge("mem set failed, name: %s, size: %u\n", name, (uint32_t)sizeof(name));
         goto END;
     }
-    if (strcat_s(name, MAX_FILE_NAME_LEN, DYNAMIC_DRV_DIR) != 0) {
-        tloge("dir name too long: %s\n", DYNAMIC_DRV_DIR);
+    if (strcat_s(name, MAX_FILE_NAME_LEN, dynDir) != 0) {
+        tloge("dir name too long: %s\n", dynDir);
         goto END;
     }
     if (strcat_s(name, MAX_FILE_NAME_LEN, dirFile->d_name) != 0) {
@@ -77,9 +67,9 @@ static int32_t LoadOneDrv(const struct dirent *dirFile, int32_t fd)
         goto END;
     }
 
-    ret = LoadSecFile(fd, fp, LOAD_DYNAMIC_DRV, NULL);
+    ret = LoadSecFile(fd, fp, loadType, NULL);
     if (ret != 0) {
-        tloge("load drnamic_drv failed: %s\n", realLoadFile);
+        tloge("load dynamic drv or srv failed: %s\n", realLoadFile);
     }
 
 END:
@@ -90,24 +80,30 @@ END:
     return ret;
 }
 
-void LoadDynamicDir(void)
+static void LoadOneDynamicDir(int32_t fd, const char *dynDir, uint32_t loadType)
 {
+    int32_t ret;
     struct dirent *dirFile = NULL;
-    int fd = GetSecLoadAgentFd();
 
-    DIR *dir = OpenDynamicDir();
+    DIR *dir = opendir(dynDir);
     if (dir == NULL) {
-        tloge("dynamic_drv dir not exist\n");
+        tlogi("tee dynamic dir not exist\n");
         return;
     }
-
     while ((dirFile = readdir(dir)) != NULL) {
-        int32_t ret = LoadOneDrv(dirFile, fd);
+        ret = LoadOneFile(dynDir, dirFile, fd, loadType);
         if (ret != 0) {
-            tloge("load dynamic drv failed\n");
+            tloge("load dynamic failed\n");
             continue;
         }
     }
-
     (void)closedir(dir);
+}
+
+void LoadDynamicDir()
+{
+    int32_t fd = GetSecLoadAgentFd();
+
+    LoadOneDynamicDir(fd, DYNAMIC_DRV_DIR, LOAD_DYNAMIC_DRV);
+    LoadOneDynamicDir(fd, DYNAMIC_SRV_DIR, LOAD_SERVICE);
 }

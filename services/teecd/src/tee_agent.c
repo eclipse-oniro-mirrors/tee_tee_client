@@ -20,6 +20,7 @@
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
+#include "tee_ca_daemon.h"
 #include "fs_work_agent.h"
 #include "late_init_agent.h"
 #include "misc_work_agent.h"
@@ -27,6 +28,7 @@
 #include "tc_ns_client.h"
 #include "tee_load_dynamic_drv.h"
 #include "tee_log.h"
+#include "tcu_authentication.h"
 
 #ifdef LOG_TAG
 #undef LOG_TAG
@@ -55,7 +57,7 @@ static int AgentInit(unsigned int id, void **control)
     if (control == NULL) {
         return -1;
     }
-    int fd = open(TC_NS_CLIENT_DEV_NAME, O_RDWR);
+    int fd = open(TC_PRIVATE_DEV_NAME, O_RDWR);
     if (fd < 0) {
         tloge("open tee client dev failed, fd is %d\n", fd);
         return -1;
@@ -171,9 +173,9 @@ static int SyncSysTimeToSecure(void)
     tcNsTime.seconds = (uint32_t)timeVal.tv_sec;
     tcNsTime.millis  = (uint32_t)timeVal.tv_usec / 1000;
 
-    int fd = open(TC_NS_CLIENT_DEV_NAME, O_RDWR);
+    int fd = open(TC_PRIVATE_DEV_NAME, O_RDWR);
     if (fd < 0) {
-        tloge("Failed to open %s: %d\n", TC_NS_CLIENT_DEV_NAME, errno);
+        tloge("Failed to open %s: %d\n", TC_PRIVATE_DEV_NAME, errno);
         return fd;
     }
     ret = ioctl(fd, (int)TC_NS_CLIENT_IOCTL_SYC_SYS_TIME, &tcNsTime);
@@ -185,7 +187,7 @@ static int SyncSysTimeToSecure(void)
     return ret;
 }
 
-static void TrySyncSysTimeToSecure(void)
+void TrySyncSysTimeToSecure(void)
 {
     static int syncSysTimed = 0;
 
@@ -203,8 +205,12 @@ int main(void)
 {
     pthread_t fsThread               = (pthread_t)-1;
     pthread_t miscThread             = (pthread_t)-1;
+    pthread_t caDaemonThread         = (pthread_t)-1;
     pthread_t lateInitThread         = (pthread_t)-1;
     pthread_t secfileLoadAgentThread = (pthread_t)-1;
+
+    /* Trans the xml file to tzdriver: */
+    (void)TcuAuthentication(HASH_TYPE_VENDOR);
 
     int ret = ProcessAgentInit();
     if (ret) {
@@ -213,9 +219,9 @@ int main(void)
 
     TrySyncSysTimeToSecure();
 
-#ifdef DYNAMIC_DRV_DIR
     LoadDynamicDir();
-#endif
+
+    (void)pthread_create(&caDaemonThread, NULL, CaServerWorkThread, NULL);
 
     SetFileNumLimit();
 
@@ -232,6 +238,7 @@ int main(void)
         (void)pthread_join(fsThread, NULL);
     }
     (void)pthread_join(miscThread, NULL);
+    (void)pthread_join(caDaemonThread, NULL);
 
     (void)pthread_join(lateInitThread, NULL);
     (void)pthread_join(secfileLoadAgentThread, NULL);

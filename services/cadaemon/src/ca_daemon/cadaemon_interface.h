@@ -18,21 +18,10 @@
 #include "ipc_types.h"
 #include "iremote_broker.h"
 #include "tee_client_type.h"
+#include "cadaemon_ipc_interface_code.h"
 
 namespace OHOS {
 namespace CaDaemon {
-enum {
-        INIT_CONTEXT = 0,
-        FINAL_CONTEXT,
-        OPEN_SESSION,
-        CLOSE_SESSION,
-        INVOKE_COMMND,
-        REGISTER_MEM,
-        ALLOC_MEM,
-        RELEASE_MEM,
-        SET_CALL_BACK
-    };
-
 class CaDaemon : public OHOS::IRemoteBroker {
 public:
     virtual TEEC_Result InitializeContext(const char *name, MessageParcel &reply) = 0;
@@ -50,6 +39,8 @@ public:
     virtual TEEC_Result ReleaseSharedMemory(TEEC_Context *context,
         TEEC_SharedMemory *sharedMem, uint32_t shmOffset, MessageParcel &reply) = 0;
     virtual int32_t SetCallBack(const sptr<IRemoteObject> &notify) = 0;
+    virtual TEEC_Result SendSecfile(const char *path, int fd, FILE *fp, MessageParcel &reply) = 0;
+    virtual TEEC_Result GetTeeVersion(MessageParcel &reply) = 0;
     DECLARE_INTERFACE_DESCRIPTOR(u"OHOS.CaDaemon.CaDaemon");
 };
 } // namespace CaDaemon

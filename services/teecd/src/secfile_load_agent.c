@@ -23,6 +23,7 @@
 #endif
 #define LOG_TAG "teecd_agent"
 #define MAX_BUFFER_LEN (8 * 1024 * 1024)
+#define H_OFFSET                  32
 int g_secLoadAgentFd = -1;
 
 int GetSecLoadAgentFd(void)
@@ -92,7 +93,7 @@ int32_t LoadSecFile(int tzFd, FILE *fp, enum SecFileType fileType, const TEEC_UU
 {
     int32_t ret;
     char *fileBuffer                   = NULL;
-    struct SecLoadIoctlStruct ioctlArg = { 0, { 0 }, 0, { NULL } };
+    struct SecLoadIoctlStruct ioctlArg = {{ 0 }, { 0 }, { NULL } };
 
     if (tzFd < 0 || fp == NULL) {
         tloge("param erro!\n");
@@ -127,12 +128,13 @@ int32_t LoadSecFile(int tzFd, FILE *fp, enum SecFileType fileType, const TEEC_UU
             ret = -1;
             break;
         }
-        ioctlArg.fileType   = fileType;
-        ioctlArg.fileSize   = (uint32_t)totalLen;
-        ioctlArg.fileBuffer = fileBuffer;
+
+        ioctlArg.secFileInfo.fileType = fileType;
+        ioctlArg.secFileInfo.fileSize = (uint32_t)totalLen;
+        ioctlArg.memref.file_addr = (uint32_t)(uintptr_t)fileBuffer;
+        ioctlArg.memref.file_h_addr = (uint32_t)(((uint64_t)(uintptr_t)fileBuffer) >> H_OFFSET);
         if (uuid != NULL && memcpy_s((void *)(&ioctlArg.uuid), sizeof(ioctlArg.uuid), uuid, sizeof(*uuid)) != EOK) {
             tloge("memcpy uuid fail\n");
-            ret = -1;
             break;
         }
 

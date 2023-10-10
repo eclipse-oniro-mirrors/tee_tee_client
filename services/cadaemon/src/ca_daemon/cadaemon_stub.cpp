@@ -11,6 +11,7 @@
  */
 
 #include "cadaemon_stub.h"
+#include <malloc.h>
 #include <memory>
 #include <securec.h>
 #include "ipc_skeleton.h"
@@ -27,15 +28,6 @@ namespace CaDaemon {
 const std::u16string INTERFACE_TOKEN = u"ohos.tee_client.accessToken";
 CaDaemonStub::CaDaemonStub()
 {
-    memberFuncMap_[INIT_CONTEXT] = &CaDaemonStub::InitContextRecvProc;
-    memberFuncMap_[FINAL_CONTEXT] = &CaDaemonStub::FinalContextRecvProc;
-    memberFuncMap_[OPEN_SESSION] = &CaDaemonStub::OpenSessionRecvProc;
-    memberFuncMap_[CLOSE_SESSION] = &CaDaemonStub::CloseSessionRecvProc;
-    memberFuncMap_[INVOKE_COMMND] = &CaDaemonStub::InvokeCommandRecvProc;
-    memberFuncMap_[REGISTER_MEM] = &CaDaemonStub::RegisterMemRecvProc;
-    memberFuncMap_[ALLOC_MEM] = &CaDaemonStub::AllocMemRecvProc;
-    memberFuncMap_[RELEASE_MEM] = &CaDaemonStub::ReleaseMemRecvProc;
-    memberFuncMap_[SET_CALL_BACK] = &CaDaemonStub::SetCallBackRecvProc;
 }
 
 CaDaemonStub::~CaDaemonStub()
@@ -47,15 +39,51 @@ int32_t CaDaemonStub::OnRemoteRequest(uint32_t code,
     MessageParcel& data, MessageParcel &reply, MessageOption &option)
 {
     tlogi("CaDaemonStub::OnReceived, code = %{public}u, flags= %{public}d.", code, option.GetFlags());
-    auto itFunc = memberFuncMap_.find(code);
-    if (itFunc != memberFuncMap_.end()) {
-        auto memberFunc = itFunc->second;
-        if (memberFunc != nullptr) {
-            return (this->*memberFunc)(data, reply);
-        }
+    int32_t result;
+    (void)mallopt(M_SET_THREAD_CACHE, M_THREAD_CACHE_DISABLE);
+    (void)mallopt(M_DELAYED_FREE, M_DELAYED_FREE_DISABLE);
+    switch (code) {
+        case static_cast<uint32_t>(CadaemonOperationInterfaceCode::INIT_CONTEXT):
+            result = InitContextRecvProc(data, reply);
+            break;
+        case static_cast<uint32_t>(CadaemonOperationInterfaceCode::FINAL_CONTEXT):
+            result = FinalContextRecvProc(data, reply);
+            break;
+        case static_cast<uint32_t>(CadaemonOperationInterfaceCode::OPEN_SESSION):
+            result = OpenSessionRecvProc(data, reply);
+            break;
+        case static_cast<uint32_t>(CadaemonOperationInterfaceCode::CLOSE_SESSION):
+            result = CloseSessionRecvProc(data, reply);
+            break;
+        case static_cast<uint32_t>(CadaemonOperationInterfaceCode::INVOKE_COMMND):
+            result = InvokeCommandRecvProc(data, reply);
+            break;
+        case static_cast<uint32_t>(CadaemonOperationInterfaceCode::REGISTER_MEM):
+            result = RegisterMemRecvProc(data, reply);
+            break;
+        case static_cast<uint32_t>(CadaemonOperationInterfaceCode::ALLOC_MEM):
+            result = AllocMemRecvProc(data, reply);
+            break;
+        case static_cast<uint32_t>(CadaemonOperationInterfaceCode::RELEASE_MEM):
+            result = ReleaseMemRecvProc(data, reply);
+            break;
+        case static_cast<uint32_t>(CadaemonOperationInterfaceCode::SET_CALL_BACK):
+            result = SetCallBackRecvProc(data, reply);
+            break;
+        case static_cast<uint32_t>(CadaemonOperationInterfaceCode::SEND_SECFILE):
+            result = SendSecFileRecvProc(data, reply);
+            break;
+        case static_cast<uint32_t>(CadaemonOperationInterfaceCode::GET_TEE_VERSION):
+            result = GetTeeVersionRecvProc(data, reply);
+            break;
+        default:
+            tlogi("CaDaemonStub: default case, need check");
+            (void)mallopt(M_FLUSH_THREAD_CACHE, 0);
+            return IPCObjectStub::OnRemoteRequest(code, data, reply, option);
     }
-    tlogw("CaDaemonStub: default case, need check");
-    return IPCObjectStub::OnRemoteRequest(code, data, reply, option);
+
+    (void)mallopt(M_FLUSH_THREAD_CACHE, 0);
+    return result;
 }
 
 static bool GetChar(MessageParcel &data, char tempChar[], const char **str)
@@ -87,7 +115,7 @@ static bool GetChar(MessageParcel &data, char tempChar[], const char **str)
 
 int32_t CaDaemonStub::InitContextRecvProc(MessageParcel &data, MessageParcel &reply)
 {
-    tloge("CaDaemonStub: InitContextRecvProc start");
+    tlogi("CaDaemonStub: InitContextRecvProc start");
     if (!EnforceInterceToken(data)) {
         tloge("CaDaemonStub: InitContextRecvProc interface token check failed!");
         return ERR_UNKNOWN_REASON;
@@ -111,7 +139,7 @@ int32_t CaDaemonStub::InitContextRecvProc(MessageParcel &data, MessageParcel &re
 int32_t CaDaemonStub::FinalContextRecvProc(MessageParcel &data, MessageParcel &reply)
 {
     (void)reply;
-    tloge("CaDaemonStub: FinalContextRecvProc start");
+    tlogi("CaDaemonStub: FinalContextRecvProc start");
     if (!EnforceInterceToken(data)) {
         tloge("CaDaemonStub: FinalContextRecvProc interface token check failed!");
         return -1;
@@ -164,7 +192,7 @@ static bool GetSessionFromData(MessageParcel &data, TEEC_Session *session)
 
 static bool GetSharedMemFromData(MessageParcel &data, TEEC_SharedMemory *shm)
 {
-    tloge("start to recieve sharedmem\n");
+    tlogi("start to recieve sharedmem\n");
     TEEC_SharedMemory *tempShm = nullptr;
     size_t len = sizeof(*tempShm);
     tempShm = (TEEC_SharedMemory *)(data.ReadBuffer(len));
@@ -243,7 +271,7 @@ static void ClearAsmMem(sptr<Ashmem> &optMem)
 
 static bool GetOptMemFromData(MessageParcel &data, sptr<Ashmem> &optMem, uint32_t &optMemSize)
 {
-    tloge("get optMem start\n");
+    tlogi("get optMem start\n");
     bool retTmp = data.ReadUint32(optMemSize);
     CHECK_ERR_RETURN(retTmp, true, retTmp);
 
@@ -300,7 +328,7 @@ ERROR:
 int32_t CaDaemonStub::OpenSessionRecvProc(MessageParcel &data, MessageParcel &reply)
 {
     int32_t result = ERR_NONE;
-    tloge("CaDaemonStub: OpenSessionRecvProc start");
+    tlogi("CaDaemonStub: OpenSessionRecvProc start");
     if (!EnforceInterceToken(data)) {
         tloge("CaDaemonStub: OpenSessionRecvProc interface token check failed!");
         return -1;
@@ -323,6 +351,7 @@ int32_t CaDaemonStub::OpenSessionRecvProc(MessageParcel &data, MessageParcel &re
     TEEC_UUID *uuid = nullptr;
     uint32_t connMethod;
     result = ReadOpenData(data, fd, &uuid, connMethod);
+    CHECK_ERR_RETURN(result, ERR_NONE, ERR_UNKNOWN_OBJECT);
 
     TEEC_Operation operation;
     bool opFlag = false;
@@ -356,7 +385,7 @@ END:
 int32_t CaDaemonStub::CloseSessionRecvProc(MessageParcel &data, MessageParcel &reply)
 {
     (void)reply;
-    tloge("CaDaemonStub: CloseSessionRecvProc start");
+    tlogi("CaDaemonStub: CloseSessionRecvProc start");
     if (!EnforceInterceToken(data)) {
         tloge("CaDaemonStub: CloseSessionRecvProc interface token check failed!");
         return -1;
@@ -379,7 +408,7 @@ int32_t CaDaemonStub::CloseSessionRecvProc(MessageParcel &data, MessageParcel &r
 int32_t CaDaemonStub::InvokeCommandRecvProc(MessageParcel &data, MessageParcel &reply)
 {
     int32_t result = ERR_NONE;
-    tloge("CaDaemonStub: InvokeCommandRecvProc start");
+    tlogi("CaDaemonStub: InvokeCommandRecvProc start");
     if (!EnforceInterceToken(data)) {
         tloge("CaDaemonStub: InvokeCommandRecvProc interface token check failed!");
         return -1;
@@ -423,7 +452,7 @@ END:
 
 int32_t CaDaemonStub::RegisterMemRecvProc(MessageParcel &data, MessageParcel &reply)
 {
-    tloge("CaDaemonStub: RegisterMemRecvProc start");
+    tlogi("CaDaemonStub: RegisterMemRecvProc start");
     if (!EnforceInterceToken(data)) {
         tloge("CaDaemonStub: RegisterMemRecvProc interface token check failed!");
         return -1;
@@ -446,7 +475,7 @@ int32_t CaDaemonStub::RegisterMemRecvProc(MessageParcel &data, MessageParcel &re
 
 int32_t CaDaemonStub::AllocMemRecvProc(MessageParcel &data, MessageParcel &reply)
 {
-    tloge("CaDaemonStub: AllocMemRecvProc start");
+    tlogi("CaDaemonStub: AllocMemRecvProc start");
     if (!EnforceInterceToken(data)) {
         tloge("CaDaemonStub: AllocMemRecvProc interface token check failed!");
         return -1;
@@ -469,7 +498,7 @@ int32_t CaDaemonStub::AllocMemRecvProc(MessageParcel &data, MessageParcel &reply
 
 int32_t CaDaemonStub::ReleaseMemRecvProc(MessageParcel &data, MessageParcel &reply)
 {
-    tloge("CaDaemonStub: ReleaseMemRecvProc start");
+    tlogi("CaDaemonStub: ReleaseMemRecvProc start");
     if (!EnforceInterceToken(data)) {
         tloge("CaDaemonStub: ReleaseMemRecvProc interface token check failed!");
         return -1;
@@ -494,7 +523,7 @@ int32_t CaDaemonStub::ReleaseMemRecvProc(MessageParcel &data, MessageParcel &rep
 
 int32_t CaDaemonStub::SetCallBackRecvProc(MessageParcel &data, MessageParcel &reply)
 {
-    tloge("CaDaemonStub: SetCallBackRecvProc start");
+    tlogi("CaDaemonStub: SetCallBackRecvProc start");
     if (!EnforceInterceToken(data)) {
         tloge("CaDaemonStub: SetCallBackRecvProc interface token check failed!");
         return -1;
@@ -514,6 +543,45 @@ bool CaDaemonStub::EnforceInterceToken(MessageParcel& data)
 {
     u16string interfaceToken = data.ReadInterfaceToken();
     return interfaceToken == INTERFACE_TOKEN;
+}
+
+int32_t CaDaemonStub::SendSecFileRecvProc(MessageParcel& data, MessageParcel &reply)
+{
+    tlogi("CaDaemonStub: SendSecFileRecvProc start");
+    if (!EnforceInterceToken(data)) {
+        tloge("CaDaemonStub: SendSecFileRecvProc interface token check failed!");
+        return -1;
+    }
+    const char *path = nullptr;
+    char tempChar[PATH_MAX + 1] = {0};
+    if (!GetChar(data, tempChar, &path)) {
+        tloge("SendSecFileRecvProc: get path failed\n");
+        return ERR_UNKNOWN_OBJECT;
+    }
+
+    int fd;
+    FILE *fp = nullptr;
+    bool retTmp = ReadFd(data, fd);
+    CHECK_ERR_RETURN(retTmp, true, ERR_UNKNOWN_OBJECT);
+    fp = fdopen(fd, "r");
+
+    TEEC_Context context;
+    retTmp = GetContextFromData(data, &context);
+    CHECK_ERR_RETURN(retTmp, true, ERR_UNKNOWN_OBJECT);
+
+    TEEC_Session session;
+    retTmp = GetSessionFromData(data, &session);
+    CHECK_ERR_RETURN(retTmp, true, ERR_UNKNOWN_OBJECT);
+
+    (void)SendSecfile(path, context.fd, fp, reply);
+
+    return ERR_NONE;
+}
+
+int32_t CaDaemonStub::GetTeeVersionRecvProc(MessageParcel& data, MessageParcel &reply)
+{
+    (void)GetTeeVersion(reply);
+    return ERR_NONE;
 }
 } // namespace CaDaemon
 } // namespace OHOS

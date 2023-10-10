@@ -137,28 +137,23 @@ static int32_t FindOpenFile(int32_t fd, struct OpenedFile **file)
 }
 
 /*
- * path:file or dir to change own
- * flag: 0(dir);1(file)
+ * path: file or dir to change own
+ * is_file: 0(dir);1(file)
  */
-static void ChownSecStorageDataToSystem(const char *path, bool flag)
+static void ChownSecStorage(const char *path, bool is_file)
 {
     if (path == NULL) {
         return;
     }
-    /*
-     * check path is SEC_STORAGE_ROOT_DIR or SEC_STORAGE_DATA_DIR,
-     * we only need to change SEC_STORAGE_DATA_DIR from root to system
-     */
-    if (strstr(path, "sec_storage_data") != NULL) {
-        int32_t ret;
-        if (flag) {
-            ret = chmod(path, S_IRUSR | S_IWUSR);
-        } else {
-            ret = chmod(path, S_IRUSR | S_IWUSR | S_IXUSR);
-        }
-        if (ret < 0) {
-            tloge("chmod erro\n");
-        }
+    /* create dirs with 700 mode, create files with 600 mode */
+    int32_t ret;
+    if (is_file) {
+        ret = chmod(path, S_IRUSR | S_IWUSR);
+    } else {
+        ret = chmod(path, S_IRUSR | S_IWUSR | S_IXUSR);
+    }
+    if (ret < 0) {
+        tloge("chmod failed: %d\n", errno);
     }
 }
 
@@ -214,12 +209,12 @@ static int32_t CreateDir(const char *path, size_t pathLen)
             }
 
             if (mkdir(pathTemp, ROOT_DIR_PERM) != 0) {
-                tloge("mkdir fail\n");
+                tloge("mkdir fail err %d \n", errno);
                 free(pathTemp);
                 return -1;
             }
 
-            ChownSecStorageDataToSystem(pathTemp, false);
+            ChownSecStorage(pathTemp, false);
             *position = '/';
         }
     }
@@ -385,7 +380,7 @@ static int32_t JoinFileNameForStorageCE(const char *name, char *path, size_t pat
         return -1;
     }
 
-    idString = strtok_r(nameTemp, ROOT_DIR, &nameWithoutUserId);
+    idString = strtok_r(nameTemp, "/", &nameWithoutUserId);
     if (idString == NULL) {
         tloge("the name %s does not match th rule as userid/xxx\n", name);
         return -1;
@@ -403,7 +398,7 @@ static int32_t JoinFileNameForStorageCE(const char *name, char *path, size_t pat
         return -1;
     }
 
-    rc = strncat_s(path, pathLen, SEC_STORAGE_DATA_ROOT_DIR, sizeof(SEC_STORAGE_DATA_ROOT_DIR));
+    rc = strncat_s(path, pathLen, SEC_STORAGE_DATA_CE_SUFFIX_DIR, sizeof(SEC_STORAGE_DATA_CE_SUFFIX_DIR));
     if (rc != EOK) {
         tloge("strncat_s failed %d\n", rc);
         return -1;
@@ -640,7 +635,7 @@ static uint32_t DoOpenFile(const char *path, struct SecStorageType *transControl
         tloge("open file with flag %s failed: %d\n", transControl->args.open.mode, errno);
         return (uint32_t)errno;
     }
-    ChownSecStorageDataToSystem(trustPath, true);
+    ChownSecStorage(trustPath, true);
     int32_t ret = AddOpenFile(pFile);
     if (ret != 0) {
         tloge("add OpenedFile failed\n");
@@ -653,8 +648,27 @@ static uint32_t DoOpenFile(const char *path, struct SecStorageType *transControl
 
 static int32_t CheckPartitionReady(const char *mntDir)
 {
-    (void)mntDir;
-    return 1;
+    struct mntent *mentry = NULL;
+    int32_t findFlag      = -1;
+
+    FILE *fp = setmntent("/proc/mounts", "r");
+    if (fp == NULL) {
+        tloge("Failed to open /proc/mounts.\n");
+        return -1;
+    }
+    mentry = getmntent(fp);
+    while (mentry != NULL) {
+        if (mentry->mnt_dir != NULL) {
+            if (strlen(mentry->mnt_dir) == strlen(mntDir) &&
+                strncmp(mentry->mnt_dir, mntDir, strlen(mntDir)) == 0) {
+                findFlag = 1;
+                break;
+            }
+        }
+        mentry = getmntent(fp);
+    }
+    endmntent(fp);
+    return findFlag;
 }
 
 static void OpenWork(struct SecStorageType *transControl)
@@ -667,17 +681,17 @@ static void OpenWork(struct SecStorageType *transControl)
 
     tlogv("sec storage : open\n");
 
-    if (strstr((char *)(transControl->args.open.name), SFS_PARTITION_PERSISTENT) != NULL) {
+    if (JoinFileName((char *)(transControl->args.open.name), nameBuff, sizeof(nameBuff)) != 0) {
+        transControl->ret = -1;
+        return;
+    }
+    
+    if (strstr((char *)nameBuff, SFS_PARTITION_PERSISTENT) != NULL) {
         if (CheckPartitionReady("/sec_storage") <= 0) {
             tloge("check /sec_storage partition_ready failed ----------->\n");
             transControl->ret = -1;
             return;
         }
-    }
-
-    if (JoinFileName((char *)(transControl->args.open.name), nameBuff, sizeof(nameBuff)) != 0) {
-        transControl->ret = -1;
-        return;
     }
 
     if (transControl->cmd == SEC_CREATE) {
@@ -987,7 +1001,7 @@ static int32_t CopyFile(const char *fromPath, const char *toPath)
     if (ret != 0) {
         tloge("do copy failed\n");
     } else {
-        ChownSecStorageDataToSystem((char *)realToPath, true);
+        ChownSecStorage((char *)realToPath, true);
     }
 
     close(fromFd);

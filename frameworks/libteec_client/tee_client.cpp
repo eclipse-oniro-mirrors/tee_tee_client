@@ -24,6 +24,7 @@
 #include "iservice_registry.h"
 #include "system_ability_definition.h"
 #include "tee_client_api.h"
+#include "tee_client_ext_api.h"
 #include "tee_client_inner.h"
 #include "tee_log.h"
 
@@ -221,6 +222,7 @@ static bool WriteChar(const char *srcStr, MessageParcel &data)
     } else {
         if (strnlen(srcStr, PATH_MAX) == PATH_MAX) {
             tloge("param srcStr is too long\n");
+            return false;
         }
         string tempStr = srcStr;
         writeRet = data.WriteUint32(strlen(srcStr));
@@ -303,13 +305,36 @@ void TeeClient::FreeAllShareMemoryInContext(const TEEC_Context *context)
     return;
 }
 
+static void SleepNs(long num)
+{
+    struct timespec ts;
+    ts.tv_sec  = 0;
+    ts.tv_nsec = num;
+
+    if (nanosleep(&ts, NULL) != 0) {
+        tlogd("nanosleep ms error\n");
+    }
+}
+
+#define SLEEP_TIME (200*1000*1000)
+#define CONNECT_MAX_NUM 50
+
 TEEC_Result TeeClient::InitializeContextSendCmd(const char *name, MessageParcel &reply)
 {
     MessageParcel data;
     MessageOption option;
-
-    InitTeecService();
-    if (!mServiceValid) {
+    uint32_t connectTime = 0;
+    /* add retry to avoid app start before daemon */
+    while (connectTime++ < CONNECT_MAX_NUM) {
+        InitTeecService();
+        if (mServiceValid) {
+            break;
+        }
+        tlogd("get cadaemon handle retry\n");
+        SleepNs(SLEEP_TIME);
+    }
+    if (connectTime > CONNECT_MAX_NUM) {
+        tloge("get cadaemon handle failed\n");
         return TEEC_FAIL;
     }
 
@@ -533,6 +558,7 @@ TEEC_Result TeeClient::GetTeecOptMem(TEEC_Operation *operation,
     size_t len = sizeof(*optRet);
     optRet = (TEEC_Operation *)(reply.ReadBuffer(len));
     if (optRet == nullptr) {
+        tloge("the buffer is NULL\n");
         return TEEC_FAIL;
     }
 
@@ -1462,6 +1488,73 @@ void TeeClient::RequestCancellation(const TEEC_Operation *operation)
     (void)operation;
     return;
 }
+
+TEEC_Result TeeClient::SendSecfile(const char *path, TEEC_Session *session)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+    uint32_t result;
+    if (path == NULL || session == NULL || session->context == NULL) {
+        tloge("the params is error\n");
+        return TEEC_ERROR_BAD_PARAMETERS;
+    }
+
+    InitTeecService();
+    if (!mServiceValid) {
+        return TEEC_FAIL;
+    }
+
+    bool parRet = data.WriteInterfaceToken(INTERFACE_TOKEN);
+    CHECK_ERR_RETURN(parRet, true, TEEC_FAIL);
+
+    int fd = GetFileFd(path);
+    if (fd < 0) {
+        tloge("open the path error\n");
+        return TEEC_FAIL;
+    }
+
+    parRet = WriteChar(path, data);
+    CHECK_ERR_RETURN(parRet, true, TEEC_FAIL);
+
+    parRet = data.WriteBool(true);
+    CHECK_ERR_RETURN(parRet, true, TEEC_FAIL);
+    parRet = data.WriteFileDescriptor(fd);
+    CHECK_ERR_RETURN(parRet, true, TEEC_FAIL);
+
+    parRet = WriteContext(data, session->context);
+    CHECK_ERR_RETURN(parRet, true, TEEC_FAIL);
+
+    parRet = WriteSession(data, session);
+    CHECK_ERR_RETURN(parRet, true, TEEC_FAIL);
+
+    int ret = mTeecService->SendRequest(SEND_SECFILE, data, reply, option);
+    CHECK_ERR_RETURN(ret, ERR_NONE, TEEC_FAIL);
+
+    parRet = reply.ReadUint32(result);
+    CHECK_ERR_RETURN(parRet, true, TEEC_FAIL);
+
+    return (TEEC_Result)result;
+}
+
+TEEC_Result TeeClient::GetTeeVersion(uint32_t &teeVersion)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    MessageOption option;
+
+    InitTeecService();
+    if (!mServiceValid) {
+        return TEEC_FAIL;
+    }    
+
+    int ret = mTeecService->SendRequest(GET_TEE_VERSION, data, reply, option);
+    CHECK_ERR_RETURN(ret, ERR_NONE, TEEC_FAIL);
+    bool result = reply.ReadUint32(teeVersion);
+    CHECK_ERR_RETURN(result, true, TEEC_FAIL);
+    return TEEC_SUCCESS;
+}
+
 } // namespace OHOS
 
 
@@ -1512,4 +1605,19 @@ void TEEC_ReleaseSharedMemory(TEEC_SharedMemory *sharedMem)
 void TEEC_RequestCancellation(TEEC_Operation *operation)
 {
     OHOS::TeeClient::GetInstance().RequestCancellation(operation);
+}
+
+TEEC_Result TEEC_SendSecfile(const char *path, TEEC_Session *session)
+{
+    return OHOS::TeeClient::GetInstance().SendSecfile(path, session);
+}
+
+uint32_t TEEC_GetTEEVersion(void)
+{
+    uint32_t teeVersion = 0;
+    TEEC_Result result = OHOS::TeeClient::GetInstance().GetTeeVersion(teeVersion);
+    if (result != TEEC_SUCCESS || teeVersion == 0) {
+        tloge("get the tee version failed, result:0x%x, the version:0x%x", result, teeVersion);
+    }
+    return teeVersion;
 }

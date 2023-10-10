@@ -42,8 +42,8 @@ static int SetPathToBuf(uint8_t *buffer, uint32_t *len, uint32_t *inputLen, cons
     }
 
     buffer    += sizeof(pathLen);
-    *len      += sizeof(pathLen);
-    *inputLen -= sizeof(pathLen);
+    *len      += (uint32_t)sizeof(pathLen);
+    *inputLen -= (uint32_t)sizeof(pathLen);
     ret = -1;
 
     if (num > *inputLen) {
@@ -82,8 +82,8 @@ static int SetUidToBuf(uint8_t *buffer, uint32_t *len, uint32_t *inputLen, unsig
     }
 
     buffer    += sizeof(pubkeyLen);
-    *len      += sizeof(pubkeyLen);
-    *inputLen -= sizeof(pubkeyLen);
+    *len      += (uint32_t)sizeof(pubkeyLen);
+    *inputLen -= (uint32_t)sizeof(pubkeyLen);
     ret = -1;
 
     if (pubkeyLen > *inputLen) {
