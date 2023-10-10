@@ -14,7 +14,7 @@ TEE Client组件包含如下模块：
 
 图1 TEE Client组件架构图
 
-![](figures\tee_client.drawio.png)
+![](figures/tee_client.drawio.png)
 
 ## 目录
 
