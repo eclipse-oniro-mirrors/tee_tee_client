@@ -50,7 +50,7 @@ TEE Client组件对CA提供的API列表如下：
 
 上述API均是GlobalPlatform TEE标准规定的，可参考《[TEE Client API Specification v1.0 (GPD_SPE_007)](https://globalplatform.org/specs-library/?filter-committee=tee)》。少量实现与GlobalPlatform TEE规范有差异，差异点如下：
 
-1. TEEC_OpenSession接口的TEEC_Context结构体成员 ta_path支持指定TA的加载路径（限制在/data目录）
+1. TEEC_OpenSession接口的TEEC_Context结构体成员 ta_path支持指定TA的文件路径（限制在/data目录）
 
    举例如下：
 
@@ -58,6 +58,8 @@ TEE Client组件对CA提供的API列表如下：
    TEEC_Context context;
    context.ta_path = (uint8_t *)"/data/58dbb3b9-4a0c-42d2-a84d-7c7ab17539fc.sec"
    ```
+
+   如果CA不通过ta_path指定TA的文件路径，则TEE Client会从缺省路径下读取uuid.sec（uuid需要替换为TA的真实uuid）命名的TA文件。缺省路径有两个：/system/bin和/vendor/bin。
 
 2. TEEC_OpenSession接口入参connectionMethod只支持TEEC_LOGIN_IDENTIFY
 
