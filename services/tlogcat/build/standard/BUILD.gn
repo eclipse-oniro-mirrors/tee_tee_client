@@ -33,7 +33,7 @@ ohos_executable("tlogcat") {
         "../../include",
         "../../../../frameworks/include",
         "../../../../frameworks/include/standard",
-        "//base/tee/tee_client/interfaces/libteec",
+        "//base/tee/tee_client/interfaces/kits/c/include",
     ]
 
     deps = [

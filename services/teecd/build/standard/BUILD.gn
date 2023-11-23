@@ -35,7 +35,7 @@ ohos_executable("teecd") {
     ]
 
     include_dirs = [
-        "//base/tee/tee_client/interfaces/libteec",
+        "//base/tee/tee_client/interfaces/kits/c/include",
         "../../include",
         "../../include/standard",
         "../../../../frameworks/include",

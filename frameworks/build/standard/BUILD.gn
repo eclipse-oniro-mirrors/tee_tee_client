@@ -13,46 +13,9 @@ import("//build/ohos_var.gni")
 
 config("exported_header_files") {
     include_dirs = [
-        "//base/tee/tee_client/interfaces/libteec",
+        "//base/tee/tee_client/interfaces/inner_api/libteec_vendor",
+        "//base/tee/tee_client/interfaces/kits/c/include",
     ]
-}
-
-ohos_shared_library("libteec") {
-    part_name = "tee_client"
-    subsystem_name = "tee"
-    output_extension = "so"
-
-    sources = [
-        "../../libteec_client/tee_client.cpp",
-    ]
-
-    include_dirs = [
-        "//base/tee/tee_client/interfaces/libteec",
-        "../../include",
-        "../../include/standard/teec_system/",
-        "../../include/standard/",
-        "../../libteec_client/",
-        "../../libteec_vendor/",
-        "../../authentication",
-    ]
-
-    deps = [
-        "//third_party/bounds_checking_function:libsec_shared",
-    ]
-
-    external_deps = [
-        "c_utils:utils",
-        "hilog:libhilog",
-        "ipc:ipc_core",
-        "safwk:system_ability_fwk",
-        "samgr:samgr_proxy",
-    ]
-
-    ldflags = [
-        "-Wl,-z,max-page-size=4096",
-        "-Wl,-z,separate-code",
-    ]
-    public_configs = [ ":exported_header_files" ]
 }
 
 ohos_shared_library("libteec_vendor") {
@@ -80,7 +43,8 @@ ohos_shared_library("libteec_vendor") {
     ]
 
     include_dirs = [
-        "//base/tee/tee_client/interfaces/libteec",
+        "//base/tee/tee_client/interfaces/kits/c/include",
+        "//base/tee/tee_client/interfaces/inner_api/libteec_vendor",
         "../../include",
         "../../include/standard/teec_vendor/",
         "../../include/standard/",

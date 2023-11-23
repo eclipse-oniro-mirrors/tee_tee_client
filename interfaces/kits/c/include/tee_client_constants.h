@@ -19,7 +19,9 @@
  * @brief Provides APIs for the client applications (CAs) in the Rich Execution Environment (normal mode) to
  * access the trusted applications (TAs) in a Trusted Execution Environment (TEE).
  *
- * @since 8
+ * @syscap SystemCapability.Tee.TeeClient
+ * @since 9
+ * @version 1.0
  */
 
 /**
@@ -27,20 +29,23 @@
  *
  * @brief Defines public data and constants.
  *
- * @since 8
+ * @since 9
+ * @version 1.0
  */
 
 /**
  * @brief Defines the number of <b>TEEC_Parameter</b>s in <b>TEEC_Operation</b>.
  *
- * @since 8
+ * @since 9
+ * @version 1.0
  */
 #define TEEC_PARAM_NUM 4
 
 /**
  * @brief Defines the error codes returned.
  *
- * @since 8
+ * @since 9
+ * @version 1.0
  */
 enum TEEC_ReturnCode {
     /** The operation is successful. */
@@ -116,7 +121,8 @@ enum TEEC_ReturnCode {
 /**
  * @brief Defines the sources of the error codes returned.
  *
- * @since 8
+ * @since 9
+ * @version 1.0
  */
 enum TEEC_ReturnCodeOrigin {
     /** The error code indicates an error originated from the client API. */
@@ -132,7 +138,8 @@ enum TEEC_ReturnCodeOrigin {
 /**
  * @brief Defines the identifiers of the shared memory.
  *
- * @since 8
+ * @since 9
+ * @version 1.0
  */
 enum TEEC_SharedMemCtl {
     /** The shared memory can carry data from CAs to TAs. */
@@ -146,7 +153,8 @@ enum TEEC_SharedMemCtl {
 /**
  * @brief Defines the parameter types.
  *
- * @since 8
+ * @since 9
+ * @version 1.0
  */
 enum TEEC_ParamType {
     /** The parameter is not used. */
@@ -180,7 +188,8 @@ enum TEEC_ParamType {
 /**
  * @brief Defines the login methods.
  *
- * @since 8
+ * @since 9
+ * @version 1.0
 */
 enum TEEC_LoginMethod {
     /** No login data is provided. */

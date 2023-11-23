@@ -30,7 +30,7 @@ ohos_shared_library("libcadaemon") {
         ]
 
     include_dirs = [
-        "//base/tee/tee_client/interfaces/libteec",
+        "//base/tee/tee_client/interfaces/kits/c/include",
         "../../../../frameworks/include/",
         "../../../../frameworks/include/standard/",
         "../../../../frameworks/include/standard/teec_system",
@@ -90,7 +90,7 @@ ohos_shared_library("libcadaemon_tui") {
         ]
 
     include_dirs = [
-        "//base/tee/tee_client/interfaces/libteec",
+        "//base/tee/tee_client/interfaces/kits/c/include",
         "../../../../frameworks/include/",
         "../../../../frameworks/include/standard/",
         "../../../../frameworks/include/standard/teec_system",

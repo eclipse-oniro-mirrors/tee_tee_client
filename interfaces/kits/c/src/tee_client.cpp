@@ -1546,7 +1546,7 @@ TEEC_Result TeeClient::GetTeeVersion(uint32_t &teeVersion)
     InitTeecService();
     if (!mServiceValid) {
         return TEEC_FAIL;
-    }    
+    }
 
     int ret = mTeecService->SendRequest(GET_TEE_VERSION, data, reply, option);
     CHECK_ERR_RETURN(ret, ERR_NONE, TEEC_FAIL);

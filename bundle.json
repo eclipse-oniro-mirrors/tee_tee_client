@@ -47,27 +47,26 @@
         },
         "inner_kits": [
           {
-            "name": "//base/tee/tee_client/frameworks/build/standard:libteec",
+            "name": "//base/tee/tee_client/interfaces/kits/c:libteec",
             "header": {
               "header_files": [
                 "tee_client_api.h",
                 "tee_client_type.h",
-                "tee_client_constants.h",
-                "tee_client_ext_api.h"
+                "tee_client_constants.h"
               ],
-              "header_base": "//base/tee/tee_client/interfaces/libteec"
+              "header_base": "//base/tee/tee_client/interfaces/kits/c/include"
             }
           },
           {
             "name": "//base/tee/tee_client/frameworks/build/standard:libteec_vendor",
             "header": {
               "header_files": [
-                "tee_client_api.h",
-                "tee_client_type.h",
-                "tee_client_constants.h",
-                "tee_client_ext_api.h"
+                "kits/c/include/tee_client_api.h",
+                "kits/c/include/tee_client_type.h",
+                "kits/c/include/tee_client_constants.h",
+                "inner_api/libteec_vendor/tee_client_ext_api.h"
               ],
-              "header_base": "//base/tee/tee_client/interfaces/libteec"
+              "header_base": "//base/tee/tee_client/interfaces/"
             }
           }
         ],

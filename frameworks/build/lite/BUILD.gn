@@ -25,7 +25,8 @@ shared_library("libteec_vendor") {
         "//utils/system/safwk/native/include",
         "//developtools/liblog",
         "//base/hiviewdfx/hilog/interfaces/native/innerkits/include",
-        "//base/tee/tee_client/interfaces/libteec",
+        "//base/tee/tee_client/interfaces/kits/c/include"
+        "//base/tee/tee_client/interfaces/inner_api/libteec_vendor",
         "../../include",
         "../../include/lite",
         "../../libteec_vendor/",
