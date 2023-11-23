@@ -75,7 +75,7 @@ static int32_t FillEccHapCaInfo(string& packageName, const char *pubKey, uint32_
     uint64_t hapInfoSize = sizeof(uint32_t) + packageName.length() +
         sizeof(uint32_t) + sizeof(uint32_t) * BASE_NUM_TWO + pubKeyLen;
     if (hapInfoSize > sizeof(caInfo->certs)) {
-        tloge("buf too short, %u, %lu, %u\n", (unsigned int)sizeof(caInfo->certs), packageName.length(), pubKeyLen);
+        tloge("buf too short, %u, %zu, %u\n", (unsigned int)sizeof(caInfo->certs), packageName.length(), pubKeyLen);
         return -1;
     }
 
