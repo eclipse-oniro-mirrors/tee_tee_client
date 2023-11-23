@@ -19,7 +19,7 @@
  * @brief Provides APIs for the client applications (CAs) in the Rich Execution Environment (normal mode) to
  * access the trusted applications (TAs) in a Trusted Execution Environment (TEE).
  *
- * @since 8
+ * @since 9
  */
 
 /**
@@ -34,7 +34,8 @@
  * <p>4. Close the session: Call <b>TEEC_CloseSession</b> to close the session.
  * <p>5. Close the TEE: Call <b>TEEC_FinalizeContext</b> to close the TEE.
  *
- * @since 8
+ * @since 9
+ * @version 1.0
  */
 
 #include "tee_client_type.h"
@@ -53,7 +54,8 @@ extern "C" {
  *
  * @return Returns {@code TEEC_SUCCESS} if the CA is successfully register an agent for TA communicate with CA.
  *         Returns {@code TEEC_ERROR_GENERIC} if error happened.
- * @since 8
+ * @since 9
+ * @version 1.0
  */
 TEEC_Result TEEC_EXT_RegisterAgent(uint32_t agentId, int *devFd, void **buffer);
 
@@ -67,7 +69,8 @@ TEEC_Result TEEC_EXT_RegisterAgent(uint32_t agentId, int *devFd, void **buffer);
  *
  * @return Returns {@code TEEC_SUCCESS} if the CA receive msg from TA success
  *         Returns {@code TEEC_ERROR_GENERIC} if error happened.
- * @since 8
+ * @since 9
+ * @version 1.0
  */
 TEEC_Result TEEC_EXT_WaitEvent(uint32_t agentId, int devFd);
 
@@ -79,7 +82,8 @@ TEEC_Result TEEC_EXT_WaitEvent(uint32_t agentId, int devFd);
  *
  * @return Returns {@code TEEC_SUCCESS} if the CA send cmd success.
  *         Returns {@code TEEC_ERROR_GENERIC} if error happened.
- * @since 8
+ * @since 9
+ * @version 1.0
  */
 TEEC_Result TEEC_EXT_SendEventResponse(uint32_t agentId, int devFd);
 
@@ -93,7 +97,8 @@ TEEC_Result TEEC_EXT_SendEventResponse(uint32_t agentId, int devFd);
  * @return Returns {@code TEEC_SUCCESS} if the CA send cmd success.
  *         Returns {@code TEEC_ERROR_GENERIC} if error happened.
  *         Returns {@code TEEC_ERROR_BAD_PARAMETERS} if input parameter is invalid.
- * @since 8
+ * @since 9
+ * @version 1.0
  */
 TEEC_Result TEEC_EXT_UnregisterAgent(uint32_t agentId, int devFd, void **buffer);
 
@@ -106,7 +111,8 @@ TEEC_Result TEEC_EXT_UnregisterAgent(uint32_t agentId, int devFd, void **buffer)
  * @return Returns {@code TEEC_SUCCESS} if the CA send the secfile success.
  *         Returns {@code TEEC_ERROR_GENERIC} if error happened.
  *         Returns {@code TEEC_ERROR_BAD_PARAMETERS} if input parameter is invalid.
- * @since 8
+ * @since 9
+ * @version 1.0
  */
 TEEC_Result TEEC_SendSecfile(const char *path, TEEC_Session *session);
 
@@ -115,7 +121,8 @@ TEEC_Result TEEC_SendSecfile(const char *path, TEEC_Session *session);
  *
  * @return Returns {@code 0} if get the tee version failed.
  *         Returns {@code > 0} if get the version success.
- * @since 8
+ * @since 9
+ * @version 1.0
  */
 uint32_t TEEC_GetTEEVersion(void);
 

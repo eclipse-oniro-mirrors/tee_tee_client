@@ -1,0 +1,74 @@
+# Copyright (C) 2022 Huawei Technologies Co., Ltd.
+# Licensed under the Mulan PSL v2.
+# You can use this software according to the terms and conditions of the Mulan PSL v2.
+# You may obtain a copy of Mulan PSL v2 at:
+#     http://license.coscl.org.cn/MulanPSL2
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR
+# PURPOSE.
+# See the Mulan PSL v2 for more details.
+
+import("//build/ohos.gni")
+import("//build/ohos_var.gni")
+
+config("exported_header_files") {
+    include_dirs = [
+        "//base/tee/tee_client/interfaces/kits/c/include",
+    ]
+}
+
+ohos_ndk_library("libteec") {
+    output_name = "teec"
+    output_extension = "so"
+    ndk_description_file = "./libteec.ndk.json"
+    #min_compact_version = "1"
+    #system_capability = "SystemCapability.Tee.TeeClient"
+}
+
+ohos_ndk_headers("tee_client_header") {
+    dest_dir = "$ndk_headers_out_dir/tee_client"
+    sources = [
+        "./include/tee_client_api.h",
+        "./include/tee_client_type.h",
+        "./include/tee_client_constants.h",
+    ]
+}
+
+ohos_shared_library("teec") {
+    part_name = "tee_client"
+    subsystem_name = "tee"
+    output_extension = "so"
+
+    sources = [
+        "src/tee_client.cpp",
+    ]
+
+    include_dirs = [
+        "src/",
+        "//base/tee/tee_client/interfaces/kits/c/include",
+        "//base/tee/tee_client/interfaces/inner_api/libteec_vendor",
+        "//base/tee/tee_client/framework/include",
+        "//base/tee/tee_client/framework/include/standard/teec_system/",
+        "//base/tee/tee_client/framework/include/standard/",
+        "//base/tee/tee_client/framework/libteec_vendor/",
+        "//base/tee/tee_client/framework/authentication",
+    ]
+
+    deps = [
+        "//third_party/bounds_checking_function:libsec_shared",
+    ]
+
+    external_deps = [
+        "c_utils:utils",
+        "hilog:libhilog",
+        "ipc:ipc_core",
+        "safwk:system_ability_fwk",
+        "samgr:samgr_proxy",
+    ]
+
+    ldflags = [
+        "-Wl,-z,max-page-size=4096",
+        "-Wl,-z,separate-code",
+    ]
+    public_configs = [ ":exported_header_files" ]
+}

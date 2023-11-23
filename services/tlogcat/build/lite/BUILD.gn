@@ -32,7 +32,7 @@ executable("tlogcat") {
     ]
 
     include_dirs = [
-        "//base/tee/tee_client/interfaces/libteec",
+        "//base/tee/tee_client/interfaces/kits/c/include",
         "//base/hiviewdfx/hilog/interfaces/native/innerkits/include",
         "../../include",
         "../../../../frameworks/include",

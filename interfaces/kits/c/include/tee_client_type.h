@@ -19,7 +19,9 @@
  * @brief Provides APIs for the client applications (CAs) in the Rich Execution Environment (normal mode) to
  * access the trusted applications (TAs) in a Trusted Execution Environment (TEE).
  *
- * @since 8
+ * @syscap SystemCapability.Tee.TeeClient
+ * @since 9
+ * @version 1.0
  */
 
 /**
@@ -27,7 +29,8 @@
  *
  * @brief Defines basic data types and data structures.
  *
- * @since 8
+ * @since 9
+ * @version 1.0
  */
 
 #include <semaphore.h>
@@ -40,7 +43,8 @@
 /**
  * @brief Defines the linked list type.
  *
- * @since 8
+ * @since 9
+ * @version 1.0
  */
 struct ListNode {
     struct ListNode *next;
@@ -50,14 +54,16 @@ struct ListNode {
 /**
  * @brief Defines the return values.
  *
- * @since 8
+ * @since 9
+ * @version 1.0
  */
 typedef enum TEEC_ReturnCode TEEC_Result;
 
 /**
  * @brief Defines the universally unique identifier (UUID) as defined in RFC4122 [2]. The UUIDs are used to identify TAs.
  *
- * @since 8
+ * @since 9
+ * @version 1.0
  */
 typedef struct {
     uint32_t timeLow;
@@ -69,7 +75,8 @@ typedef struct {
 /**
  * @brief Defines the context, a logical connection between a CA and a TEE.
  *
- * @since 8
+ * @since 9
+ * @version 1.0
  */
 typedef struct {
     int32_t fd;
@@ -88,7 +95,8 @@ typedef struct {
 /**
  * @brief Defines the session between a CA and a TA.
  *
- * @since 8
+ * @since 9
+ * @version 1.0
  */
 typedef struct {
     uint32_t session_id;
@@ -104,7 +112,8 @@ typedef struct {
 /**
  * @brief Defines a shared memory block, which can be registered or allocated.
  *
- * @since 8
+ * @since 9
+ * @version 1.0
  */
 typedef struct {
     void *buffer;
@@ -122,7 +131,8 @@ typedef struct {
 /**
  * @brief Defines a pointer to a temporary buffer.
  *
- * @since 8
+ * @since 9
+ * @version 1.0
  */
 typedef struct {
     void *buffer;
@@ -132,7 +142,8 @@ typedef struct {
 /**
  * @brief Defines a pointer to the shared memory that is registered or allocated.
  *
- * @since 8
+ * @since 9
+ * @version 1.0
  */
 typedef struct {
     TEEC_SharedMemory *parent;
@@ -143,7 +154,8 @@ typedef struct {
 /**
  * @brief Describes a parameter that carries small raw data passed by <b>value</b>.
  *
- * @since 8
+ * @since 9
+ * @version 1.0
  */
 typedef struct {
     uint32_t a;
@@ -153,7 +165,8 @@ typedef struct {
 /**
  * @brief Describes the size and handle of the ION memory.
  *
- * @since 8
+ * @since 9
+ * @version 1.0
  */
 typedef struct {
     int ionShareFd;
@@ -163,7 +176,8 @@ typedef struct {
 /**
  * @brief Defines a parameter of {@code TEEC_Operation}.
  *
- * @since 8
+ * @since 9
+ * @version 1.0
  */
 typedef union {
     TEEC_TempMemoryReference tmpref;
@@ -175,7 +189,8 @@ typedef union {
 /**
  * @brief Defines the parameters for opening a session or sending a command.
  *
- * @since 8
+ * @since 9
+ * @version 1.0
  */
 typedef struct {
     /** The value 0 means to cancel the command, and other values mean to execute the command. */

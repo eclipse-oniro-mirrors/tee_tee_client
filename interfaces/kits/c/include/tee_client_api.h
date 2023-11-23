@@ -19,7 +19,9 @@
  * @brief Provides APIs for the client applications (CAs) in the Rich Execution Environment (normal mode) to
  * access the trusted applications (TAs) in a Trusted Execution Environment (TEE).
  *
- * @since 8
+ * @syscap SystemCapability.Tee.TeeClient
+ * @since 9
+ * @version 1.0
  */
 
 /**
@@ -34,7 +36,8 @@
  * <p>4. Close the session: Call <b>TEEC_CloseSession</b> to close the session.
  * <p>5. Close the TEE: Call <b>TEEC_FinalizeContext</b> to close the TEE.
  *
- * @since 8
+ * @since 9
+ * @version 1.0
  */
 
 #include <string.h>
@@ -47,7 +50,8 @@ extern "C" {
 /**
  * @brief Defines the values of the parameters transmitted between the REE and TEE.
  *
- * @since 8
+ * @since 9
+ * @version 1.0
  */
 #define TEEC_PARAM_TYPES(param0Type, param1Type, param2Type, param3Type) \
     ((param3Type) << 12 | (param2Type) << 8 | (param1Type) << 4 | (param0Type))
@@ -55,7 +59,8 @@ extern "C" {
 /**
  * @brief Defines the value of the parameter specified by <b>paramTypes</b> and <b>index</b>.
  *
- * @since 8
+ * @since 9
+ * @version 1.0
  */
 #define TEEC_PARAM_TYPE_GET(paramTypes, index) \
     (((paramTypes) >> (4*(index))) & 0x0F)
@@ -72,7 +77,9 @@ extern "C" {
  * @return Returns {@code TEEC_SUCCESS} if the TEE is successfully initialized.
  *         Returns {@code TEEC_ERROR_BAD_PARAMETERS} if <b>name</b> is incorrect or <b>context</b> is null.
  *         Returns {@code TEEC_ERROR_GENERIC} if the available system resources are insufficient.
- * @since 8
+ * 
+ * @since 9
+ * @version 1.0
  */
 TEEC_Result TEEC_InitializeContext(const char *name, TEEC_Context *context);
 
@@ -83,7 +90,8 @@ TEEC_Result TEEC_InitializeContext(const char *name, TEEC_Context *context);
  *
  * @param context [IN/OUT] Indicates the pointer to the TEE that is successfully initialized.
  *
- * @since 8
+ * @since 9
+ * @version 1.0
  */
 void TEEC_FinalizeContext(TEEC_Context *context);
 
@@ -113,7 +121,9 @@ void TEEC_FinalizeContext(TEEC_Context *context);
  *         Returns {@code TEEC_ERROR_OUT_OF_MEMORY} if the available system resources are insufficient.
  *         Returns {@code TEEC_ERROR_TRUSTED_APP_LOAD_ERROR} if the TA failed to be loaded.
  *         For details about other return values, see {@code TEEC_ReturnCode}.
- * @since 8
+ * 
+ * @since 9
+ * @version 1.0
  */
 TEEC_Result TEEC_OpenSession(TEEC_Context *context, TEEC_Session *session, const TEEC_UUID *destination,
     uint32_t connectionMethod, const void *connectionData, TEEC_Operation *operation, uint32_t *returnOrigin);
@@ -125,7 +135,8 @@ TEEC_Result TEEC_OpenSession(TEEC_Context *context, TEEC_Session *session, const
  *
  * @param session [IN/OUT] Indicates the pointer to the session to close.
  *
- * @since 8
+ * @since 9
+ * @version 1.0
  */
 void TEEC_CloseSession(TEEC_Session *session);
 
@@ -144,7 +155,9 @@ void TEEC_CloseSession(TEEC_Session *session);
  *         Returns {@code TEEC_ERROR_ACCESS_DENIED} if the access request is denied.
  *         Returns {@code TEEC_ERROR_OUT_OF_MEMORY} if the available system resources are insufficient.
  *         For details about other return values, see {@code TEEC_ReturnCode}.
- * @since 8
+ * 
+ * @since 9
+ * @version 1.0
  */
 TEEC_Result TEEC_InvokeCommand(TEEC_Session *session, uint32_t commandID,
     TEEC_Operation *operation, uint32_t *returnOrigin);
@@ -161,7 +174,9 @@ TEEC_Result TEEC_InvokeCommand(TEEC_Session *session, uint32_t commandID,
  *
  * @return Returns {@code TEEC_SUCCESS} if the operation is successful.
  *         Returns {@code TEEC_ERROR_BAD_PARAMETERS} if <b>context</b> or <b>sharedMem</b> is null or the pointed memory is empty.
- * @since 8
+ * 
+ * @since 9
+ * @version 1.0
  */
 TEEC_Result TEEC_RegisterSharedMemory(TEEC_Context *context, TEEC_SharedMemory *sharedMem);
 
@@ -180,7 +195,9 @@ TEEC_Result TEEC_RegisterSharedMemory(TEEC_Context *context, TEEC_SharedMemory *
  * @return Returns {@code TEEC_SUCCESS} if the operation is successful.
  *         Returns {@code TEEC_ERROR_BAD_PARAMETERS} if <b>context</b> or <b>sharedMem</b> is null.
  *         Returns {@code TEEC_ERROR_OUT_OF_MEMORY} if the available system resources are insufficient.
- * @since 8
+ * 
+ * @since 9
+ * @version 1.0
  */
 TEEC_Result TEEC_AllocateSharedMemory(TEEC_Context *context, TEEC_SharedMemory *sharedMem);
 
@@ -192,7 +209,8 @@ TEEC_Result TEEC_AllocateSharedMemory(TEEC_Context *context, TEEC_SharedMemory *
  * the local memory released will not be reclaimed.
  * @param sharedMem [IN/OUT] Indicates the pointer to the shared memory to release.
  *
- * @since 8
+ * @since 9
+ * @version 1.0
  */
 void TEEC_ReleaseSharedMemory(TEEC_SharedMemory *sharedMem);
 
@@ -202,7 +220,8 @@ void TEEC_ReleaseSharedMemory(TEEC_SharedMemory *sharedMem);
  * @attention This operation is only used to send a cancel message. Whether to perform the cancel operation is determined by the TEE or TA. At present, the cancel operation does not take effect.
  * @param operation [IN/OUT] Indicates the pointer to the data to be sent from the CA to the TA.
  *
- * @since 8
+ * @since 9
+ * @version 1.0
  */
 void TEEC_RequestCancellation(TEEC_Operation *operation);
 

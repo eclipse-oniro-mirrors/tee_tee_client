@@ -1,0 +1,29 @@
+[
+    {
+        "name": "TEEC_InitializeContext"
+    },
+    {
+        "name": "TEEC_FinalizeContext"
+    },
+    {
+        "name": "TEEC_OpenSession"
+    },
+    {
+        "name": "TEEC_CloseSession"
+    },
+    {
+        "name": "TEEC_InvokeCommand"
+    },
+    {
+        "name": "TEEC_RegisterSharedMemory"
+    },
+    {
+        "name": "TEEC_AllocateSharedMemory"
+    },
+    {
+        "name": "TEEC_ReleaseSharedMemory"
+    },
+    {
+        "name": "TEEC_RequestCancellation"
+    }
+]
