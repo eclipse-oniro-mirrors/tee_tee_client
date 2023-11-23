@@ -10,7 +10,6 @@
 
 import("//build/ohos.gni")
 import("//build/ohos_var.gni")
-import("//out/products_ext/hmos_ext_var.gni")
 import("//base/tee/tee_client/tee_client.gni")
 
 ohos_shared_library("libcadaemon") {
@@ -18,7 +17,6 @@ ohos_shared_library("libcadaemon") {
     subsystem_name = "tee"
     defines = []
 
-if (component_type == "system") {
     sources = [
         "../../../../frameworks/libteec_vendor/tee_client_api.c",
         "../../../../frameworks/libteec_vendor/tee_client_app_load.c",
@@ -61,9 +59,7 @@ if (component_type == "system") {
         "access_token:libaccesstoken_sdk",
     ]
 }
-}
 
-if (component_type == "system") {
 declare_args() {
     hash_string = ""
 }
@@ -125,5 +121,4 @@ ohos_shared_library("libcadaemon_tui") {
         "-Wl,-z,max-page-size=4096",
         "-Wl,-z,separate-code",
     ]
-}
 }
