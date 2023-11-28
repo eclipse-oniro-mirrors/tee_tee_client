@@ -2,15 +2,15 @@
 
 ## 简介
 
-TEE Client组件向OpenHarmony侧CA（Client APP，即客户端应用）提供访问TEE的API接口，同时也包含TEE的代理服务，配合TEE实现安全存储、日志打印等功能；
+TEE Client组件向OpenHarmony侧CA（Client APP，即客户端应用）提供访问TEE的API接口，同时也包含TEE的代理服务，配合TEE实现安全存储、日志打印等功能。
 
 TEE Client组件包含如下模块：
 
-- libteec.so：为HAP应用或者系统组件Native应用提供TEE Client API;
-- libteec_vendor.so：为芯片组件Native应用提供TEE Client API;
-- cadaemon：转发CA请求并对CA做身份识别；
-- teecd：作为TEE的代理服务，支持TEE实现安全存储等功能；同时支持对CA做身份识别；
-- tlogcat：支持打印TEE日志；
+- libteec.so：为HAP应用或者系统组件Native应用提供TEE Client API。
+- libteec_vendor.so：为芯片组件Native应用提供TEE Client API。
+- cadaemon：转发CA请求并对CA做身份识别。
+- teecd：作为TEE的代理服务，支持TEE实现安全存储等功能；同时支持对CA做身份识别。
+- tlogcat：支持打印TEE日志。
 
 图1 TEE Client组件架构图
 
@@ -50,7 +50,7 @@ TEE Client组件对CA提供的API列表如下：
 
 上述API均是GlobalPlatform TEE标准规定的，可参考《[TEE Client API Specification v1.0 (GPD_SPE_007)](https://globalplatform.org/specs-library/?filter-committee=tee)》。少量实现与GlobalPlatform TEE规范有差异，差异点如下：
 
-1. TEEC_OpenSession接口的TEEC_Context结构体成员 ta_path支持指定TA的文件路径（限制在/data目录）
+1. TEEC_OpenSession接口的TEEC_Context结构体成员 ta_path支持指定TA的文件路径（限制在/data目录）。
 
    举例如下：
 
@@ -61,11 +61,11 @@ TEE Client组件对CA提供的API列表如下：
 
    如果CA不通过ta_path指定TA的文件路径，则TEE Client会从缺省路径下读取uuid.sec（uuid需要替换为TA的真实uuid）命名的TA文件。缺省路径有两个：/system/bin和/vendor/bin。
 
-2. TEEC_OpenSession接口入参connectionMethod只支持TEEC_LOGIN_IDENTIFY
+2. TEEC_OpenSession接口入参connectionMethod只支持TEEC_LOGIN_IDENTIFY。
 
    对于TEEC_OpenSession函数中第四个入参connectionMethod，GP规范定义了六种Login Method，TEE Client组件拓展了TEEC_LOGIN_IDENTIFY的类型，且只支持该种connectionMethod。
 
-3. 调用TEEC_OpenSession时，TEEC_Operation参数有限制
+3. 调用TEEC_OpenSession时，TEEC_Operation参数有限制。
 
    在调用TEEC_OpenSession接口时，TEEC_Operation中params[2]和params[3]是预留给系统的，不允许CA使用，CA仅可以使用params[0]和params[1]。
 
