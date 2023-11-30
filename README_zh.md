@@ -6,10 +6,10 @@ TEE Client组件向OpenHarmony侧CA（Client APP，即客户端应用）提供�
 
 TEE Client组件包含如下模块：
 
-- libteec.so：为HAP应用或者系统组件Native应用提供TEE Client API。
+- libteec.so：为系统组件Native应用提供TEE Client API。
 - libteec_vendor.so：为芯片组件Native应用提供TEE Client API。
-- cadaemon：转发CA请求并对CA做身份识别。
-- teecd：作为TEE的代理服务，支持TEE实现安全存储等功能；同时支持对CA做身份识别。
+- cadaemon：转发CA请求到Tzdriver驱动。
+- teecd：作为TEE的代理服务，支持TEE实现安全存储等功能。
 - tlogcat：支持打印TEE日志。
 
 图1 TEE Client组件架构图
@@ -21,12 +21,12 @@ TEE Client组件包含如下模块：
 ```
 base/tee/tee_client
 ├── frameworks
-│   ├── libteec_client                 # libteec.so库，提供TEE Client API
 │   └── libteec_vendor                 # libteec_vendor.so库，提供TEE Client API
-├── interfaces                         # 对CA提供的头文件
-│   └── libteec
+├── interfaces                         
+│   ├── inner_api                      # 本组件内部接口
+|   └── kits                           # 发布到NDK中的libteec.so库和对应的TEE Client API
 └── services
-    ├── authentication                 # CA身份识别
+    ├── authentication                 # CA身份识别（预留功能，暂未使能）
     ├── cadaemon                       # 转发CA请求
     ├── teecd                          # TEE代理服务
     └── tlogcat                        # TEE日志服务
