@@ -2,14 +2,15 @@
 
 ## Introduction
 
-TEE Client provides an API interface for accessing TEE to the OpenHarmony side CA (Client App, also known as the Client Application), and also includes TEE's proxy services to work with TEE to achieve secure storage, log printing, and other functions.
+TEE Client provides an API interface for accessing TEE to the OpenHarmony side CA (Client Application), and also includes TEE's proxy services to work with TEE to achieve secure storage, log printing, and other functions.
 
 TEE Client includes the following modules:
--libteec.so: Provide the TEE Client API for native applications of HAP applications or system components.
--libteec_vendor.so: Provide TEE Client API for Native applications of chip components.
--cadaemon: Forward CA requests and authenticate the CA.
--teecd: As a proxy service for TEE, it supports TEE's implementation of secure storage and other functions. Simultaneously teecd supports identity recognition for CA.
--tlogcat: Support printing TEE logs.
+
+- libteec.so: Provide the TEE Client API for native applications of HAP applications or system components.
+- libteec_vendor.so: Provide TEE Client API for Native applications of chip components.
+- cadaemon: Forward CA requests and authenticate the CA.
+- teecd: As a proxy service for TEE, it supports TEE's implementation of secure storage and other functions. Simultaneously teecd supports identity recognition for CA.
+- tlogcat: Support printing TEE logs.
 
 Figure 1: Architecture diagram of TEE Client
 
@@ -20,12 +21,12 @@ Figure 1: Architecture diagram of TEE Client
 ```
 base/tee/tee_client
 ├── frameworks
-│   ├── libteec_client                 # Libteec.so library, providing TEE Client API.
 │   └── libteec_vendor                 # libteec_vendor.so library, providing TEE Client API.
-├── interfaces                         # Provide header files for CA
-│   └── libteec
+├── interfaces                         
+│   ├── inner_api                      # Internal interfaces of this component
+|   └── kits                           # The libteec.so library and corresponding TEE Client API published to NDK
 └── services
-    ├── authentication                 # CA identity recognition
+    ├── authentication                 # CA identity recognition（Reserved function, not yet enabled）
     ├── cadaemon                       # Forward CA request
     ├── teecd                          # TEE proxy services
     └── tlogcat                        # TEE log service
