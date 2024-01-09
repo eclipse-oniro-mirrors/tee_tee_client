@@ -71,7 +71,7 @@ public:
 
     class DeathNotifier : public IRemoteObject::DeathRecipient {
     public:
-        explicit DeathNotifier(const sptr<IRemoteObject> &binder) : serviceBinder(binder)
+        explicit DeathNotifier(const sptr<IRemoteObject> &deathNotify) : serviceBinder(deathNotify)
         {
         }
         virtual ~DeathNotifier()
@@ -80,9 +80,9 @@ public:
                 serviceBinder->RemoveDeathRecipient(this);
             }
         }
-        virtual void OnRemoteDied(const wptr<IRemoteObject> &binder)
+        virtual void OnRemoteDied(const wptr<IRemoteObject> &deathNotify)
         {
-            (void)binder;
+            (void)deathNotify;
             tloge("teec service died");
             mServiceValid = false;
         }

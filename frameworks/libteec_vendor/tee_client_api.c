@@ -207,7 +207,7 @@ static TEEC_Result AddSessionList(uint32_t sessionId, const TEEC_UUID *destinati
 
     session->session_id = sessionId;
     session->service_id = *destination;
-    session->ops_cnt    = 1; /* only for libteec hidl, not for vendor ca */
+    session->ops_cnt    = 1; /* only for libteec, not for vendor ca */
 
     int lockRet = pthread_mutex_lock(&context->sessionLock);
     if (lockRet != 0) {
@@ -224,7 +224,7 @@ static TEEC_Result AddSessionList(uint32_t sessionId, const TEEC_UUID *destinati
     }
     ListInit(&session->head);
     ListInsertTail(&context->session_list, &session->head);
-    AtomInc(&session->ops_cnt); /* only for libteec hidl, not for vendor ca */
+    AtomInc(&session->ops_cnt); /* only for libteec, not for vendor ca */
     (void)pthread_mutex_unlock(&context->sessionLock);
     return TEEC_SUCCESS;
 }
@@ -319,7 +319,7 @@ static TEEC_Session *FindBnSession(const TEEC_Session *session, const TEEC_Conte
     return sSession;
 }
 
-/* only for libteec hidl, not for vendor ca */
+/* only for libteec, not for vendor ca */
 TEEC_Session *GetBnSession(const TEEC_Session *session, TEEC_ContextInner *context)
 {
     TEEC_Session *sSession = NULL;
@@ -342,7 +342,7 @@ TEEC_Session *GetBnSession(const TEEC_Session *session, TEEC_ContextInner *conte
     return sSession;
 }
 
-/* only for libteec hidl, not for vendor ca */
+/* only for libteec, not for vendor ca */
 void PutBnSession(TEEC_Session *session)
 {
     if (session == NULL) {
@@ -852,7 +852,7 @@ void TEEC_FinalizeContextInner(TEEC_ContextInner *context)
 
     /* First, check parameters is valid or not */
     if (context == NULL) {
-        tloge("finalize context hidl: context is NULL\n");
+        tloge("finalize context: context is NULL\n");
         return;
     }
 
@@ -1057,7 +1057,7 @@ TEEC_Result TEEC_OpenSession(TEEC_Context *context, TEEC_Session *session, const
 
     TEEC_ContextInner *contextInner = GetBnContext(context);
     if (contextInner == NULL) {
-        tloge("no context found in hidl service!\n");
+        tloge("no context found!\n");
         goto END;
     }
 
@@ -1081,13 +1081,13 @@ void TEEC_CloseSessionInner(TEEC_Session *session, const TEEC_ContextInner *cont
 
     /* First, check parameters is valid or not */
     if ((session == NULL) || (context == NULL)) {
-        tloge("close session hidl: session or context is NULL\n");
+        tloge("close session: session or context is NULL\n");
         return;
     }
 
     teecRet = TEEC_Encode(&cliContext, session, GLOBAL_CMD_ID_CLOSE_SESSION, &cliLogin, NULL);
     if (teecRet != TEEC_SUCCESS) {
-        tloge("close session hidl: teec encode failed(0x%x)!\n", teecRet);
+        tloge("close session: teec encode failed(0x%x)!\n", teecRet);
         return;
     }
 
@@ -1120,7 +1120,7 @@ void TEEC_CloseSession(TEEC_Session *session)
 
     TEEC_ContextInner *contextInner = GetBnContext(session->context);
     if (contextInner == NULL) {
-        tloge("context hidl is NULL\n");
+        tloge("context is NULL\n");
         return;
     }
     TEEC_Session *sessionInList = FindAndRemoveSession(session, contextInner);
@@ -1239,7 +1239,7 @@ TEEC_Result TEEC_RegisterSharedMemoryInner(TEEC_ContextInner *context, TEEC_Shar
 {
     /* First, check parameters is valid or not */
     if ((context == NULL) || (sharedMem == NULL)) {
-        tloge("register shardmem hidl: context or sharedMem is NULL\n");
+        tloge("register shardmem: context or sharedMem is NULL\n");
         return (TEEC_Result)TEEC_ERROR_BAD_PARAMETERS;
     }
 
@@ -1247,7 +1247,7 @@ TEEC_Result TEEC_RegisterSharedMemoryInner(TEEC_ContextInner *context, TEEC_Shar
         (sharedMem->buffer == NULL) || ((sharedMem->flags != TEEC_MEM_INPUT) && (sharedMem->flags != TEEC_MEM_OUTPUT) &&
                                         (sharedMem->flags != TEEC_MEM_INOUT));
     if (condition) {
-        tloge("register shardmem hidl: sharedMem->flags wrong\n");
+        tloge("register shardmem: sharedMem->flags wrong\n");
         return (TEEC_Result)TEEC_ERROR_BAD_PARAMETERS;
     }
 
@@ -1337,14 +1337,14 @@ TEEC_Result TEEC_AllocateSharedMemoryInner(TEEC_ContextInner *context, TEEC_Shar
 
     /* First, check parameters is valid or not */
     if ((context == NULL) || (sharedMem == NULL)) {
-        tloge("allocate shardmem hidl: context or sharedMem is NULL\n");
+        tloge("allocate shardmem: context or sharedMem is NULL\n");
         return (TEEC_Result)TEEC_ERROR_BAD_PARAMETERS;
     }
 
     bool condition = (sharedMem->flags != TEEC_MEM_INPUT) && (sharedMem->flags != TEEC_MEM_OUTPUT) &&
                      (sharedMem->flags != TEEC_MEM_INOUT);
     if (condition) {
-        tloge("allocate shardmem hidl: sharedMem->flags wrong\n");
+        tloge("allocate shardmem: sharedMem->flags wrong\n");
         return (TEEC_Result)TEEC_ERROR_BAD_PARAMETERS;
     }
 
@@ -1810,7 +1810,7 @@ TEEC_Result TEEC_SendSecfile(const char *path, TEEC_Session *session)
     }
     contextInner = GetBnContext(session->context);
     if (contextInner == NULL) {
-        tloge("find context hidl failed!\n");
+        tloge("find context failed!\n");
         return TEEC_ERROR_BAD_PARAMETERS;
     }
 

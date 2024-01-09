@@ -24,7 +24,7 @@ base/tee/tee_client
 │   └── libteec_vendor                 # libteec_vendor.so库，提供TEE Client API
 ├── interfaces                         
 │   ├── inner_api                      # 本组件内部接口
-|   └── kits                           # 发布到NDK中的libteec.so库和对应的TEE Client API
+|   └── kits                           # 发布到SDK中的libteec.so库和对应的TEE Client API
 └── services
     ├── authentication                 # CA身份识别（预留功能，暂未使能）
     ├── cadaemon                       # 转发CA请求

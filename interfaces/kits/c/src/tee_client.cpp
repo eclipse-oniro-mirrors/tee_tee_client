@@ -75,7 +75,7 @@ void TeeClient::InitTeecService()
     if (mNotify == nullptr) {
         mNotify = new IPCObjectStub(u"TeecClientDeathRecipient");
         if (mNotify == nullptr) {
-            tloge("new binder failed\n");
+            tloge("new mNotify failed\n");
             return;
         }
     }
@@ -573,7 +573,7 @@ TEEC_Result TeeClient::TeecOptDecodePartialMem(TEEC_Parameter *param,
     uint32_t paramType, TEEC_Parameter *inParam, const uint8_t **data, size_t *dataSize)
 {
     TEEC_SharedMemory *shm = param->memref.parent;
-    /* we put 4 uint32 and 1 bool in sharemem to send to hidl */
+    /* we put 4 uint32 and 1 bool in sharemem */
     uint32_t shmSize       = 4 * (sizeof(uint32_t)) + 1 * (sizeof(bool));
     uint32_t cSize         = param->memref.size;
     uint32_t tSize         = inParam->memref.size; /* size return from ta */
@@ -858,7 +858,7 @@ TEEC_Result TeeClient::TeecOptEncodePartialMem(const TEEC_Parameter *param,
         tloge("parent of memref is nullptr, or the buffer is zero\n");
         return (TEEC_Result)TEEC_ERROR_BAD_PARAMETERS;
     }
-    /* we put 4 uint32 and 1 bool in sharemem to send to hidl */
+    /* we put 4 uint32 and 1 bool in sharemem */
     uint32_t shmSize = 4 * (sizeof(uint32_t)) + 1 * (sizeof(bool));
     if (sizeLeft < shmSize) {
         tloge("size is error:%zu:%{public}u\n", sizeLeft, shmSize);
@@ -969,7 +969,7 @@ TEEC_Result TeeClient::GetPartialMemSize(TEEC_Operation *operation, size_t optMe
         tloge("share mem offset + size exceed the parent size\n");
         return TEEC_ERROR_BAD_PARAMETERS;
     }
-    /* we put 4 uint32 and 1 bool in sharemem to send to hidl */
+    /* we put 4 uint32 and 1 bool in sharemem */
     shmSize = 4 * (sizeof(uint32_t)) + 1 * (sizeof(bool));
     *cSize            = param->memref.size;
     if (paramType[paramCnt] == TEEC_MEMREF_WHOLE) {
@@ -1048,7 +1048,7 @@ TEEC_Result TeeClient::InvokeCommand(TEEC_Session *session, uint32_t commandID,
 
     ret = InvokeCommandSendCmd(session->context, session, commandID, operation, &retOrigin);
     if (ret != TEEC_SUCCESS) {
-        tloge("invokeCommand: binder failed, ret=0x%x\n", ret);
+        tloge("invokeCommand: send cmd failed, ret=0x%x\n", ret);
     }
 
 END:
@@ -1128,7 +1128,7 @@ TEEC_Result TeeClient::InvokeCommandSendCmd(TEEC_Context *context, TEEC_Session 
 
     ret = mTeecService->SendRequest(INVOKE_COMMND, data, reply, option);
     if (ret != ERR_NONE) {
-        tloge("invoke command binder failed\n");
+        tloge("invoke command failed\n");
         ret = TEEC_FAIL;
         goto CLEAR_MEM;
     }
@@ -1471,7 +1471,7 @@ void TeeClient::ReleaseSharedMemory(TEEC_SharedMemory *sharedMem)
 
     int32_t ret = mTeecService->SendRequest(RELEASE_MEM, data, reply, option);
     if (ret != ERR_NONE) {
-        tloge("releaseSharemem: binder failed\n");
+        tloge("releaseSharemem: send request failed\n");
         return;
     }
 

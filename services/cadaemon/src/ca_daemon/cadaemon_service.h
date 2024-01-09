@@ -124,7 +124,7 @@ private:
         }
         virtual ~Client();
         pid_t GetMyPid() const;
-        virtual void OnRemoteDied(const wptr<IRemoteObject> &binder);
+        virtual void OnRemoteDied(const wptr<IRemoteObject> &deathNotify);
 
     private:
         pid_t mPid;
