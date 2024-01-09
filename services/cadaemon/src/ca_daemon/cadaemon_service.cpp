@@ -1164,7 +1164,7 @@ int32_t CaDaemonService::SetCallBack(const sptr<IRemoteObject> &notify)
         return ERR_UNKNOWN_OBJECT;
     }
 
-    /* register CA/APK  dead notify */
+    /* register CA dead notify */
     pid_t pid = IPCSkeleton::GetCallingPid();
     tloge("SetCallBack, ca pid=%{public}d", pid);
 
@@ -1210,9 +1210,9 @@ pid_t CaDaemonService::Client::GetMyPid() const
     return mPid;
 }
 
-void CaDaemonService::Client::OnRemoteDied(const wptr<IRemoteObject> &binder)
+void CaDaemonService::Client::OnRemoteDied(const wptr<IRemoteObject> &deathNotify)
 {
-    (void)binder;
+    (void)deathNotify;
     tloge("teec client is died, pid=%{public}d", mPid);
     vector<sptr<Client>>::iterator vec;
     if (mService != nullptr) {

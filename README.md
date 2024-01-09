@@ -24,7 +24,7 @@ base/tee/tee_client
 │   └── libteec_vendor                 # libteec_vendor.so library, providing TEE Client API.
 ├── interfaces                         
 │   ├── inner_api                      # Internal interfaces of this component
-|   └── kits                           # The libteec.so library and corresponding TEE Client API published to NDK
+|   └── kits                           # The libteec.so library and corresponding TEE Client API published to SDK
 └── services
     ├── authentication                 # CA identity recognition（Reserved function, not yet enabled）
     ├── cadaemon                       # Forward CA request
