@@ -1505,17 +1505,17 @@ void TEEC_ReleaseSharedMemory(TEEC_SharedMemory *sharedMem)
         return;
     }
 
-    TEEC_SharedMemoryInner shm_hidl = { 0 };
-    shm_hidl.buffer                = sharedMem->buffer;
-    shm_hidl.size                  = sharedMem->size;
-    shm_hidl.flags                 = sharedMem->flags;
-    shm_hidl.ops_cnt               = sharedMem->ops_cnt;
-    shm_hidl.is_allocated          = sharedMem->is_allocated;
+    TEEC_SharedMemoryInner shmInner = { 0 };
+    shmInner.buffer                = sharedMem->buffer;
+    shmInner.size                  = sharedMem->size;
+    shmInner.flags                 = sharedMem->flags;
+    shmInner.ops_cnt               = sharedMem->ops_cnt;
+    shmInner.is_allocated          = sharedMem->is_allocated;
 
     TEEC_ContextInner *contextInner = GetBnContext(sharedMem->context);
-    shm_hidl.context              = contextInner;
+    shmInner.context              = contextInner;
 
-    TEEC_ReleaseSharedMemoryInner(&shm_hidl);
+    TEEC_ReleaseSharedMemoryInner(&shmInner);
     (void)PutBnContext(contextInner);
     sharedMem->buffer  = NULL;
     sharedMem->size    = 0;
