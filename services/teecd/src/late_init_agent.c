@@ -30,9 +30,6 @@ void *InitLateWorkThread(void *dummy)
 {
     (void)dummy;
     unsigned int index = FS_LATE_INIT;
-    struct timespec ts;
-    ts.tv_sec  = 0;
-    ts.tv_nsec = SLEEP_TIME;
 
     tlogd("now start to late init\n");
 

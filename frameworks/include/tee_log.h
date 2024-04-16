@@ -13,7 +13,9 @@
 #ifndef TEE_LOG_H
 #define TEE_LOG_H
 
+#ifndef CONFIG_ARMPC_PLATFORM
 #include "hilog/log_c.h"
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -29,6 +31,7 @@ extern "C" {
 #endif
 #define LOG_DOMAIN 0xD002F00
 
+#ifndef CONFIG_ARMPC_PLATFORM
 #define tlogv(...) HILOG_DEBUG(LOG_CORE, __VA_ARGS__)
 
 #define tlogd(...) HILOG_DEBUG(LOG_CORE, __VA_ARGS__)
@@ -38,6 +41,17 @@ extern "C" {
 #define tlogw(...) HILOG_WARN(LOG_CORE, __VA_ARGS__)
 
 #define tloge(...) HILOG_ERROR(LOG_CORE, __VA_ARGS__)
+#else
+#define tlogv(...) printf(__VA_ARGS__)
+
+#define tlogd(...) printf(__VA_ARGS__)
+
+#define tlogi(...) printf(__VA_ARGS__)
+
+#define tlogw(...) printf(__VA_ARGS__)
+
+#define tloge(...) printf(__VA_ARGS__)
+#endif
 
 #ifdef __cplusplus
 }
