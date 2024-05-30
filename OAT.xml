@@ -57,6 +57,9 @@
             <filefilter name="binaryFileTypePolicyFilter" desc="Filters for binary file policies">
                 <filteritem type="filename" name="LICENSE" desc="Mulan PSL v2 license"/>
             </filefilter>
+            <filefilter name="defaultFilter" desc="Files not to check">
+                <filteritem type="filename" name="*.jpg|*.png|*.gif|*.csv" desc=""/>
+            </filefilter>
         </filefilterlist>
     </oatconfig>
 </configuration>
