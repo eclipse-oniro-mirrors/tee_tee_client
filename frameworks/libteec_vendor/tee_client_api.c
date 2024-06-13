@@ -1601,7 +1601,7 @@ static TEEC_Result TEEC_CheckMemRef(TEEC_ContextInner *context, TEEC_RegisteredM
 
     if (memref.parent->is_allocated) {
         if (!CheckSharedBufferExist(context, &memref)) {
-            return (TEEC_Result)TEEC_FAIL;
+            return (TEEC_Result)TEEC_ERROR_BAD_PARAMETERS;
         }
     }
 
