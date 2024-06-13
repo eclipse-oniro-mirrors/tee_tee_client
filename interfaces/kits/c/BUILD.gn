@@ -17,24 +17,7 @@ config("exported_header_files") {
     ]
 }
 
-ohos_ndk_library("libteec") {
-    output_name = "teec"
-    output_extension = "so"
-    ndk_description_file = "./libteec.ndk.json"
-    #min_compact_version = "1"
-    #system_capability = "SystemCapability.Tee.TeeClient"
-}
-
-ohos_ndk_headers("tee_client_header") {
-    dest_dir = "$ndk_headers_out_dir/tee_client"
-    sources = [
-        "./include/tee_client_api.h",
-        "./include/tee_client_type.h",
-        "./include/tee_client_constants.h",
-    ]
-}
-
-ohos_shared_library("teec") {
+ohos_shared_library("libteec") {
     part_name = "tee_client"
     subsystem_name = "tee"
     output_extension = "so"
@@ -47,11 +30,11 @@ ohos_shared_library("teec") {
         "src/",
         "//base/tee/tee_client/interfaces/kits/c/include",
         "//base/tee/tee_client/interfaces/inner_api/libteec_vendor",
-        "//base/tee/tee_client/framework/include",
-        "//base/tee/tee_client/framework/include/standard/teec_system/",
-        "//base/tee/tee_client/framework/include/standard/",
-        "//base/tee/tee_client/framework/libteec_vendor/",
-        "//base/tee/tee_client/framework/authentication",
+        "//base/tee/tee_client/frameworks/include",
+        "//base/tee/tee_client/frameworks/include/standard/teec_system/",
+        "//base/tee/tee_client/frameworks/include/standard/",
+        "//base/tee/tee_client/frameworks/libteec_vendor/",
+        "//base/tee/tee_client/frameworks/authentication",
     ]
 
     deps = [
