@@ -36,11 +36,8 @@ ohos_executable("tlogcat") {
         "//base/tee/tee_client/interfaces/kits/c/include",
     ]
 
-    deps = [
-        "//third_party/zlib:libz",
-    ]
-
     external_deps = [
+        "zlib:libz",
         "c_utils:utils",
         "hilog:libhilog",
     ]

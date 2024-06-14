@@ -52,11 +52,8 @@ ohos_shared_library("libteec_vendor") {
         "../../../services/authentication",
     ]
 
-    deps = [
-        "//third_party/bounds_checking_function:libsec_shared",
-    ]
-
     external_deps = [
+        "bounds_checking_function:libsec_shared",
         "c_utils:utils",
         "hilog:libhilog",
     ]

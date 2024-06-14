@@ -39,18 +39,15 @@ ohos_shared_library("libcadaemon") {
         "../../src/ca_daemon",
         ]
 
-    deps = [
-        "//third_party/bounds_checking_function:libsec_shared",
-        "//third_party/openssl:libcrypto_shared"
-    ]
-
     if (tee_client_features_tui) {
-        deps += [
+        deps = [
             "//base/tee/tee_client/services/cadaemon/build/standard:libcadaemon_tui"
         ]
     }
 
     external_deps = [
+        "bounds_checking_function:libsec_shared",
+        "openssl:libcrypto_shared",
         "c_utils:utils",
         "hilog:libhilog",
         "ipc:ipc_core",
@@ -100,11 +97,8 @@ ohos_shared_library("libcadaemon_tui") {
         "../../src/tui_daemon",
         ]
 
-    deps = [
-        "//third_party/bounds_checking_function:libsec_shared",
-    ]
-
     external_deps = [
+        "bounds_checking_function:libsec_shared",
         "c_utils:utils",
         "hilog:libhilog",
         "ipc:ipc_core",
