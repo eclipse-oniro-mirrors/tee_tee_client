@@ -12,33 +12,32 @@ import("//build/ohos.gni")
 import("//build/ohos_var.gni")
 
 ohos_executable("tlogcat") {
-    part_name = "tee_client"
-    subsystem_name = "tee"
+  part_name = "tee_client"
+  subsystem_name = "tee"
 
-    defines = [
-        "TEE_LOG_PATH_BASE=\"/data/log\"",
-        "CONFIG_TLOGCAT_TAG",
-        "CONFIG_TEE_PRIVATE_LOGFILE"
-    ]
+  defines = [
+    "TEE_LOG_PATH_BASE=\"/data/log\"",
+    "CONFIG_TLOGCAT_TAG",
+    "CONFIG_TEE_PRIVATE_LOGFILE",
+  ]
 
-    sources = [
-        "../../src/proc_tag.c",
-        "../../src/sys_hilog_cfg.c",
-        "../../src/tarzip.c",
-        "../../src/tlogcat.c",
-    ]
+  sources = [
+    "../../src/proc_tag.c",
+    "../../src/sys_hilog_cfg.c",
+    "../../src/tarzip.c",
+    "../../src/tlogcat.c",
+  ]
 
-    include_dirs = [
-        "//base/hiviewdfx/hilog/interfaces/native/innerkits/include",
-        "../../include",
-        "../../../../frameworks/include",
-        "../../../../frameworks/include/standard",
-        "//base/tee/tee_client/interfaces/kits/c/include",
-    ]
+  include_dirs = [
+    "../../include",
+    "../../../../frameworks/include",
+    "../../../../frameworks/include/standard",
+    "../../../../interfaces/kits/c/include",
+  ]
 
-    external_deps = [
-        "zlib:libz",
-        "c_utils:utils",
-        "hilog:libhilog",
-    ]
+  external_deps = [
+    "c_utils:utils",
+    "hilog:libhilog",
+    "zlib:libz",
+  ]
 }
