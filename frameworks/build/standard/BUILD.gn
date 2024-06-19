@@ -12,58 +12,55 @@ import("//build/ohos.gni")
 import("//build/ohos_var.gni")
 
 config("exported_header_files") {
-    include_dirs = [
-        "//base/tee/tee_client/interfaces/inner_api/libteec_vendor",
-        "//base/tee/tee_client/interfaces/kits/c/include",
-    ]
+  include_dirs = [
+    "../../../interfaces/inner_api/libteec_vendor",
+    "../../../interfaces/kits/c/include",
+  ]
 }
 
 ohos_shared_library("libteec_vendor") {
-    part_name = "tee_client"
-    subsystem_name = "tee"
-    output_extension = "so"
-    install_images = [
-        "vendor",
-        "updater_vendor",
-    ]
+  part_name = "tee_client"
+  subsystem_name = "tee"
+  output_extension = "so"
+  install_images = [
+    "vendor",
+    "updater_vendor",
+  ]
 
-    if (target_cpu == "arm64") {
-        module_install_dir = "lib64"
-    } else {
-        module_install_dir = "lib"
-    }
+  if (target_cpu == "arm64") {
+    module_install_dir = "lib64"
+  } else {
+    module_install_dir = "lib"
+  }
 
-    defines = [ "LIB_TEEC_VENDOR" ]
+  defines = [ "LIB_TEEC_VENDOR" ]
 
-    sources = [
-        "../../libteec_vendor/load_sec_file.c",
-        "../../libteec_vendor/tee_client_api.c",
-        "../../libteec_vendor/tee_client_app_load.c",
-        "../../libteec_vendor/tee_client_socket.c",
-    ]
+  sources = [
+    "../../libteec_vendor/load_sec_file.c",
+    "../../libteec_vendor/tee_client_api.c",
+    "../../libteec_vendor/tee_client_app_load.c",
+    "../../libteec_vendor/tee_client_socket.c",
+  ]
 
-    include_dirs = [
-        "//base/tee/tee_client/interfaces/kits/c/include",
-        "//base/tee/tee_client/interfaces/inner_api/libteec_vendor",
-        "../../include",
-        "../../include/standard/teec_vendor/",
-        "../../include/standard/",
-        "../../libteec_vendor/",
-        "../../../services/authentication",
-    ]
+  include_dirs = [
+    "../../../interfaces/kits/c/include",
+    "../../../interfaces/inner_api/libteec_vendor",
+    "../../include",
+    "../../include/standard/teec_vendor/",
+    "../../include/standard/",
+    "../../libteec_vendor/",
+    "../../../services/authentication",
+  ]
 
-    deps = [
-        "//third_party/bounds_checking_function:libsec_shared",
-    ]
+  external_deps = [
+    "bounds_checking_function:libsec_shared",
+    "c_utils:utils",
+    "hilog:libhilog",
+  ]
 
-    external_deps = [
-        "c_utils:utils",
-        "hilog:libhilog",
-    ]
-
-    ldflags = [
-        "-Wl,-z,max-page-size=4096",
-        "-Wl,-z,separate-code",
-    ]
-    public_configs = [ ":exported_header_files" ]
+  ldflags = [
+    "-Wl,-z,max-page-size=4096",
+    "-Wl,-z,separate-code",
+  ]
+  public_configs = [ ":exported_header_files" ]
 }

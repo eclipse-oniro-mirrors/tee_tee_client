@@ -28,9 +28,7 @@
           "safwk",
           "samgr",
           "window_manager",
-          "ipc"
-        ],
-        "third_party": [
+          "ipc",
           "bounds_checking_function",
           "openssl",
           "zlib"

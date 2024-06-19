@@ -12,63 +12,39 @@ import("//build/ohos.gni")
 import("//build/ohos_var.gni")
 
 config("exported_header_files") {
-    include_dirs = [
-        "//base/tee/tee_client/interfaces/kits/c/include",
-    ]
+  include_dirs = [ "include" ]
 }
 
-ohos_ndk_library("libteec") {
-    output_name = "teec"
-    output_extension = "so"
-    ndk_description_file = "./libteec.ndk.json"
-    #min_compact_version = "1"
-    #system_capability = "SystemCapability.Tee.TeeClient"
-}
+ohos_shared_library("libteec") {
+  part_name = "tee_client"
+  subsystem_name = "tee"
+  output_extension = "so"
 
-ohos_ndk_headers("tee_client_header") {
-    dest_dir = "$ndk_headers_out_dir/tee_client"
-    sources = [
-        "./include/tee_client_api.h",
-        "./include/tee_client_type.h",
-        "./include/tee_client_constants.h",
-    ]
-}
+  sources = [ "src/tee_client.cpp" ]
 
-ohos_shared_library("teec") {
-    part_name = "tee_client"
-    subsystem_name = "tee"
-    output_extension = "so"
+  include_dirs = [
+    "src/",
+    "include",
+    "../../inner_api/libteec_vendor",
+    "../../../frameworks/include",
+    "../../../frameworks/include/standard/teec_system/",
+    "../../../frameworks/include/standard/",
+    "../../../frameworks/libteec_vendor/",
+    "../../../services/authentication",
+  ]
 
-    sources = [
-        "src/tee_client.cpp",
-    ]
+  external_deps = [
+    "bounds_checking_function:libsec_shared",
+    "c_utils:utils",
+    "hilog:libhilog",
+    "ipc:ipc_core",
+    "safwk:system_ability_fwk",
+    "samgr:samgr_proxy",
+  ]
 
-    include_dirs = [
-        "src/",
-        "//base/tee/tee_client/interfaces/kits/c/include",
-        "//base/tee/tee_client/interfaces/inner_api/libteec_vendor",
-        "//base/tee/tee_client/framework/include",
-        "//base/tee/tee_client/framework/include/standard/teec_system/",
-        "//base/tee/tee_client/framework/include/standard/",
-        "//base/tee/tee_client/framework/libteec_vendor/",
-        "//base/tee/tee_client/framework/authentication",
-    ]
-
-    deps = [
-        "//third_party/bounds_checking_function:libsec_shared",
-    ]
-
-    external_deps = [
-        "c_utils:utils",
-        "hilog:libhilog",
-        "ipc:ipc_core",
-        "safwk:system_ability_fwk",
-        "samgr:samgr_proxy",
-    ]
-
-    ldflags = [
-        "-Wl,-z,max-page-size=4096",
-        "-Wl,-z,separate-code",
-    ]
-    public_configs = [ ":exported_header_files" ]
+  ldflags = [
+    "-Wl,-z,max-page-size=4096",
+    "-Wl,-z,separate-code",
+  ]
+  public_configs = [ ":exported_header_files" ]
 }
