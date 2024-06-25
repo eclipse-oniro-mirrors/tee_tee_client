@@ -1,5 +1,5 @@
 {
-    "name": "@openharmony/tee_client",
+    "name": "@ohos/tee_client",
     "description": "tee_client",
     "version": "1.0.0",
     "license": "Mulan PSL v2",
