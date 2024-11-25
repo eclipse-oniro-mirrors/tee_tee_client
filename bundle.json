@@ -31,7 +31,8 @@
           "ipc",
           "bounds_checking_function",
           "openssl",
-          "zlib"
+          "zlib",
+          "bundle_framework"
         ]
       },
       "build": {
