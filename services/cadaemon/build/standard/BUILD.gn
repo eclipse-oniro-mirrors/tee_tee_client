@@ -46,6 +46,7 @@ ohos_shared_library("libcadaemon") {
   external_deps = [
     "access_token:libaccesstoken_sdk",
     "bounds_checking_function:libsec_shared",
+    "bundle_framework:bundlemgr_mini",
     "c_utils:utils",
     "hilog:libhilog",
     "ipc:ipc_core",

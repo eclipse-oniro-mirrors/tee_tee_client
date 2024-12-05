@@ -16,6 +16,11 @@
 #include "accesstoken_kit.h"
 #include "openssl/evp.h"
 #include <securec.h>
+#include "ipc_skeleton.h"
+#include "iservice_registry.h"
+#include "if_system_ability_manager.h"
+#include "system_ability_definition.h"
+#include "bundle_mgr_mini_proxy.h"
 
 #define HAP_APPID_SPLIT_CHA    '_'
 #define BASE_NUM_TWO   2
@@ -26,6 +31,7 @@
 #define UNCOMPRESSED_PUBKEY_PREFIX 0x04
 
 using namespace std;
+using namespace OHOS;
 using namespace OHOS::Security::AccessToken;
 
 static int32_t Base64Decode(string& encodedStr, unsigned char *decodedStr, uint32_t *decodedLen)
@@ -115,32 +121,61 @@ static int32_t FillEccHapCaInfo(string& packageName, const char *pubKey, uint32_
     return 0;
 }
 
-static int32_t ConstructHapCaInfoFromToken(uint32_t tokenID, CaAuthInfo *caInfo)
+std::string GetHapAppID(void)
 {
-    HapTokenInfo hapTokenInfo;
-    int32_t ret = AccessTokenKit::GetHapTokenInfo(tokenID, hapTokenInfo);
-    if (ret != 0) {
-        tloge("get hap token info failed, ret %d\n", ret);
-        return ret;
+    sptr<ISystemAbilityManager> systemAbilityManager =
+        SystemAbilityManagerClient::GetInstance().GetSystemAbilityManager();
+    if (systemAbilityManager == nullptr) {
+        tloge("GetBundleManagerProxy Failed to get system ability mgr.");
+        return "";
     }
+    sptr<IRemoteObject> remoteObject =
+        systemAbilityManager->GetSystemAbility(OHOS::BUNDLE_MGR_SERVICE_SYS_ABILITY_ID);
+    if (remoteObject == nullptr) {
+        tloge("GetBundleManagerProxy Failed to get bundle manager service.");
+        return "";
+    }
+    sptr<AppExecFwk::IBundleMgr> bundleManager = iface_cast<AppExecFwk::IBundleMgr>(remoteObject);
+    if (bundleManager == nullptr) {
+        tloge("GetBundleManagerProxy bundleManager is nullptr");
+        return "";
+    }
+    /* userID */
+    int32_t uid = IPCSkeleton::GetCallingUid();
+    int32_t userId = uid / OHOS::AppExecFwk::Constants::BASE_USER_RANGE;
+    tlogd("uid=%d, userId=%d\n", uid, userId);
 
-    size_t appIDLen = hapTokenInfo.appID.length();
+    /* appID */
+    std::string bundleName;
+    bundleManager->GetNameForUid(uid, bundleName);
+    return bundleManager->GetAppIdByBundleName(bundleName, userId);
+}
+
+static int32_t ConstructHapCaInfoFromToken(CaAuthInfo *caInfo)
+{
+    std::string appID = GetHapAppID();
+    if (appID.empty()) {
+        tloge("get app id failed\n");
+        return -1;
+    }
+    tlogd("appid=%s\n", appID.c_str());
+    size_t appIDLen = appID.length();
     if (appIDLen == 0 || appIDLen > sizeof(caInfo->certs)) {
         tloge("hap appid invaild, len %zu\n", appIDLen);
         return -1;
     }
 
-    size_t posSplit = hapTokenInfo.appID.find(HAP_APPID_SPLIT_CHA);
+    size_t posSplit = appID.find(HAP_APPID_SPLIT_CHA);
     if (posSplit == string::npos) {
         tloge("hap appid format is invaild\n");
         return -1;
     }
-    string packageName = hapTokenInfo.appID.substr(0, posSplit);
-    string pubkeyBase64 = hapTokenInfo.appID.substr(posSplit + 1, appIDLen - posSplit - 1);
+    string packageName = appID.substr(0, posSplit);
+    string pubkeyBase64 = appID.substr(posSplit + 1, appIDLen - posSplit - 1);
 
     char decodedPubkey[MAX_PUBKEY_LEN] = { 0 };
     uint32_t decodedPubkeyLen = sizeof(decodedPubkey);
-    ret = Base64Decode(pubkeyBase64, (unsigned char *)decodedPubkey, &decodedPubkeyLen);
+    int ret = Base64Decode(pubkeyBase64, (unsigned char *)decodedPubkey, &decodedPubkeyLen);
     if (ret != 0) {
         tloge("based64 pubkey decoded failed, ret %d\n", ret);
         return ret;
@@ -203,7 +238,7 @@ int32_t ConstructCaAuthInfo(uint32_t tokenID, CaAuthInfo *caInfo)
     switch (tokenType) {
         case TOKEN_HAP:     /* for hap ca */
             tlogd("hap ca type, tokenID %u\n", tokenID);
-            return ConstructHapCaInfoFromToken(tokenID, caInfo);
+            return ConstructHapCaInfoFromToken(caInfo);
         case TOKEN_NATIVE:  /* for native ca */
             tlogd("native ca type, tokenID %u\n", tokenID);
             return ConstructNativeCaInfoFromToken(tokenID, caInfo);
