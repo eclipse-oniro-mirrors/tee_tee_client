@@ -2,7 +2,7 @@
     "name": "@ohos/tee_client",
     "description": "tee_client",
     "version": "1.0.0",
-    "license": "Mulan PSL v2",
+    "license": "MulanPSL-2.0",
     "segment": {
          "destPath": "base/tee/tee_client"
     },
