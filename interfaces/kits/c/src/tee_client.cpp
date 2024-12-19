@@ -311,7 +311,7 @@ static void SleepNs(long num)
     ts.tv_sec  = 0;
     ts.tv_nsec = num;
 
-    if (nanosleep(&ts, NULL) != 0) {
+    if (nanosleep(&ts, nullptr) != 0) {
         tlogd("nanosleep ms error\n");
     }
 }
