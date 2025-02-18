@@ -35,7 +35,7 @@ static int GetImgLen(FILE *fp, long *totalLlen)
     }
     *totalLlen = ftell(fp);
     if (*totalLlen <= 0 || *totalLlen > MAX_BUFFER_LEN) {
-        tloge("file is not exist or size is too large, filesize = %ld\n", *totalLlen);
+        tloge("file is not exist or size is too large, filesize = %" PUBLIC "ld\n", *totalLlen);
         return -1;
     }
     ret = fseek(fp, 0, SEEK_SET);
@@ -74,7 +74,7 @@ int32_t LoadSecFile(int tzFd, FILE *fp, enum SecFileType fileType, const TEEC_UU
         /* alloc a less than 8M heap memory, it needn't slice. */
         fileBuffer = malloc(totalLen);
         if (fileBuffer == NULL) {
-            tloge("alloc TA file buffer(size=%ld) failed\n", totalLen);
+            tloge("alloc TA file buffer(size=%" PUBLIC "ld) failed\n", totalLen);
             ret = -1;
             break;
         }
@@ -82,7 +82,7 @@ int32_t LoadSecFile(int tzFd, FILE *fp, enum SecFileType fileType, const TEEC_UU
         /* read total ta file to file buffer */
         long fileSize = (long)fread(fileBuffer, 1, totalLen, fp);
         if (fileSize != totalLen) {
-            tloge("read ta file failed, read size/total size=%ld/%ld\n", fileSize, totalLen);
+            tloge("read ta file failed, read size/total size=%" PUBLIC "ld/%" PUBLIC "ld\n", fileSize, totalLen);
             ret = -1;
             break;
         }
@@ -98,7 +98,7 @@ int32_t LoadSecFile(int tzFd, FILE *fp, enum SecFileType fileType, const TEEC_UU
 
         ret = ioctl(tzFd, (int)TC_NS_CLIENT_IOCTL_LOAD_APP_REQ, &ioctlArg);
         if (ret != 0) {
-            tloge("ioctl to load sec file failed, ret = 0x%x\n", ret);
+            tloge("ioctl to load sec file failed, ret = 0x%" PUBLIC "x\n", ret);
         }
     } while (false);
 

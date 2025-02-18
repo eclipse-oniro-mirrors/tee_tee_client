@@ -52,7 +52,11 @@ int32_t TEEC_GetApp(const TaFileInfo *taFile, const TEEC_UUID *srvUuid, TC_NS_Cl
     if (condition) {
         ret = TEEC_ReadApp(taFile, (const char *)taFile->taPath, false, cliContext);
         if (ret < 0) {
+#ifdef LIB_TEEC_VENDOR
             tloge("teec load app erro, ta path is not NULL\n");
+#else
+            ret = 0;
+#endif
         }
     } else {
         char fileName[MAX_FILE_NAME_LEN]                                        = { 0 };
@@ -100,12 +104,13 @@ static int32_t GetTaVersion(FILE *fp, uint32_t *taHeadLen, uint32_t *version,
     /* get magic-num & version-num */
     ret = (int32_t)fread(&imgHdr, sizeof(imgHdr), 1, fp);
     if (ret != 1) {
-        tloge("read file failed, ret=%d, error=%d\n", ret, ferror(fp));
+        tloge("read file failed, ret=%" PUBLIC "d, error=%" PUBLIC "d\n", ret, ferror(fp));
         return -1;
     }
 
     bool condition = (imgHdr.imgIdentity.magicNum1 == TA_HEAD_MAGIC1) &&
-                     (imgHdr.imgIdentity.magicNum2 == TA_HEAD_MAGIC2) &&
+                     (imgHdr.imgIdentity.magicNum2 == TA_HEAD_MAGIC2 ||
+                     imgHdr.imgIdentity.magicNum2 == TA_OH_HEAD_MAGIC2) &&
                      (imgHdr.imgIdentity.versionNum > 1);
     if (condition) {
         tlogd("new verison ta\n");
@@ -158,7 +163,7 @@ static int32_t TEEC_GetImageLenth(FILE *fp, uint32_t *imgLen)
     /* get image head */
     readSize = (uint32_t)fread(&imageHead, sizeof(TeecImageHead), 1, fp);
     if (readSize != 1) {
-        tloge("read file failed, err=%u\n", readSize);
+        tloge("read file failed, err=%" PUBLIC "u\n", readSize);
         return -1;
     }
     contextLen  = imageHead.contextLen;
@@ -200,14 +205,14 @@ static int32_t TEEC_DoReadApp(FILE *fp, TC_NS_ClientContext *cliContext)
     /* alloc a less than 8M heap memory, it needn't slice. */
     char *fileBuffer = malloc(totalImgLen);
     if (fileBuffer == NULL) {
-        tloge("alloc TA file buffer(size=%u) failed\n", totalImgLen);
+        tloge("alloc TA file buffer(size=%" PUBLIC "u) failed\n", totalImgLen);
         return -1;
     }
 
     /* read total ta file to file buffer */
     uint32_t readSize = (uint32_t)fread(fileBuffer, 1, totalImgLen, fp);
     if (readSize != totalImgLen) {
-        tloge("read ta file failed, read size/total size=%u/%u\n", readSize, totalImgLen);
+        tloge("read ta file failed, read size/total size=%" PUBLIC "u/%" PUBLIC "u\n", readSize, totalImgLen);
         free(fileBuffer);
         return -1;
     }
@@ -232,7 +237,7 @@ static int32_t TEEC_ReadApp(const TaFileInfo *taFile, const char *loadFile, bool
 
     if (realpath(loadFile, realLoadFile) == NULL) {
         if (!defaultPath) {
-            tloge("get file realpath error%d\n", errno);
+            tloge("get file realpath error%" PUBLIC "d\n", errno);
             return -1;
         }
 
@@ -244,7 +249,7 @@ static int32_t TEEC_ReadApp(const TaFileInfo *taFile, const char *loadFile, bool
     /* open image file */
     fpTmp = fopen(realLoadFile, "r");
     if (fpTmp == NULL) {
-        tloge("open file error%d\n", errno);
+        tloge("open file error%" PUBLIC "d\n", errno);
         return -1;
     }
     fp = fpTmp;
@@ -279,7 +284,7 @@ int32_t TEEC_LoadSecfile(const char *filePath, int tzFd, FILE *fp)
             fpCur = fopen(realPath, "r");
         }
         if (fpCur == NULL) {
-            tloge("realpath open file erro%d, path=%s\n", errno, filePath);
+            tloge("realpath open file erro%" PUBLIC "d, path=%" PUBLIC "s\n", errno, filePath);
             return -1;
         }
         fpUsable = fpCur;

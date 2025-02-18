@@ -72,7 +72,7 @@ public:
     }
     TEEC_Result InitializeContext(const char *name, MessageParcel &reply) override;
     TEEC_Result FinalizeContext(TEEC_Context *context) override;
-    TEEC_Result OpenSession(TEEC_Context *context, const char *taPath, int32_t fd,
+    TEEC_Result OpenSession(TEEC_Context *context, const char *taPath, int32_t &fd,
         const TEEC_UUID *destination, uint32_t connectionMethod, TEEC_Operation *operation,
         uint32_t optMemSize, sptr<Ashmem> &optMem, MessageParcel &reply) override;
     TEEC_Result CloseSession(TEEC_Session *session, TEEC_Context *context) override;
@@ -115,6 +115,7 @@ private:
     void ProcessCaDied(int32_t pid);
     void CreateTuiThread();
     int GetTEEVersion();
+    __attribute__((no_sanitize("cfi"))) void CreateDstbTeeService();
 
     class Client : public IRemoteObject::DeathRecipient {
     public:
@@ -137,4 +138,5 @@ private:
 };
 } // namespace CaDaemon
 } // namespace OHOS
+
 #endif

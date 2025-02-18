@@ -47,7 +47,7 @@ static int GetImgLen(FILE *fp, long *totalLlen)
     }
     *totalLlen = ftell(fp);
     if (*totalLlen <= 0 || *totalLlen > MAX_BUFFER_LEN) {
-        tloge("file is not exist or size is too large, filesize = %ld\n", *totalLlen);
+        tloge("file is not exist or size is too large, filesize = %" PUBLIC "ld\n", *totalLlen);
         return -1;
     }
     ret = fseek(fp, 0, SEEK_SET);
@@ -69,16 +69,25 @@ static int32_t SecFileLoadWork(int tzFd, const char *filePath, enum SecFileType 
         return -1;
     }
     if (realpath(filePath, realPath) == NULL) {
-        tloge("realpath open file err=%d, filePath=%s\n", errno, filePath);
+        tloge("realpath open file err=%" PUBLIC "d, filePath=%" PUBLIC "s\n", errno, filePath);
         return -1;
     }
+
+#ifndef TEE_LOAD_FROM_ROOTFS
     if (strncmp(realPath, TEE_DEFAULT_PATH, strlen(TEE_DEFAULT_PATH)) != 0) {
-        tloge("realpath -%s- is invalid\n", realPath);
+        tloge("realpath -%" PUBLIC "s- is invalid\n", realPath);
         return -1;
     }
+#else
+    if (strncmp(realPath, TEE_DEFAULT_PATH_ROOTFS, strlen(TEE_DEFAULT_PATH_ROOTFS)) != 0) {
+        tloge("realpath -%" PUBLIC "s- is invalid\n", realPath);
+        return -1;
+    }
+#endif
+
     fp = fopen(realPath, "r");
     if (fp == NULL) {
-        tloge("open file err=%d, path=%s\n", errno, filePath);
+        tloge("open file err=%" PUBLIC "d, path=%" PUBLIC "s\n", errno, filePath);
         return -1;
     }
     ret = LoadSecFile(tzFd, fp, fileType, uuid);
@@ -116,7 +125,7 @@ int32_t LoadSecFile(int tzFd, FILE *fp, enum SecFileType fileType, const TEEC_UU
         /* alloc a less than 8M heap memory, it needn't slice. */
         fileBuffer = malloc((size_t)totalLen);
         if (fileBuffer == NULL) {
-            tloge("alloc TA file buffer(size=%ld) failed\n", totalLen);
+            tloge("alloc TA file buffer(size=%" PUBLIC "ld) failed\n", totalLen);
             ret = -1;
             break;
         }
@@ -124,7 +133,7 @@ int32_t LoadSecFile(int tzFd, FILE *fp, enum SecFileType fileType, const TEEC_UU
         /* read total ta file to file buffer */
         long fileSize = (long)fread(fileBuffer, 1, totalLen, fp);
         if (fileSize != totalLen) {
-            tloge("read ta file failed, read size/total size=%ld/%ld\n", fileSize, totalLen);
+            tloge("read ta file failed, read size/total size=%" PUBLIC "ld/%" PUBLIC "ld\n", fileSize, totalLen);
             ret = -1;
             break;
         }
@@ -140,7 +149,7 @@ int32_t LoadSecFile(int tzFd, FILE *fp, enum SecFileType fileType, const TEEC_UU
 
         ret = ioctl(tzFd, (int)TC_NS_CLIENT_IOCTL_LOAD_APP_REQ, &ioctlArg);
         if (ret != 0) {
-            tloge("ioctl to load sec file failed, ret = 0x%x\n", ret);
+            tloge("ioctl to load sec file failed, ret = 0x%" PUBLIC "x\n", ret);
         }
     } while (false);
 
@@ -256,7 +265,7 @@ static void SecLoadAgentWork(struct SecAgentControlType *secAgentControl)
             break;
         case LOAD_SERVICE_SEC:
         default:
-            tloge("gtask agent error cmd:%d\n", secAgentControl->cmd);
+            tloge("gtask agent error cmd:%" PUBLIC "d\n", secAgentControl->cmd);
             secAgentControl->ret = -1;
             break;
     }
@@ -279,7 +288,7 @@ void *SecfileLoadAgentThread(void *control)
     while (true) {
         int ret = ioctl(g_secLoadAgentFd, (int)TC_NS_CLIENT_IOCTL_WAIT_EVENT, SECFILE_LOAD_AGENT_ID);
         if (ret) {
-            tloge("gtask agent wait event failed, errno = %d\n", errno);
+            tloge("gtask agent wait event failed, errno = %" PUBLIC "d\n", errno);
             break;
         }
         SecLoadAgentWork(secAgentControl);

@@ -49,7 +49,7 @@ static int ConnectTeecdSocket(int *socketFd)
 
     int s = socket(AF_UNIX, SOCK_STREAM, 0);
     if (s == -1) {
-        tloge("can't open stream socket, errno=%d", errno);
+        tloge("can't open stream socket, errno=%" PUBLIC "d", errno);
         return -1;
     }
 
@@ -58,7 +58,7 @@ static int ConnectTeecdSocket(int *socketFd)
 
     rc = strncpy_s(remote.sun_path, sizeof(remote.sun_path), TC_NS_SOCKET_NAME, sizeof(TC_NS_SOCKET_NAME));
     if (rc != EOK) {
-        tloge("strncpy_s failed, errno=%d", rc);
+        tloge("strncpy_s failed, errno=%" PUBLIC "d", rc);
         close(s);
         return -1;
     }
@@ -66,7 +66,7 @@ static int ConnectTeecdSocket(int *socketFd)
     remote.sun_path[0] = 0;
 
     if (connect(s, (struct sockaddr *)&remote, len) == -1) {
-        tloge("connect() failed, errno=%d\n", errno);
+        tloge("connect() failed, errno=%" PUBLIC "d\n", errno);
         ret = -1;
         if (errno == EACCES) {
             ret = EACCES_ERR;
@@ -233,7 +233,7 @@ int CaDaemonConnectWithCaInfo(const CaAuthInfo *caInfo, int cmd)
     }
 
     if (cRet < 0) {
-        tloge("try connect ca daemon failed, fail_counts = %d\n", failCount);
+        tloge("try connect ca daemon failed, fail_counts = %" PUBLIC "d\n", failCount);
         return -1;
     }
 
@@ -252,7 +252,7 @@ int CaDaemonConnectWithCaInfo(const CaAuthInfo *caInfo, int cmd)
     /* For the dummy data */
     InitSockMsg(&message, revMsg, iov);
     if (sendmsg(s, &message, 0) < 0) {
-        tloge("send message error %d \n", errno);
+        tloge("send message error %" PUBLIC "d \n", errno);
         close(s);
         free(revMsg);
         return SEND_MESS_ERR;

@@ -48,9 +48,10 @@ enum SVC_GLOBAL_CMD_ID {
 
 void SetBit(uint32_t i, uint32_t byteMax, uint8_t *bitMap);
 void ClearBit(uint32_t i, uint32_t byteMax, uint8_t *bitMap);
+bool CheckBit(uint32_t i, uint32_t byteMax, const uint8_t *bitMap);
 int32_t GetAndSetBit(uint8_t *bitMap, uint32_t byteMax);
 int32_t GetAndCleartBit(uint8_t *bitMap, uint32_t byteMax);
-TEEC_Result TEEC_InitializeContextInner(TEEC_ContextInner *context, const CaAuthInfo *caInfo);
+TEEC_Result TEEC_InitializeContextInner(TEEC_ContextInner *context, CaAuthInfo *caInfo);
 TEEC_Result TEEC_OpenSessionInner(int callingPid, const TaFileInfo *taFile, TEEC_ContextInner *context,
     TEEC_Session *session, const TEEC_UUID *destination, uint32_t connectionMethod,
     const void *connectionData, TEEC_Operation *operation, uint32_t *returnOrigin);
@@ -70,6 +71,7 @@ TEEC_Session *FindAndRemoveSession(const TEEC_Session *session, TEEC_ContextInne
 TEEC_SharedMemoryInner *GetBnShmByOffset(uint32_t shmOffset, TEEC_ContextInner *context);
 void PutBnShrMem(TEEC_SharedMemoryInner *shrMem);
 TEEC_Result TEEC_SendSecfileInner(const char *path, int tzFd, FILE *fp);
+TEEC_Result TEEC_CheckOperation(TEEC_ContextInner *context, const TEEC_Operation *operation);
 
 #ifdef __cplusplus
 }

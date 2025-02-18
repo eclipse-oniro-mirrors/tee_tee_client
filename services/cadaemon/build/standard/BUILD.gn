@@ -12,103 +12,140 @@ import("//base/tee/tee_client/tee_client.gni")
 import("//build/ohos.gni")
 import("//build/ohos_var.gni")
 
+component_type = ""
+if (defined(global_parts_info) && defined(global_parts_info.bundle_framework) &&
+    global_parts_info.bundle_framework) {
+  component_type = "system"
+}
+
 ohos_shared_library("libcadaemon") {
   part_name = "tee_client"
   subsystem_name = "tee"
   defines = []
 
-  sources = [
-    "../../../../frameworks/libteec_vendor/load_sec_file.c",
-    "../../../../frameworks/libteec_vendor/tee_client_api.c",
-    "../../../../frameworks/libteec_vendor/tee_client_app_load.c",
-    "../../../authentication/tcu_authentication.c",
-    "../../../authentication/tee_auth_common.c",
-    "../../../authentication/tee_auth_system.cpp",
-    "../../../authentication/tee_get_native_cert.c",
-    "../../src/ca_daemon/cadaemon_service.cpp",
-    "../../src/ca_daemon/cadaemon_stub.cpp",
-  ]
+  if (component_type == "system") {
+    defines += [ "ENABLE_FDSAN_CHECK" ]
+    sources = [
+      "../../../../frameworks/libteec_vendor/load_sec_file.c",
+      "../../../../frameworks/libteec_vendor/tee_client_api.c",
+      "../../../../frameworks/libteec_vendor/tee_client_app_load.c",
+      "../../../../frameworks/tee_file/tee_file.c",
+      "../../../authentication/tcu_authentication.c",
+      "../../../authentication/tee_auth_common.c",
+      "../../../authentication/tee_auth_system.cpp",
+      "../../../authentication/tee_get_native_cert.c",
+      "../../../taversion_ctrl/tee_ta_version_ctrl.c",
+      "../../src/ca_daemon/cadaemon_service.cpp",
+      "../../src/ca_daemon/cadaemon_stub.cpp",
+      "../../src/tui_daemon/tee_tui_daemon_wrapper.cpp",
+      "../../src/tui_daemon/tui_file.cpp",
+    ]
 
-  include_dirs = [
-    "../../../../interfaces/kits/c/include",
-    "../../../../frameworks/include/",
-    "../../../../frameworks/include/standard/",
-    "../../../../frameworks/include/standard/teec_system",
-    "../../../../frameworks/libteec_vendor/",
-    "../../../authentication",
-    "../../src/ca_daemon",
-  ]
+    include_dirs = [
+      "../../../../interfaces/inner_api",
+      "../../../../frameworks/include/",
+      "../../../../frameworks/include/standard/",
+      "../../../../frameworks/include/standard/teec_system",
+      "../../../../frameworks/libteec_vendor/",
+      "../../../authentication",
+      "../../../taversion_ctrl",
+      "../../src/ca_daemon",
+      "../../../../services/cadaemon/src/tui_daemon",
+    ]
 
-  if (tee_client_features_tui) {
-    deps = [ "../standard:libcadaemon_tui" ]
+    if (tee_client_features_tui) {
+      deps = [ "../../../../services/cadaemon/build/standard:libcadaemon_tui" ]
+    }
+
+    external_deps = [
+      "access_token:libaccesstoken_sdk",
+      "bounds_checking_function:libsec_shared",
+      "bundle_framework:bundlemgr_mini",
+      "c_utils:utils",
+      "hilog:libhilog",
+      "ipc:ipc_single",
+      "openssl:libcrypto_shared",
+      "safwk:system_ability_fwk",
+      "samgr:samgr_proxy",
+    ]
+
+    sanitize = {
+      cfi = true
+      cfi_cross_dso = true
+      debug = false
+    }
   }
-
-  external_deps = [
-    "access_token:libaccesstoken_sdk",
-    "bounds_checking_function:libsec_shared",
-    "bundle_framework:bundlemgr_mini",
-    "c_utils:utils",
-    "hilog:libhilog",
-    "ipc:ipc_core",
-    "openssl:libcrypto_shared",
-    "safwk:system_ability_fwk",
-    "samgr:samgr_proxy",
-  ]
 }
 
-declare_args() {
-  hash_string = ""
-}
-ohos_shared_library("libcadaemon_tui") {
-  part_name = "tee_client"
-  subsystem_name = "tee"
-  output_extension = "so"
-  defines = []
-
-  # hash_string = exec_script(ttf_calc_hash_script, [], "string")
-  hash_string =
-      "2deabf97eaf17958dc24746b922779d9913008526daf1c853903547505a8f9ca"
-
-  # md5sum ttf_calc_hash_script
-  # print("get hash_string :" + hash_string + " and file path :" + ttf_calc_hash_script)
-  if (hash_string != "") {
-    defines += [ "FONT_HASH_VAL=\"$hash_string\"" ]
-  } else {
-    defines += [ "FONT_HASH_VAL=\"hash_string can not be set\"" ]
+if (component_type == "system") {
+  declare_args() {
+    hash_string = ""
   }
+  ohos_shared_library("libcadaemon_tui") {
+    part_name = "tee_client"
+    subsystem_name = "tee"
+    output_extension = "so"
+    defines = []
 
-  sources = [
-    "../../src/tui_daemon/tee_tui_daemon.cpp",
-    "../../src/tui_daemon/tui_event.cpp",
-  ]
+    # ttf_calc_hash_script = rebase_path("../../../../services/cadaemon/build/standard/calc_hash.sh")
+    # hash_string = exec_script(ttf_calc_hash_script, [], "string")
+    hash_string =
+        "8978e05044e7089ad6a9de38c505c8148305607983487435a916d2610700a7ca"
 
-  include_dirs = [
-    "../../../../interfaces/kits/c/include",
-    "../../../../frameworks/include/",
-    "../../../../frameworks/include/standard/",
-    "../../../../frameworks/include/standard/teec_system",
-    "../../../../frameworks/libteec_vendor/",
-    "../../../authentication",
-    "../../src/ca_daemon",
-    "../../src/tui_daemon",
-  ]
+    # md5sum ttf_calc_hash_script
+    # print("get hash_string :" + hash_string + " and file path :" + ttf_calc_hash_script)
+    if (hash_string != "") {
+      defines += [ "FONT_HASH_VAL=\"$hash_string\"" ]
+    } else {
+      defines += [ "FONT_HASH_VAL=\"hash_string can not be set\"" ]
+    }
+    defines += [ "ENABLE_FDSAN_CHECK" ]
+    sources = [
+      "../../../../frameworks/tee_file/tee_file.c",
+      "../../src/tui_daemon/tee_tui_daemon.cpp",
+      "../../src/tui_daemon/tui_event.cpp",
+    ]
 
-  external_deps = [
-    "ability_base:want",
-    "bounds_checking_function:libsec_shared",
-    "c_utils:utils",
-    "call_manager:tel_call_manager_api",
-    "hilog:libhilog",
-    "image_framework:image_native",
-    "ipc:ipc_core",
-    "power_manager:powermgr_client",
-    "safwk:system_ability_fwk",
-    "samgr:samgr_proxy",
-    "window_manager:libdm",
-  ]
+    include_dirs = [
+      "../../../../interfaces/inner_api",
+      "../../../../frameworks/include/",
+      "../../../../frameworks/include/standard/",
+      "../../../../frameworks/include/standard/teec_system",
+      "../../../../frameworks/libteec_vendor/",
+      "../../../authentication",
+      "../../../taversion_ctrl",
+      "../../src/ca_daemon",
+      "../../src/tui_daemon",
+    ]
 
-  ldflags = [
-    "-Wl,-z,max-page-size=4096",
-    "-Wl,-z,separate-code",
-  ]
+    external_deps = [
+      "ability_base:want",
+      "bounds_checking_function:libsec_shared",
+      "c_utils:utils",
+      "call_manager:tel_call_manager_api",
+      "hilog:libhilog",
+      "image_framework:image_native",
+      "ipc:ipc_single",
+      "power_manager:powermgr_client",
+      "safwk:system_ability_fwk",
+      "samgr:samgr_proxy",
+    ]
+
+    if (component_type == "system") {
+      # blue area use window_manager:libdm, yellow area use window_manager:libdm_lite
+      # libdm_lite that does not introduce graph dependency is used to reduce the memory
+      external_deps += [ "window_manager:libdm_lite" ]
+      defines += [ "SCENE_BOARD_ENABLE" ]
+    }
+
+    ldflags = [
+      "-Wl,-z,max-page-size=4096",
+      "-Wl,-z,separate-code",
+    ]
+    sanitize = {
+      cfi = true
+      cfi_cross_dso = true
+      debug = false
+    }
+  }
 }

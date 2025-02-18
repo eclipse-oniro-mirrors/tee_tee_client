@@ -28,7 +28,7 @@
 #include "tee_auth_common.h"
 #include "tee_ca_auth.h"
 #include "fs_work_agent.h"
-
+#include "tee_file.h"
 /* debug switch */
 #ifdef LOG_NDEBUG
 #undef LOG_NDEBUG
@@ -105,7 +105,7 @@ static int SendFileDescriptor(int cmd, int socket, int fd)
 
     ret = (int)sendmsg(socket, &hmsg, 0);
     if (ret <= 0) {
-        tloge("sendmsg failed ret=0x%x:%d.\n", ret, errno);
+        tloge("sendmsg failed ret=0x%" PUBLIC "x:%" PUBLIC "d.\n", ret, errno);
         return -1;
     }
     return 0;
@@ -118,32 +118,32 @@ static int ProcessCaMsg(const struct ucred *cr, const CaRevMsg *caInfo, int sock
     if (caInfo->cmd == GET_TEEVERSION) {
         ret = SendFileDescriptor(caInfo->cmd, socket, (int)g_version);
         if (ret != 0) {
-            tloge("Failed to send version back. ret = %d\n", ret);
+            tloge("Failed to send version back. ret = %" PUBLIC "d\n", ret);
             return -1;
         }
         return 0;
     }
 
-    int fd = open(TC_NS_CLIENT_DEV_NAME, O_RDWR);
+    int fd = tee_open(TC_NS_CLIENT_DEV_NAME, O_RDWR, 0);
     if (fd == -1) {
-        tloge("Failed to open %s: %d\n", TC_NS_CLIENT_DEV_NAME, errno);
+        tloge("Failed to open %" PUBLIC "s: %" PUBLIC "d\n", TC_NS_CLIENT_DEV_NAME, errno);
         return -1;
     }
 
     ret = SendLoginInfo(cr, caInfo, fd);
     if (ret != EOK) {
-        tloge("Failed to send login info. ret=%d\n", ret);
-        close(fd);
+        tloge("Failed to send login info. ret=%" PUBLIC "d\n", ret);
+        tee_close(&fd);
         return -1;
     }
 
     ret = SendFileDescriptor(caInfo->cmd, socket, fd);
     if (ret != EOK) {
-        tloge("Failed to send fd. ret=%d\n", ret);
-        close(fd);
+        tloge("Failed to send fd. ret=%" PUBLIC "d\n", ret);
+        tee_close(&fd);
         return -1;
     }
-    close(fd);
+    tee_close(&fd);
     return 0;
 }
 
@@ -159,18 +159,18 @@ static void ProcessAccept(int s, CaRevMsg *caInfo)
         size_t t = sizeof(remote);
         int s2   = accept(s, (struct sockaddr *)&remote, (socklen_t *)&t);
         if (s2 == -1) {
-            tloge("accept() to server socket failed, errno=%d", errno);
+            tloge("accept() to server socket failed, errno=%" PUBLIC "d", errno);
             continue;
         }
 
         socklen_t len = sizeof(struct ucred);
         if (getsockopt(s2, SOL_SOCKET, SO_PEERCRED, &cr, &len) < 0) {
-            tloge("peercred failed: %d", errno);
+            tloge("peercred failed: %" PUBLIC "d", errno);
             close(s2);
             continue;
         }
 
-        tlogd("uid %d pid %d\n", cr.uid, cr.pid);
+        tlogd("uid %" PUBLIC "d pid %" PUBLIC "d\n", cr.uid, cr.pid);
 
         ret = RecvCaMsg(s2, caInfo);
         if (ret != 0) {
@@ -182,12 +182,12 @@ static void ProcessAccept(int s, CaRevMsg *caInfo)
 
         ret = ProcessCaMsg(&cr, caInfo, s2);
         if (ret != 0) {
-            tloge("Failed to process ca msg. ret=%d\n", ret);
+            tloge("Failed to process ca msg. ret=%" PUBLIC "d\n", ret);
             goto CLOSE_SOCKET;
         }
 
     CLOSE_SOCKET:
-        tlogd("close_socket and curret ret=%u\n", ret);
+        tlogd("close_socket and curret ret=%" PUBLIC "u\n", ret);
         close(s2);
         errno_t rc = memset_s(caInfo, sizeof(CaRevMsg), 0, sizeof(CaRevMsg));
         if (rc != EOK) {
@@ -219,7 +219,7 @@ static int32_t CreateSocket(void)
     /* Open a socket (a UNIX domain stream socket) */
     int32_t s = socket(AF_UNIX, SOCK_STREAM, 0);
     if (s < 0) {
-        tloge("can't open stream socket, errno=%d\n", errno);
+        tloge("can't open stream socket, errno=%" PUBLIC "d\n", errno);
         return -1;
     }
 
@@ -241,7 +241,7 @@ static int32_t CreateSocket(void)
     }
 
     if (bind(s, (struct sockaddr *)&local, len) < 0) {
-        tloge("bind() to server socket failed, errno=%d\n", errno);
+        tloge("bind() to server socket failed, errno=%" PUBLIC "d\n", errno);
         close(s);
         return -1;
     }
@@ -261,7 +261,7 @@ void *CaServerWorkThread(void *dummy)
 
     /* Start listening on the socket */
     if (listen(s, BACKLOG_LEN) < 0) {
-        tloge("listen() failed, errno=%d\n", errno);
+        tloge("listen() failed, errno=%" PUBLIC "d\n", errno);
         goto CLOSE_EXIT;
     }
 

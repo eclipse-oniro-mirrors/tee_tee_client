@@ -12,12 +12,12 @@ import("//build/ohos.gni")
 import("//build/ohos_var.gni")
 
 ohos_prebuilt_etc("teecd.rc") {
-    relative_install_dir = "init"
-    source = "teecd.cfg"
-    part_name = "tee_client"
-    subsystem_name = "tee"
-    install_images = [
-        "system",
-        "updater_vendor",
-    ]
+  relative_install_dir = "init"
+  source = "teecd.cfg"
+  part_name = "tee_client"
+  subsystem_name = "tee"
+  install_images = [
+    "system",
+    "updater_vendor",
+  ]
 }
