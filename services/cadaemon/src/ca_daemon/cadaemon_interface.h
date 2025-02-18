@@ -26,7 +26,7 @@ class CaDaemon : public OHOS::IRemoteBroker {
 public:
     virtual TEEC_Result InitializeContext(const char *name, MessageParcel &reply) = 0;
     virtual TEEC_Result FinalizeContext(TEEC_Context *context) = 0;
-    virtual TEEC_Result OpenSession(TEEC_Context *context, const char *taPath, int32_t fd,
+    virtual TEEC_Result OpenSession(TEEC_Context *context, const char *taPath, int32_t &fd,
         const TEEC_UUID *destination, uint32_t connectionMethod,
         TEEC_Operation *operation, uint32_t optMemSize, sptr<Ashmem> &optMem, MessageParcel &reply) = 0;
     virtual TEEC_Result CloseSession(TEEC_Session *session, TEEC_Context *context) = 0;

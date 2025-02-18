@@ -38,17 +38,17 @@ static int32_t Base64Decode(string& encodedStr, unsigned char *decodedStr, uint3
 {
     size_t encodedLen = encodedStr.length();
     if (encodedLen == 0 || encodedLen % BASE_NUM_FOUR != 0) {
-        tloge("invaild based64 string, size %zu\n", encodedLen);
+        tloge("invaild based64 string, size %" PUBLIC "zu\n", encodedLen);
         return -1;
     }
     if (*decodedLen < ((encodedLen / BASE_NUM_FOUR) * BASE_NUM_THREE)) {
-        tloge("decode string len too short, %zu, %u\n", encodedLen, (unsigned int)*decodedLen);
+        tloge("decode string len too short, %" PUBLIC "zu, %" PUBLIC "u\n", encodedLen, (unsigned int)*decodedLen);
         return -1;
     }
 
     int32_t ret = EVP_DecodeBlock(decodedStr, (const unsigned char*)encodedStr.c_str(), (int)encodedLen);
     if (ret < 0) {
-        tloge("EVP DecodeBlock failed, ret %d\n", ret);
+        tloge("EVP DecodeBlock failed, ret %" PUBLIC "d\n", ret);
         return -1;
     }
 
@@ -62,12 +62,12 @@ static int32_t Base64Decode(string& encodedStr, unsigned char *decodedStr, uint3
     }
 
     if (padLen > MAX_BASE64_PADDING_LEN) {
-        tloge("invaild base64 padding len, %u\n", padLen);
+        tloge("invaild base64 padding len, %" PUBLIC "u\n", padLen);
         return -1;
     }
 
     if (ret == 0 || ret <= padLen) {
-        tloge("base64 decoded failed, decoded len %u, pad len %u\n", ret, padLen);
+        tloge("base64 decoded failed, decoded len %" PUBLIC "u, pad len %" PUBLIC "u\n", ret, padLen);
         return -1;
     }
 
@@ -81,7 +81,8 @@ static int32_t FillEccHapCaInfo(string& packageName, const char *pubKey, uint32_
     uint64_t hapInfoSize = sizeof(uint32_t) + packageName.length() +
         sizeof(uint32_t) + sizeof(uint32_t) * BASE_NUM_TWO + pubKeyLen;
     if (hapInfoSize > sizeof(caInfo->certs)) {
-        tloge("buf too short, %u, %zu, %u\n", (unsigned int)sizeof(caInfo->certs), packageName.length(), pubKeyLen);
+        tloge("buf too short, %" PUBLIC "u, %" PUBLIC "u, %" PUBLIC "u\n",
+            (unsigned int)sizeof(caInfo->certs), packageName.length(), pubKeyLen);
         return -1;
     }
 
@@ -121,7 +122,7 @@ static int32_t FillEccHapCaInfo(string& packageName, const char *pubKey, uint32_
     return 0;
 }
 
-std::string GetHapAppID(void)
+static std::string GetHapAppID(void)
 {
     sptr<ISystemAbilityManager> systemAbilityManager =
         SystemAbilityManagerClient::GetInstance().GetSystemAbilityManager();
@@ -143,7 +144,7 @@ std::string GetHapAppID(void)
     /* userID */
     int32_t uid = IPCSkeleton::GetCallingUid();
     int32_t userId = uid / OHOS::AppExecFwk::Constants::BASE_USER_RANGE;
-    tlogd("uid=%d, userId=%d\n", uid, userId);
+    tlogd("uid=%" PUBLIC "d, userId=%" PUBLIC "d\n", uid, userId);
 
     /* appID */
     std::string bundleName;
@@ -158,14 +159,14 @@ static int32_t ConstructHapCaInfoFromToken(CaAuthInfo *caInfo)
         tloge("get app id failed\n");
         return -1;
     }
-    tlogd("appid=%s\n", appID.c_str());
+    tlogd("appid=%" PUBLIC "s\n", appID.c_str());
     size_t appIDLen = appID.length();
     if (appIDLen == 0 || appIDLen > sizeof(caInfo->certs)) {
-        tloge("hap appid invaild, len %zu\n", appIDLen);
+        tloge("hap appid invaild, len %" PUBLIC "zu\n", appIDLen);
         return -1;
     }
 
-    size_t posSplit = appID.find(HAP_APPID_SPLIT_CHA);
+    size_t posSplit = appID.find_last_of(HAP_APPID_SPLIT_CHA);
     if (posSplit == string::npos) {
         tloge("hap appid format is invaild\n");
         return -1;
@@ -177,53 +178,85 @@ static int32_t ConstructHapCaInfoFromToken(CaAuthInfo *caInfo)
     uint32_t decodedPubkeyLen = sizeof(decodedPubkey);
     int ret = Base64Decode(pubkeyBase64, (unsigned char *)decodedPubkey, &decodedPubkeyLen);
     if (ret != 0) {
-        tloge("based64 pubkey decoded failed, ret %d\n", ret);
+        tloge("based64 pubkey decoded failed, ret %" PUBLIC "d\n", ret);
         return ret;
     }
     uint8_t unCompressedPubkeyPrefix = UNCOMPRESSED_PUBKEY_PREFIX;
     if (decodedPubkeyLen < sizeof(unCompressedPubkeyPrefix) || decodedPubkey[0] != unCompressedPubkeyPrefix) {
-        tloge("invaild decoded pubkey, %u\n", decodedPubkeyLen);
+        tloge("invaild decoded pubkey, %" PUBLIC "u\n", decodedPubkeyLen);
         return -1;
     }
     decodedPubkeyLen = decodedPubkeyLen - sizeof(unCompressedPubkeyPrefix);
 
     if (decodedPubkeyLen == 0 || decodedPubkeyLen % BASE_NUM_TWO != 0) {
-        tloge("invaild pub key, %u\n", decodedPubkeyLen);
+        tloge("invaild pub key, %" PUBLIC "u\n", decodedPubkeyLen);
         return -1;
     }
 
     ret = FillEccHapCaInfo(packageName, decodedPubkey + sizeof(unCompressedPubkeyPrefix), decodedPubkeyLen, caInfo);
     if (ret != 0) {
-        tloge("fill ecc hap cainfo failed, ret %d\n", ret);
+        tloge("fill ecc hap cainfo failed, ret %" PUBLIC "d\n", ret);
         return ret;
     }
     caInfo->type = APP_CA;
     return 0;
 }
 
-static int32_t ConstructNativeCaInfoFromToken(uint32_t tokenID, CaAuthInfo *caInfo)
+#define RETRY_TIMES 5
+static int32_t ConstructNativeCaInfoFromToken(uint32_t tokenID, CaAuthInfo *caInfo, bool needRetry)
 {
     NativeTokenInfo nativeTokenInfo;
-    int32_t ret = AccessTokenKit::GetNativeTokenInfo(tokenID, nativeTokenInfo);
-    if (ret == 0) {
-        uint32_t processNameLen = nativeTokenInfo.processName.length();
-        if (processNameLen == 0 || processNameLen > sizeof(caInfo->certs)) {
-            tloge("native ca process name too long, len %u\n", processNameLen);
-            return -1;
-        }
 
-        nativeTokenInfo.processName.copy((char *)caInfo->certs, processNameLen, 0);
-    } else {
-        tlogd("get native token info from atm failed, ret %d\n", ret);
-        int32_t rc = TeeGetPkgName(caInfo->pid, (char *)caInfo->certs, MAX_PATH_LENGTH);
-        if (rc != 0) {
-            tloge("get native ca info failed, rc %d\n", rc);
-            return -1;
-        }
+    int32_t ret;
+    int32_t retry = 0;
+    bool atmReady = true;
+
+    sptr<ISystemAbilityManager> saMgr = SystemAbilityManagerClient::GetInstance().GetSystemAbilityManager();
+    if (saMgr == nullptr) {
+        tloge("get system ability manager failed\n");
+        return -1;
     }
 
-    caInfo->type = SA_CA;
+    if (saMgr->CheckSystemAbility(ACCESS_TOKEN_MANAGER_SERVICE_ID) == nullptr) {
+        tlogi("atm service is unready.\n");
+        atmReady = false;
+    }
 
+    if (!atmReady) {
+        tlogi("get native callinfo info not from atm\n");
+        int32_t rc = TeeGetPkgName(caInfo->pid, (char *)caInfo->certs, MAX_PATH_LENGTH);
+        if (rc != 0) {
+            tloge("get native ca info failed, rc %" PUBLIC "d\n", rc);
+            return -1;
+        }
+
+        caInfo->type = SA_CA;
+        return 0;
+    }
+
+    do {
+        retry++;
+        ret = AccessTokenKit::GetNativeTokenInfo(tokenID, nativeTokenInfo);
+        if (ret != 0) {
+            tlogi("get native token info from atm failed, retry times=%" PUBLIC "d\n", retry);
+            if (needRetry) {
+                sleep(1);
+            }
+        }
+    } while (ret != 0 && retry < RETRY_TIMES && needRetry);
+
+    if (ret != 0) {
+        tloge("get native token info from atm failed, retry times=%" PUBLIC "d, ret=0x%" PUBLIC "x\n", retry, ret);
+        return -1;
+    }
+    uint32_t processNameLen = nativeTokenInfo.processName.length();
+    if (processNameLen == 0 || processNameLen > sizeof(caInfo->certs)) {
+        tloge("native ca process name too long, len %" PUBLIC "u\n", processNameLen);
+        return -1;
+    }
+
+    nativeTokenInfo.processName.copy((char *)caInfo->certs, processNameLen, 0);
+    caInfo->type = SA_CA;
     return 0;
 }
 
@@ -237,19 +270,35 @@ int32_t ConstructCaAuthInfo(uint32_t tokenID, CaAuthInfo *caInfo)
     ATokenTypeEnum tokenType = AccessTokenKit::GetTokenTypeFlag(tokenID);
     switch (tokenType) {
         case TOKEN_HAP:     /* for hap ca */
-            tlogd("hap ca type, tokenID %u\n", tokenID);
+            tlogd("hap ca type, tokenID %" PUBLIC "u\n", tokenID);
             return ConstructHapCaInfoFromToken(caInfo);
         case TOKEN_NATIVE:  /* for native ca */
-            tlogd("native ca type, tokenID %u\n", tokenID);
-            return ConstructNativeCaInfoFromToken(tokenID, caInfo);
+            tlogd("native ca type, tokenID %" PUBLIC "u\n", tokenID);
+            return ConstructNativeCaInfoFromToken(tokenID, caInfo, false);
         case TOKEN_SHELL:   /* for native ca created by hdc */
-            tlogd("shell ca type, tokenID %u\n", tokenID);
+            tlogd("shell ca type, tokenID %" PUBLIC "u\n", tokenID);
             caInfo->type = SYSTEM_CA;
             return 0;       /* cainfo: cmdline + uid */
         default:
-            tloge("invaild token type %d\n", tokenType);
+            tloge("invaild token type %" PUBLIC "d\n", tokenType);
             return -1;
     }
+}
+
+int32_t ConstructSelfAuthInfo(CaAuthInfo *caInfo)
+{
+    if (caInfo == nullptr) {
+        tloge("bad params, ca info is null\n");
+        return -1;
+    }
+
+    caInfo->pid = getpid();
+    caInfo->uid = getuid();
+
+    uint32_t selfTokenID = OHOS::IPCSkeleton::GetSelfTokenID();
+    tlogi("selfTokenID is %" PUBLIC "u\n", selfTokenID);
+
+    return ConstructNativeCaInfoFromToken(selfTokenID, caInfo, true);
 }
 
 int32_t TEEGetNativeSACaInfo(const CaAuthInfo *caInfo, uint8_t *buf, uint32_t bufLen)
@@ -265,7 +314,7 @@ int32_t TEEGetNativeSACaInfo(const CaAuthInfo *caInfo, uint8_t *buf, uint32_t bu
 
     uint64_t caInfoSize = sizeof(processNameLen) + processNameLen + sizeof(uidLen) + uidLen;
     if ((uint64_t)bufLen < caInfoSize) {
-        tloge("buf too short, %u, %u\n", bufLen, processNameLen);
+        tloge("buf too short, %" PUBLIC "u, %" PUBLIC "u\n", bufLen, processNameLen);
         return -1;
     }
 

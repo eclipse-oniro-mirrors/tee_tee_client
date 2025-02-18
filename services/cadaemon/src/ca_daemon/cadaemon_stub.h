@@ -23,8 +23,8 @@ namespace OHOS {
 namespace CaDaemon {
 class CaDaemonStub : public IRemoteStub<CaDaemon> {
 public:
-    CaDaemonStub();
-    virtual ~CaDaemonStub();
+    CaDaemonStub() = default;
+    virtual ~CaDaemonStub() = default;
     int32_t OnRemoteRequest(uint32_t code,
         MessageParcel& data, MessageParcel &reply, MessageOption &option) override;
 private:
@@ -40,8 +40,6 @@ private:
     bool EnforceInterceToken(MessageParcel& data);
     int32_t SendSecFileRecvProc(MessageParcel& data, MessageParcel &reply);
     int32_t GetTeeVersionRecvProc(MessageParcel& data, MessageParcel &reply);
-    using CaDaemonFunc = int32_t (CaDaemonStub::*)(MessageParcel& data, MessageParcel& reply);
-    std::map<uint32_t, CaDaemonFunc> memberFuncMap_;
 };
 } // namespace CaDaemon
 } // namespace OHOS

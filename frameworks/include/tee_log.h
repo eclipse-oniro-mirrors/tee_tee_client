@@ -13,48 +13,20 @@
 #ifndef TEE_LOG_H
 #define TEE_LOG_H
 
-#ifndef CONFIG_ARMPC_PLATFORM
-#include "hilog/log_c.h"
-#endif
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#ifdef LOG_TAG
-#undef LOG_TAG
-#endif
-#define LOG_TAG "tee_client"
-
-#ifdef LOG_DOMAIN
-#undef LOG_DOMAIN
-#endif
-#define LOG_DOMAIN 0xD002F00
-
-#ifndef CONFIG_ARMPC_PLATFORM
-#define tlogv(...) HILOG_DEBUG(LOG_CORE, __VA_ARGS__)
-
-#define tlogd(...) HILOG_DEBUG(LOG_CORE, __VA_ARGS__)
-
-#define tlogi(...) HILOG_INFO(LOG_CORE, __VA_ARGS__)
-
-#define tlogw(...) HILOG_WARN(LOG_CORE, __VA_ARGS__)
-
-#define tloge(...) HILOG_ERROR(LOG_CORE, __VA_ARGS__)
+#ifdef CONFIG_LOG_NO_PUBLIC
+#define PUBLIC ""
 #else
-#define tlogv(...) printf(__VA_ARGS__)
-
-#define tlogd(...) printf(__VA_ARGS__)
-
-#define tlogi(...) printf(__VA_ARGS__)
-
-#define tlogw(...) printf(__VA_ARGS__)
-
-#define tloge(...) printf(__VA_ARGS__)
+#define PUBLIC "{public}"
 #endif
 
-#ifdef __cplusplus
-}
+#ifdef CONFIG_ARMPC_PLATFORM
+#include "tee_sys_log.h"
+#else
+#ifdef CONFIG_SMART_LOCK_PLATFORM
+#include "tee_hilog_lock.h"
+#else
+#include "tee_hilog.h"
+#endif
 #endif
 
 #endif

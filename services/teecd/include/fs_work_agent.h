@@ -14,6 +14,7 @@
 #define LIBTEEC_FS_WORK_AGENT_H
 
 #include <stdint.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <unistd.h>
 #include "fs_work_agent_define.h"
@@ -23,6 +24,10 @@
 #define KINDS_OF_SSA_MODE       4
 
 #define AID_SYSTEM 1000
+
+#ifdef CONFIG_FSWORK_THREAD_ELEVATE_PRIO
+#define FS_AGENT_THREAD_PRIO (-20)
+#endif
 
 #define SFS_PARTITION_PERSISTENT "sec_storage/"
 
@@ -36,8 +41,13 @@
 
 #define SEC_STORAGE_ROOT_DIR      "/" SFS_PARTITION_PERSISTENT
 
-/* 0600 only root can read and write sec_storage folder */
-#define ROOT_DIR_PERM                   (S_IRUSR | S_IWUSR)
+/* 0700 only uid:tee can read and write sec_storage folder */
+#ifdef CONFIG_SMART_LOCK_PLATFORM
+#define SFS_DIR_PERM                   (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)
+#else
+#define SFS_DIR_PERM                   (S_IRUSR | S_IWUSR | S_IXUSR)
+#endif
+#define SFS_FILE_PERM                   (S_IRUSR | S_IWUSR)
 #define SFS_PARTITION_TRANSIENT         "sec_storage_data/"
 #define SFS_PARTITION_TRANSIENT_PRIVATE "sec_storage_data/_private"
 #define SFS_PARTITION_TRANSIENT_PERSO   "sec_storage_data/_perso"
@@ -83,6 +93,10 @@ struct SecStorageType {
     uint32_t storageId;
     uint32_t magic;
     uint32_t error;
+#ifdef CONFIG_BACKUP_PARTITION
+    bool isBackup;
+    bool isBackupExt;
+#endif
     union Args1 {
         struct {
             char mode[KINDS_OF_SSA_MODE];

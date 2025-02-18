@@ -14,7 +14,13 @@
 #define TEE_GET_NATIVE_CERT_H
 
 #include "tee_auth_common.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 int TeeGetNativeCert(int caPid, unsigned int caUid, uint32_t *len, uint8_t *buffer);
 
+#ifdef __cplusplus
+}
+#endif
 #endif /* TEE_GET_NATIVE_CERT */

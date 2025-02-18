@@ -21,9 +21,11 @@ ohos_executable("teecd") {
   ]
 
   sources = [
+    "../../../../frameworks/tee_file/tee_file.c",
     "../../../authentication/tcu_authentication.c",
     "../../../authentication/tee_auth_common.c",
     "../../../authentication/tee_get_native_cert.c",
+    "../../../taversion_ctrl/tee_ta_version_ctrl.c",
     "../../src/fs_work_agent.c",
     "../../src/late_init_agent.c",
     "../../src/misc_work_agent.c",
@@ -31,11 +33,11 @@ ohos_executable("teecd") {
     "../../src/tee_agent.c",
     "../../src/tee_ca_auth.c",
     "../../src/tee_ca_daemon.c",
-    "../../src/tee_load_dynamic_drv.c",
+    "../../src/tee_load_dynamic.c",
   ]
 
   include_dirs = [
-    "../../../../interfaces/kits/c/include",
+    "../../../../interfaces/inner_api",
     "../../include",
     "../../include/standard",
     "../../../../frameworks/include",
@@ -43,7 +45,14 @@ ohos_executable("teecd") {
     "../../../../frameworks/include/standard/teec_vendor",
     "../../../../frameworks/libteec_vendor",
     "../../../authentication",
+    "../../../taversion_ctrl",
   ]
+
+  defines = [ "CONFIG_FSWORK_THREAD_ELEVATE_PRIO" ]
+  defines += [ "DYNAMIC_DRV_DIR=\"/vendor/bin/tee_dynamic_drv/\"" ]
+  defines += [ "DYNAMIC_SRV_DIR=\"/vendor/bin/tee_dynamic_srv/\"" ]
+  defines += [ "CONFIG_LATE_INIT" ]
+  defines += [ "ENABLE_FDSAN_CHECK" ]
 
   external_deps = [
     "bounds_checking_function:libsec_shared",

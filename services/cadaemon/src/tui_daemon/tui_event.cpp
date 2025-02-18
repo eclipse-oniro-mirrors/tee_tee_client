@@ -26,12 +26,19 @@
 #include "tee_log.h"
 #include "tc_ns_client.h"
 #include "power_mgr_client.h"
-#include "display_manager.h"
-#include "display.h"
 #include "display_info.h"
+#include "cutout_info.h"
 #include "call_manager_client.h"
 #include "system_ability_definition.h"
 #include "iservice_registry.h"
+#include "tee_file.h"
+#ifdef SCENE_BOARD_ENABLE
+#include "display_manager_lite.h"
+#include "display_lite.h"
+#else
+#include "display_manager.h"
+#include "display.h"
+#endif
 
 #ifdef LOG_TAG
 #undef LOG_TAG
@@ -45,10 +52,12 @@ using namespace OHOS::Telephony;
 
 TUIEvent *TUIEvent::tuiInstance = nullptr;
 
+static const uint32_t NOTCH_SIZE_MAX  = 200;
 static const double INCH_CM_FACTOR    = 2.54;
 static const uint32_t TUI_POLL_CANCEL = 7;
 static const uint32_t TUI_POLL_NOTCH  = 24;
 static const uint32_t TUI_POLL_FOLD   = 26;
+static const uint32_t TUI_NEED_ROTATE = 256;
 
 static const uint8_t TTF_HASH_SIZE   = 32;
 static const uint8_t TTF_STRING_SIZE = 64;
@@ -63,8 +72,8 @@ static bool g_tuiDisplayListenerRegisted = false;
 static bool g_tuiCallBackRegisted = false;
 static const int32_t RETRY_TIMES = 20;
 static const uint32_t RETRY_SLEEP_TIME = 2;
-std::unique_ptr<TUICallManagerCallback> mTUITelephonyCallBack_ = nullptr;
-std::shared_ptr<OHOS::Telephony::CallManagerClient> callManagerClientPtr = nullptr;
+static std::unique_ptr<TUICallManagerCallback> mTUITelephonyCallBack_ = nullptr;
+static std::shared_ptr<OHOS::Telephony::CallManagerClient> callManagerClientPtr = nullptr;
 
 static void TUISaveTTFHash(void)
 {
@@ -109,17 +118,17 @@ static uint8_t Ascii2Digit(char a)
 
 static bool TUISendEventToTz(TuiParameter *tuiParam)
 {
-    int32_t fd = open(TC_NS_CLIENT_DEV_NAME, O_RDWR);
+    int32_t fd = tee_open(TC_NS_CLIENT_DEV_NAME, O_RDWR, 0);
     if (fd < 0) {
         tloge("open tzdriver fd failed\n");
         return false;
     }
-    tlogd("TUISendEventToTz get fd = %{public}d\n", fd);
+    tlogd("TUISendEventToTz get fd = %" PUBLIC "d\n", fd);
 
     int32_t ret = ioctl(fd, (int)TC_NS_CLIENT_IOCTL_TUI_EVENT, tuiParam);
-    (void)close(fd);
+    tee_close(&fd);
     if (ret != 0) {
-        tloge("Failed to send tui event[%{public}d] to tzdriver, ret is %{public}d \n",
+        tloge("Failed to send tui event[%" PUBLIC "d] to tzdriver, ret is %" PUBLIC "d \n",
             tuiParam->eventType, ret);
         return false;
     }
@@ -140,7 +149,7 @@ static void TUISendTTFHashToTeeos(void)
         g_hashLen = 0;
         return;
     }
-    tlogd("tui font hash is : %{public}s \n", g_hashVal);
+    tlogd("tui font hash is : %" PUBLIC "s \n", g_hashVal);
 
     for (i = 0, j = 0; g_hashLen > 0 && i < (g_hashLen - 1) && j < sizeof(g_ttfHash); j++) {
         g_ttfHash[j] = Ascii2Digit(g_hashVal[i++]) * HEX_BASE;
@@ -151,7 +160,7 @@ static void TUISendTTFHashToTeeos(void)
         sizeof(tuiParam) - sizeof(tuiParam.eventType),
         g_ttfHash, sizeof(g_ttfHash));
     if (rc == EOK) {
-        if (TUISendEventToTz(&tuiParam) == true) {
+        if (TUISendEventToTz(&tuiParam)) {
             g_tuiSendHashSuccess = true;
         } else {
             tloge("send notch msg failed\n");
@@ -171,40 +180,168 @@ bool TUIEvent::TUIGetStatus()
     return mTUIStatus;
 }
 
-int TUIEvent::TUIGetPannelInfo()
+bool TUIEvent::TUIGetFoldableStatus()
 {
+    return mTUIFoldable;
+}
+
+static int TUIGetNotch(OHOS::sptr<CutoutInfo> cutoutInfo, uint32_t displayMode)
+{
+    tlogi("tui get cutoutinfo--->boundingRects for notch\n");
+    std::vector<OHOS::Rosen::DMRect> boundingRects = cutoutInfo->GetBoundingRects();
+    if (boundingRects.empty()) {
+        tlogi("get boundingRects failed\n");
+        return 0;
+    }
+    for (uint32_t i = 0; i < boundingRects.size(); i++) {
+        tlogi("tui print boundingRects[%" PUBLIC "d] info: \
+posX[%" PUBLIC "d], posY[%" PUBLIC "d], width[%" PUBLIC "d], height[%" PUBLIC "d] \n",
+            i, boundingRects[i].posX_, boundingRects[i].posY_,
+            boundingRects[i].width_, boundingRects[i].height_);
+    }
+    /* calc notch, here is px, double height of the hole */
+    int notch = boundingRects[0].height_ + boundingRects[0].height_;
+    if (notch < 0 || notch > NOTCH_SIZE_MAX) {
+        /* 200 is too large for notch, just use 0 */
+        return 0;
+    }
+    return notch;
+}
+
+static uint32_t TUIGetDisplayMode(uint32_t foldState)
+{
+    if (foldState == FOLD_STATE_EXPANDED) {
+        return DISPLAY_MODE_FULL;
+    }
+
+#ifdef SCENE_BOARD_ENABLE
+    uint32_t displayMode = static_cast<uint32_t>(OHOS::Rosen::DisplayManagerLite::GetInstance().GetFoldDisplayMode());
+#else
+    uint32_t displayMode = static_cast<uint32_t>(OHOS::Rosen::DisplayManager::GetInstance().GetFoldDisplayMode());
+#endif
+    if (displayMode < DISPLAY_MODE_MAX) {
+        return displayMode;
+    }
+
+    return DISPLAY_MODE_UNKNOWN; /* default mode */
+}
+
+bool CheckSAStarted(int32_t targetSAId)
+{
+    OHOS::sptr<OHOS::ISystemAbilityManager> systemAbilityManager =
+        OHOS::SystemAbilityManagerClient::GetInstance().GetSystemAbilityManager();
+    if (!systemAbilityManager) {
+        tlogi("Failed to get system ability mgr\n");
+        return false;
+    }
+
+    OHOS::sptr<OHOS::IRemoteObject> remoteObject = systemAbilityManager->GetSystemAbility(targetSAId);
+    if (!remoteObject) {
+        tlogi("SA service [targetID = %" PUBLIC "d] is not exist\n", targetSAId);
+        return false;
+    }
+
+    tlogd("get SA service, targetID = %" PUBLIC "d\n", targetSAId);
+    return true;
+}
+
+static bool IsDisplaySAReady()
+{
+    int32_t retry = 0;
+#ifdef SCENE_BOARD_ENABLE
+    while (!CheckSAStarted(OHOS::WINDOW_MANAGER_SERVICE_ID)) {
+#else
+    while (!CheckSAStarted(OHOS::DISPLAY_MANAGER_SERVICE_SA_ID)) {
+#endif
+        if (retry++ >= RETRY_TIMES) {
+            tlogi("can not get display service now\n");
+            return false;
+        }
+        sleep(RETRY_SLEEP_TIME);
+    }
+
+    return true;
+}
+
+bool TUIEvent::TUIGetPannelInfo()
+{
+    if (!IsDisplaySAReady()) {
+        return false;
+    }
+
+#ifdef SCENE_BOARD_ENABLE
+    auto display = OHOS::Rosen::DisplayManagerLite::GetInstance().GetDefaultDisplay();
+#else
     auto display = OHOS::Rosen::DisplayManager::GetInstance().GetDefaultDisplay();
+#endif
     if (display == nullptr) {
         tloge("GetDefaultDisplay: failed!\n");
-        return -1;
+        return false;
     }
-    tlogi("GetDefaultDisplay: w %{public}d, h %{public}d, fps %{public}u\n",
-        display->GetWidth(),
-        display->GetHeight(),
-        display->GetRefreshRate());
 
     OHOS::sptr<DisplayInfo> displayInfo = display->GetDisplayInfo();
     if (displayInfo != nullptr) {
-        float xDpi = displayInfo->GetXDpi();
-        float yDpi = displayInfo->GetYDpi();
-        uint32_t displayState = (uint32_t)displayInfo->GetDisplayState();
-        tlogi("get xdpi %{public}f, ydpi %{public}f, displaystate %{public}u \n", xDpi, yDpi, displayState);
+        tlogi("get xdpi %" PUBLIC "f, ydpi %" PUBLIC "f, displaystate %" PUBLIC "u, DPI %" PUBLIC "d \n",
+            displayInfo->GetXDpi(), displayInfo->GetYDpi(),
+            (uint32_t)displayInfo->GetDisplayState(), displayInfo->GetDpi());
     } else {
         tloge("get displayInfo failed\n");
-        return -1;
+        return false;
     }
 
-    mTUIPanelInfo.foldState = 0;  // FOLD_STATE_UNKNOWN
-    mTUIPanelInfo.displayState = (uint32_t)displayInfo->GetDisplayState();
-    mTUIPanelInfo.notch = 0;
+    TUIGetFoldable();
+
     mTUIPanelInfo.width = display->GetWidth();
     mTUIPanelInfo.height = display->GetHeight();
+
     if (displayInfo->GetXDpi() != 0 && displayInfo->GetYDpi() != 0) {
         mTUIPanelInfo.phyWidth = mTUIPanelInfo.width * INCH_CM_FACTOR / displayInfo->GetXDpi();
         mTUIPanelInfo.phyHeight = mTUIPanelInfo.height * INCH_CM_FACTOR / displayInfo->GetYDpi();
     }
 
-    return 0;
+    OHOS::sptr<CutoutInfo> cutoutInfo = display->GetCutoutInfo();
+    if (cutoutInfo == nullptr) {
+        tloge("get cutoutinfo failed\n");
+    } else {
+        mTUIPanelInfo.notch = TUIGetNotch(cutoutInfo, mTUIPanelInfo.displayMode);
+    }
+
+    tlogi("tui panelinfo: w %" PUBLIC "d, h %" PUBLIC "d, fold %" PUBLIC "u, "
+        "displayMode %" PUBLIC "u, notch %" PUBLIC "u\n",
+        mTUIPanelInfo.width, mTUIPanelInfo.height, mTUIPanelInfo.foldState,
+        mTUIPanelInfo.displayMode, mTUIPanelInfo.notch);
+
+    return true;
+}
+
+void TUIEvent::TUIGetFoldable()
+{
+#ifdef SCENE_BOARD_ENABLE
+    mTUIFoldable = OHOS::Rosen::DisplayManagerLite::GetInstance().IsFoldable();
+#else
+    mTUIFoldable = OHOS::Rosen::DisplayManager::GetInstance().IsFoldable();
+#endif
+    tlogi("TuiDaemonInit mTUIFoldable %" PUBLIC "d\n", mTUIFoldable);
+    if (mTUIFoldable) {
+        tlogi("tui get fold state\n");
+    #ifdef SCENE_BOARD_ENABLE
+        mTUIPanelInfo.foldState = static_cast<uint32_t>(OHOS::Rosen::DisplayManagerLite::GetInstance().GetFoldStatus());
+    #else
+        mTUIPanelInfo.foldState = static_cast<uint32_t>(OHOS::Rosen::DisplayManager::GetInstance().GetFoldStatus());
+    #endif
+        if (mTUIPanelInfo.foldState >= FOLD_STATE_HALF_FOLDED) {
+            mTUIPanelInfo.foldState = FOLD_STATE_UNKNOWN; /* default state */
+        }
+    } else {
+        mTUIPanelInfo.foldState = FOLD_STATE_UNKNOWN;
+    }
+
+    mTUIPanelInfo.displayMode = TUIGetDisplayMode(mTUIPanelInfo.foldState);
+    if (mTUIPanelInfo.foldState == FOLD_STATE_EXPANDED) {
+        mTUIPanelInfo.foldState += TUI_NEED_ROTATE;
+    }
+
+    return;
 }
 
 void TUIEvent::TUIGetRunningLock()
@@ -234,14 +371,11 @@ void TUIEvent::TUIReleaseRunningLock()
 
 void TUIEvent::TuiEventInit()
 {
-    auto &powerMgrClient = OHOS::PowerMgr::PowerMgrClient::GetInstance();
-    mRunningLock_ = powerMgrClient.CreateRunningLock("TuiDaemonRunningLock",
-        OHOS::PowerMgr::RunningLockType::RUNNINGLOCK_SCREEN);
+    mRunningLock_ = nullptr;
 
     mTUIPanelInfo = { 0 };
     mTUIStatus = false;
-
-    TUISendTTFHashToTeeos();
+    mTUIFoldable = false;
 
     return;
 }
@@ -263,93 +397,73 @@ bool TUIEvent::TUISendCmd(uint32_t tuiEvent)
     TUISendTTFHashToTeeos();
 
     if (TUISendEventToTz(&tuiParam) == false) {
-        return -1;
+        tloge("tui send cmd failed\n");
+        return false;
     }
 
-    return 0;
+    return true;
 }
 
-int32_t TUIEvent::TUIDealWithEvent(bool state)
+void TUIEvent::TUIDealWithEvent(bool state)
 {
     if (state == false) {
         /* not need send cmd to tzdriver */
         TUIReleaseRunningLock();
         TUISetStatus(false);
-        return 0;
+        return;
     }
 
     TUIGetRunningLock();
     TUIGetPannelInfo();
     TUISetStatus(true);
-    return TUISendCmd(TUI_POLL_FOLD);
+    TUISendCmd(TUI_POLL_FOLD);
 }
 
-void TUIDisplayListener::OnChange(OHOS::Rosen::DisplayId dId)
+void TUIDisplayListener::OnFoldStatusChanged(OHOS::Rosen::FoldStatus foldState)
 {
-    auto tempTUIInstance = TUIEvent::GetInstance();
-    if (tempTUIInstance == nullptr) {
+    if (foldState != OHOS::Rosen::FoldStatus::EXPAND && foldState != OHOS::Rosen::FoldStatus::FOLDED) {
+        tloge("foldState = %" PUBLIC "u invalid\n", static_cast<uint32_t>(foldState));
         return;
     }
 
-    if (dId < 0) {
-        tloge("displayId invalid\n");
-        return;
-    }
-
-    tlogi("get TUIStatus is %{public}x\n", tempTUIInstance->TUIGetStatus());
-    /* if pannelinfo changed, should:
+    /* if foldState changed, should:
      * 1. get pannelinfo,
      * 2. send infos to teeos,
      * 3. cancel current running proc
      */
-    tempTUIInstance->TUIGetPannelInfo();
-    tempTUIInstance->TUISendCmd(TUI_POLL_FOLD);  /* EVENT TUI_POLL_FOLD */
-    if (tempTUIInstance->TUIGetStatus() == true) {
-        tlogi("display state changed, need cancel TUI proc\n");
-        /* DO NOT change tuiStatus to false, and do not know why */
-        tempTUIInstance->TUISendCmd(TUI_POLL_CANCEL); /* EVENT Exit */
+    auto tempTUIInstance = TUIEvent::GetInstance();
+    if (tempTUIInstance == nullptr) {
+        return;
+    }
+    tlogi("get TUIStatus is %" PUBLIC "x\n", tempTUIInstance->TUIGetStatus());
+    if (tempTUIInstance->TUIGetPannelInfo()) {
+        (void)tempTUIInstance->TUISendCmd(TUI_POLL_FOLD);  /* EVENT TUI_POLL_FOLD */
+    }
+    if (tempTUIInstance->TUIGetStatus()) {
+        tlogi("foldState changed, need cancel TUI proc\n");
+        (void)tempTUIInstance->TUISendCmd(TUI_POLL_CANCEL); /* EVENT Exit */
     }
 }
 
 int32_t TUICallManagerCallback::OnCallDetailsChange(const OHOS::Telephony::CallAttributeInfo &info)
 {
     tlogd("----------OnCallDetailsChange--------\n");
-    tlogd("callId: %{public}x\n", info.callId);
-    tlogd("callType: %{public}x\n", (int32_t)info.callType);
-    tlogd("callState: %{public}x\n", (int32_t)info.callState);
-    tlogd("conferenceState: %{public}x\n", (int32_t)info.conferenceState);
-    tlogd("accountNumber: %{public}s\n", info.accountNumber);
+    tlogd("callId: %" PUBLIC "x\n", info.callId);
+    tlogd("callType: %" PUBLIC "x\n", (int32_t)info.callType);
+    tlogd("callState: %" PUBLIC "x\n", (int32_t)info.callState);
+    tlogd("conferenceState: %" PUBLIC "x\n", (int32_t)info.conferenceState);
+    tlogd("accountNumber: %" PUBLIC "s\n", info.accountNumber);
 
     if (info.callState == OHOS::Telephony::TelCallState::CALL_STATUS_INCOMING) {
-        /* call is incoming */
         auto tempTUIInstance = TUIEvent::GetInstance();
-        if (tempTUIInstance->TUIGetStatus() == true) {
+        if (tempTUIInstance->TUIGetStatus()) {
             tlogi("new call state CALL_STATUS_INCOMING, need send cmd to teeos to cancel TUI proc\n");
             tempTUIInstance->TUISetStatus(false); /* change tuiStatus to false */
-            tempTUIInstance->TUISendCmd(TUI_POLL_CANCEL);  /* EVENT Exit */
+            (void)tempTUIInstance->TUISendCmd(TUI_POLL_CANCEL);  /* EVENT Exit */
         }
         tlogd("tui get new call state CALL_STATUS_INCOMING\n");
     }
     return 0;
-}
-
-bool TUIDaemon::CheckSAStarted(int32_t targetSAId)
-{
-    OHOS::sptr<OHOS::ISystemAbilityManager> systemAbilityManager =
-        OHOS::SystemAbilityManagerClient::GetInstance().GetSystemAbilityManager();
-    if (!systemAbilityManager) {
-        tlogi("Failed to get system ability mgr\n");
-        return false;
-    }
-
-    OHOS::sptr<OHOS::IRemoteObject> remoteObject = systemAbilityManager->GetSystemAbility(targetSAId);
-    if (!remoteObject) {
-        tlogi("SA service [targetID = %{public}d] is not exist\n", targetSAId);
-        return false;
-    }
-
-    tlogd("get SA service, targetID = %{public}d\n", targetSAId);
-    return true;
 }
 
 void TUIDaemon::TuiRegisteCallBack()
@@ -389,8 +503,7 @@ void TUIDaemon::TuiRegisteCallBack()
     tlogi("callback init finish\n");
     int32_t ret = callManagerClientPtr->RegisterCallBack(std::move(mTUITelephonyCallBack_));
     if (ret != TEEC_SUCCESS) {
-        tloge("regist telephony callback failed ret = 0x%{public}x\n", ret);
-        callManagerClientPtr->UnInit();
+        tloge("regist telephony callback failed ret = 0x%" PUBLIC "x\n", ret);
     } else {
         g_tuiCallBackRegisted = true;
         tlogi("regist telephony callback done\n");
@@ -403,14 +516,8 @@ void TUIDaemon::TuiRegisteDisplayListener()
         return;
     }
 
-    int32_t retry = 0;
-    while (CheckSAStarted(OHOS::DISPLAY_MANAGER_SERVICE_SA_ID) == false) {
-        sleep(RETRY_SLEEP_TIME);
-        retry++;
-        if (retry >= RETRY_TIMES) {
-            tlogi("can not get display service now\n");
-            return;
-        }
+    if (!IsDisplaySAReady()) {
+        return;
     }
 
     if (mTUIDisplayListener_ == nullptr) {
@@ -420,9 +527,12 @@ void TUIDaemon::TuiRegisteDisplayListener()
             return;
         }
     }
-
-    OHOS::Rosen::DisplayManager& dmPtr = (OHOS::Rosen::DisplayManager::GetInstance());
-    int32_t result = (int32_t)dmPtr.RegisterDisplayListener(mTUIDisplayListener_);
+#ifdef SCENE_BOARD_ENABLE
+    OHOS::Rosen::DisplayManagerLite &dmPtr = (OHOS::Rosen::DisplayManagerLite::GetInstance());
+#else
+    OHOS::Rosen::DisplayManager &dmPtr = (OHOS::Rosen::DisplayManager::GetInstance());
+#endif
+    int32_t result = (int32_t)dmPtr.RegisterFoldStatusListener(mTUIDisplayListener_);
     if (result == TEEC_SUCCESS) {
         g_tuiDisplayListenerRegisted = true;
         tlogi("regist display listener done\n");
@@ -431,14 +541,16 @@ void TUIDaemon::TuiRegisteDisplayListener()
     }
 }
 
-void TUIDaemon::TuiDaemonInit()
+void TUIDaemon::TuiDaemonInit(bool onlyConfigRes)
 {
     TUISaveTTFHash();
     auto tuiEvent = TUIEvent::GetInstance();
     tuiEvent->TuiEventInit();
 
-    TuiRegisteCallBack();
-    TuiRegisteDisplayListener();
+    if (!onlyConfigRes) {
+        TuiRegisteCallBack();
+        TuiRegisteDisplayListener();
+    }
 
     tlogi("TUIDaemon init ok\n");
 }
@@ -446,11 +558,18 @@ void TUIDaemon::TuiDaemonInit()
 TUIDaemon::~TUIDaemon()
 {
     if (mTUIDisplayListener_ != nullptr) {
-        OHOS::Rosen::DisplayManager::GetInstance().UnregisterDisplayListener(mTUIDisplayListener_);
+#ifdef SCENE_BOARD_ENABLE
+        OHOS::Rosen::DisplayManagerLite::GetInstance().UnregisterFoldStatusListener(mTUIDisplayListener_);
+#else
+        OHOS::Rosen::DisplayManager::GetInstance().UnregisterFoldStatusListener(mTUIDisplayListener_);
+#endif
         mTUIDisplayListener_ = nullptr;
     }
 
-    OHOS::DelayedSingleton<OHOS::Telephony::CallManagerClient>::GetInstance()->UnInit();
+    if (g_tuiCallBackRegisted) {
+        OHOS::DelayedSingleton<OHOS::Telephony::CallManagerClient>::GetInstance()->UnRegisterCallBack();
+        g_tuiCallBackRegisted = false;
+    }
 
     tlogi("TUIDaemon released\n");
 }

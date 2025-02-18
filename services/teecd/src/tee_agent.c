@@ -26,10 +26,11 @@
 #include "misc_work_agent.h"
 #include "secfile_load_agent.h"
 #include "tc_ns_client.h"
-#include "tee_load_dynamic_drv.h"
+#include "tee_load_dynamic.h"
 #include "tee_log.h"
 #include "tcu_authentication.h"
-
+#include "tee_ta_version_ctrl.h"
+#include "tee_file.h"
 #ifdef LOG_TAG
 #undef LOG_TAG
 #endif
@@ -57,9 +58,9 @@ static int AgentInit(unsigned int id, void **control)
     if (control == NULL) {
         return -1;
     }
-    int fd = open(TC_PRIVATE_DEV_NAME, O_RDWR);
+    int fd = tee_open(TC_PRIVATE_DEV_NAME, O_RDWR, 0);
     if (fd < 0) {
-        tloge("open tee client dev failed, fd is %d\n", fd);
+        tloge("open tee client dev failed, fd is %" PUBLIC "d\n", fd);
         return -1;
     }
 
@@ -68,7 +69,7 @@ static int AgentInit(unsigned int id, void **control)
     args.bufferSize = TRANS_BUFF_SIZE;
     ret             = ioctl(fd, (int)TC_NS_CLIENT_IOCTL_REGISTER_AGENT, &args);
     if (ret) {
-        (void)close(fd);
+        (void)tee_close(&fd);
         tloge("ioctl failed\n");
         return -1;
     }
@@ -90,7 +91,7 @@ static void AgentExit(unsigned int id, int fd)
         tloge("ioctl failed\n");
     }
 
-    (void)close(fd);
+    tee_close(&fd);
 }
 
 static struct SecStorageType *g_fsControl                = NULL;
@@ -164,7 +165,7 @@ static int SyncSysTimeToSecure(void)
 
     int ret = gettimeofday(&timeVal, NULL);
     if (ret != 0) {
-        tloge("get system time failed ret=0x%x\n", ret);
+        tloge("get system time failed ret=0x%" PUBLIC "x\n", ret);
         return ret;
     }
     if (timeVal.tv_sec < 0xFFFFF) {
@@ -173,9 +174,9 @@ static int SyncSysTimeToSecure(void)
     tcNsTime.seconds = (uint32_t)timeVal.tv_sec;
     tcNsTime.millis  = (uint32_t)timeVal.tv_usec / 1000;
 
-    int fd = open(TC_PRIVATE_DEV_NAME, O_RDWR);
+    int fd = tee_open(TC_PRIVATE_DEV_NAME, O_RDWR, 0);
     if (fd < 0) {
-        tloge("Failed to open %s: %d\n", TC_PRIVATE_DEV_NAME, errno);
+        tloge("Failed to open %" PUBLIC "s: %" PUBLIC "d\n", TC_PRIVATE_DEV_NAME, errno);
         return fd;
     }
     ret = ioctl(fd, (int)TC_NS_CLIENT_IOCTL_SYC_SYS_TIME, &tcNsTime);
@@ -183,7 +184,7 @@ static int SyncSysTimeToSecure(void)
         tloge("failed to send sys time to teeos\n");
     }
 
-    close(fd);
+    tee_close(&fd);
     return ret;
 }
 
@@ -206,11 +207,14 @@ int main(void)
     pthread_t fsThread               = (pthread_t)-1;
     pthread_t miscThread             = (pthread_t)-1;
     pthread_t caDaemonThread         = (pthread_t)-1;
+#ifdef CONFIG_LATE_INIT
     pthread_t lateInitThread         = (pthread_t)-1;
+#endif
     pthread_t secfileLoadAgentThread = (pthread_t)-1;
 
     /* Trans the xml file to tzdriver: */
     (void)TcuAuthentication(HASH_TYPE_VENDOR);
+    (void)SetTaVersionCtrl(CTRL_TYPE_VENDOR);
 
     int ret = ProcessAgentInit();
     if (ret) {
@@ -219,9 +223,27 @@ int main(void)
 
     TrySyncSysTimeToSecure();
 
-    LoadDynamicDir();
+#ifdef DYNAMIC_CRYPTO_DRV_DIR
+    LoadDynamicCryptoDir();
+#endif
+
+#ifdef DYNAMIC_DRV_DIR
+    LoadDynamicDrvDir(NULL, 0);
+#endif
+
+#ifdef DYNAMIC_SRV_DIR
+#ifndef DYNAMIC_SRV_DIR_LOAD_LATE
+    LoadDynamicSrvDir();
+#endif
+#endif
 
     (void)pthread_create(&caDaemonThread, NULL, CaServerWorkThread, NULL);
+
+#ifdef DYNAMIC_SRV_DIR
+#ifdef DYNAMIC_SRV_DIR_LOAD_LATE
+    LoadDynamicSrvDir();
+#endif
+#endif
 
     SetFileNumLimit();
 
@@ -230,8 +252,9 @@ int main(void)
     }
 
     (void)pthread_create(&miscThread, NULL, MiscWorkThread, g_miscControl);
-
+#ifdef CONFIG_LATE_INIT
     (void)pthread_create(&lateInitThread, NULL, InitLateWorkThread, NULL);
+#endif
     (void)pthread_create(&secfileLoadAgentThread, NULL, SecfileLoadAgentThread, g_secLoadAgentControl);
 
     if (g_fsThreadFlag == 1) {
@@ -239,8 +262,9 @@ int main(void)
     }
     (void)pthread_join(miscThread, NULL);
     (void)pthread_join(caDaemonThread, NULL);
-
+#ifdef CONFIG_LATE_INIT
     (void)pthread_join(lateInitThread, NULL);
+#endif
     (void)pthread_join(secfileLoadAgentThread, NULL);
 
     ProcessAgentExit();

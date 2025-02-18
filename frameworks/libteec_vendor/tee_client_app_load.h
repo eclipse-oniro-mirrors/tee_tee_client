@@ -30,6 +30,7 @@
 
 #define TA_HEAD_MAGIC1         0xA5A55A5A
 #define TA_HEAD_MAGIC2         0x55AA
+#define TA_OH_HEAD_MAGIC2      0xAAAA
 #define NUM_OF_RESERVED_BITMAP 16
 
 enum TA_VERSION {

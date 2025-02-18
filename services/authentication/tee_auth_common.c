@@ -24,7 +24,7 @@ static int ReadCmdLine(const char *path, char *buffer, size_t bufferLen, char *c
 {
     FILE *fd = fopen(path, "rb");
     if (fd == NULL) {
-        tloge("fopen is error: %d\n", errno);
+        tloge("fopen is error: %" PUBLIC "d\n", errno);
         return -1;
     }
     int bytesRead = (int)fread(buffer, sizeof(char), bufferLen - 1, fd);

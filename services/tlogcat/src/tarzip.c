@@ -26,7 +26,7 @@
 
 #include "tee_log.h"
 #include "tlogcat.h"
-
+#include "tee_file.h"
 #ifdef LOG_TAG
 #undef LOG_TAG
 #endif
@@ -105,7 +105,7 @@ static void WriteHeader(struct TagHeader *header, const char *fileName, long fil
 
     rc = snprintf_s(buf, FILE_SIZE, FILE_SIZE - 1, "%o", (unsigned int)fileSize);
     if (rc == -1) {
-        tloge("snprintf_s failed: %d\n", rc);
+        tloge("snprintf_s failed: %" PUBLIC "d\n", rc);
         return;
     }
 
@@ -115,7 +115,7 @@ static void WriteHeader(struct TagHeader *header, const char *fileName, long fil
     sumAppend += CHECK_SUM_APPEND;
     rc = snprintf_s(buf, FILE_SIZE, FILE_SIZE - 1, "%o", sumAppend);
     if (rc == -1) {
-        tloge("snprintf_s failed: %d\n", rc);
+        tloge("snprintf_s failed: %" PUBLIC "d\n", rc);
         return;
     }
     for (i = 0; i < CHECK_SUM_LEN; ++i) {
@@ -139,7 +139,7 @@ static void WriteZipContent(gzFile gzFd, const char *fileName, long fileSize)
         return;
     }
 
-    int32_t fileFd = open(fileName, O_CREAT | O_RDWR, ZIP_OPEN_MODE);
+    int32_t fileFd = tee_open(fileName, O_CREAT | O_RDWR, ZIP_OPEN_MODE);
     if (fileFd < 0) {
         return;
     }
@@ -164,7 +164,7 @@ static void WriteZipContent(gzFile gzFd, const char *fileName, long fileSize)
     }
 
 CLOSE_FD:
-    close(fileFd);
+    tee_close(&fileFd);
 }
 
 static int32_t OpenZipFile(const char *outputName, gzFile *outFile, gid_t pathGroup)
@@ -190,7 +190,7 @@ static int32_t OpenZipFile(const char *outputName, gzFile *outFile, gid_t pathGr
         gzclose(out);
         return -1;
     }
-    ret = fchmod(fd, S_IRUSR | S_IWUSR | S_IRGRP);
+    ret = fchmod(fd, S_IRUSR | S_IRGRP);
     if (ret < 0) {
         tloge("chmod failed\n");
         gzclose(out);

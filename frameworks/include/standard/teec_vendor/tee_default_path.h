@@ -14,5 +14,6 @@
 #define TEE_DEFAULT_PATH_H
 
 #define TEE_DEFAULT_PATH "/vendor/bin"
+#define TEE_DEFAULT_PATH_ROOTFS "/tmprootfs/vendor/bin"
 
 #endif

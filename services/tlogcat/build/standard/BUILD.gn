@@ -19,9 +19,11 @@ ohos_executable("tlogcat") {
     "TEE_LOG_PATH_BASE=\"/data/log\"",
     "CONFIG_TLOGCAT_TAG",
     "CONFIG_TEE_PRIVATE_LOGFILE",
+    "ENABLE_FDSAN_CHECK",
   ]
 
   sources = [
+    "../../../../frameworks/tee_file/tee_file.c",
     "../../src/proc_tag.c",
     "../../src/sys_hilog_cfg.c",
     "../../src/tarzip.c",
@@ -32,11 +34,12 @@ ohos_executable("tlogcat") {
     "../../include",
     "../../../../frameworks/include",
     "../../../../frameworks/include/standard",
-    "../../../../interfaces/kits/c/include",
+    "../../../../interfaces/inner_api",
   ]
 
   external_deps = [
     "c_utils:utils",
+    "hilog:libhilog",
     "hilog:libhilog",
     "zlib:libz",
   ]
