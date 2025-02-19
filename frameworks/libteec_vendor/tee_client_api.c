@@ -56,9 +56,20 @@ void SetBit(uint32_t i, uint32_t byteMax, uint8_t *bitMap)
     if (bitMap == NULL) {
         return;
     }
-    bitMap[i >> SHIFT] |= (1U << (i & MASK));
+    bitMap[i >> SHIFT] |= (uint8_t)(1U << (i & MASK));
 }
 
+bool CheckBit(uint32_t i, uint32_t byteMax, const uint8_t *bitMap)
+{
+    if ((i >> SHIFT) >= byteMax) {
+        return false;
+    }
+    if (bitMap == NULL) {
+        return false;
+    }
+
+    return (bitMap[i >> SHIFT] & (uint8_t)(1U << (i & MASK))) != 0;
+}
 void ClearBit(uint32_t i, uint32_t byteMax, uint8_t *bitMap)
 {
     if ((i >> SHIFT) >= byteMax) {
@@ -67,7 +78,7 @@ void ClearBit(uint32_t i, uint32_t byteMax, uint8_t *bitMap)
     if (bitMap == NULL) {
         return;
     }
-    bitMap[i >> SHIFT] &= ~(1U << (i & MASK));
+    bitMap[i >> SHIFT] &= (uint8_t)(~(1U << (i & MASK)));
 }
 
 static void ClearBitWithLock(pthread_mutex_t *mutex, uint32_t i, uint32_t byteMax, uint8_t *bitMap)
@@ -114,9 +125,9 @@ static int32_t IterateBitmap(uint8_t *bitMap, uint32_t byteMax, enum BitmapOps o
     }
 
     if (ops == SET) {
-        SetBit(validBit, byteMax, bitMap);
+        SetBit((uint32_t)validBit, byteMax, bitMap);
     } else {
-        ClearBit(validBit, byteMax, bitMap);
+        ClearBit((uint32_t)validBit, byteMax, bitMap);
     }
     return validBit;
 }
@@ -180,22 +191,23 @@ static bool AtomDecAndCompareWithZero(volatile uint32_t *cnt)
 }
 
 static LIST_DECLARE(g_teecContextList);
-static pthread_mutex_t g_mutexTeecContext = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t g_mutexWriteContextList = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t g_mutexReadContextList = PTHREAD_MUTEX_INITIALIZER;
 TEEC_Result TEEC_CheckOperation(TEEC_ContextInner *context, const TEEC_Operation *operation);
 
-static int32_t MutexLockContext(void)
+static int32_t MutexLockContext(pthread_mutex_t *mutex)
 {
-    int lockRet = pthread_mutex_lock(&g_mutexTeecContext);
+    int lockRet = pthread_mutex_lock(mutex);
     return lockRet;
 }
 
-static void MutexUnlockContext(int lockRet)
+static void MutexUnlockContext(int lockRet, pthread_mutex_t *mutex)
 {
     if (lockRet) {
-        tloge("unlock mutex: not exe, mutex not in lock state. lockRet = %d\n", lockRet);
+        tloge("unlock mutex: not exe, mutex not in lock state. lockRet = %" PUBLIC "d\n", lockRet);
         return;
     }
-    (void)pthread_mutex_unlock(&g_mutexTeecContext);
+    (void)pthread_mutex_unlock(mutex);
 }
 
 static TEEC_Result AddSessionList(uint32_t sessionId, const TEEC_UUID *destination, TEEC_ContextInner *context,
@@ -256,7 +268,7 @@ TEEC_ContextInner *GetBnContext(const TEEC_Context *context)
 {
     TEEC_ContextInner *sContext = NULL;
 
-    int retMutexLock = MutexLockContext();
+    int retMutexLock = MutexLockContext(&g_mutexWriteContextList);
     if (retMutexLock != 0) {
         tloge("get context lock failed.\n");
         return NULL;
@@ -265,7 +277,7 @@ TEEC_ContextInner *GetBnContext(const TEEC_Context *context)
     if (sContext != NULL) {
         AtomInc(&sContext->ops_cnt);
     }
-    MutexUnlockContext(retMutexLock);
+    MutexUnlockContext(retMutexLock, &g_mutexWriteContextList);
     return sContext;
 }
 
@@ -288,7 +300,7 @@ TEEC_ContextInner *FindAndRemoveBnContext(const TEEC_Context *context)
 {
     TEEC_ContextInner *sContext = NULL;
 
-    int retMutexLock = MutexLockContext();
+    int retMutexLock = MutexLockContext(&g_mutexWriteContextList);
     if (retMutexLock != 0) {
         tloge("get context lock failed.\n");
         return NULL;
@@ -297,7 +309,7 @@ TEEC_ContextInner *FindAndRemoveBnContext(const TEEC_Context *context)
     if (sContext != NULL) {
         ListRemoveEntry(&sContext->c_node);
     }
-    MutexUnlockContext(retMutexLock);
+    MutexUnlockContext(retMutexLock, &g_mutexWriteContextList);
     return sContext;
 }
 
@@ -380,22 +392,29 @@ TEEC_Session *FindAndRemoveSession(const TEEC_Session *session, TEEC_ContextInne
 
 static void ReleaseSharedMemory(TEEC_SharedMemoryInner *sharedMem)
 {
-    bool condition = (sharedMem->is_allocated) && (sharedMem->buffer != NULL) && (sharedMem->buffer != ZERO_SIZE_PTR) &&
-                     (sharedMem->size != 0);
-    if (condition) {
-        int32_t ret = ioctl(sharedMem->context->fd, (int)TC_NS_CLIENT_IOCTL_UNMAP_SHARED_MEM, sharedMem->buffer);
-        if (ret) {
-            tlogd("Release SharedMemory ioctl failed, maybe linux not support\n");
-        }
-
-        ret = munmap(sharedMem->buffer, sharedMem->size);
-        if (ret) {
-            tloge("Release SharedMemory failed, munmap error\n");
-        }
-        ClearBitWithLock(&sharedMem->context->shrMemBitMapLock, sharedMem->offset,
-                         sizeof(sharedMem->context->shm_bitmap), sharedMem->context->shm_bitmap);
+    if ((!sharedMem->is_allocated) || (sharedMem->buffer == NULL)) {
+        goto CLEAR_SHM;
     }
 
+    if (sharedMem->flags == TEEC_MEM_SHARED_INOUT) {
+        free(sharedMem->buffer);
+    } else {
+        if ((sharedMem->buffer != ZERO_SIZE_PTR) && (sharedMem->size != 0)) {
+            int32_t ret = ioctl(sharedMem->context->fd, (int)TC_NS_CLIENT_IOCTL_UNMAP_SHARED_MEM, sharedMem->buffer);
+            if (ret) {
+                tlogd("Release SharedMemory ioctl failed, maybe not support\n");
+            }
+
+            if (munmap(sharedMem->buffer, sharedMem->size) != 0) {
+                tloge("Release SharedMemory failed, munmap error\n");
+            }
+        }
+    }
+
+    ClearBitWithLock(&sharedMem->context->shrMemBitMapLock, sharedMem->offset,
+        sizeof(sharedMem->context->shm_bitmap), sharedMem->context->shm_bitmap);
+
+CLEAR_SHM:
     sharedMem->buffer  = NULL;
     sharedMem->size    = 0;
     sharedMem->flags   = 0;
@@ -459,7 +478,7 @@ static TEEC_Result MallocShrMemInner(TEEC_SharedMemoryInner **shareMemInner)
     }
     nRet = memset_s(shmInner, sizeof(*shmInner), 0x00, sizeof(*shmInner));
     if (nRet != EOK) {
-        tloge("malloc shrmem: shmInner memset failed : %d\n", (int)nRet);
+        tloge("malloc shrmem: shmInner memset failed : %" PUBLIC "d\n", (int)nRet);
         free(shmInner);
         return TEEC_FAIL;
     }
@@ -513,9 +532,9 @@ static uint32_t TranslateParamType(uint32_t flag)
 static void TEEC_EncodeTempParam(const TEEC_TempMemoryReference *tempRef, TC_NS_ClientParam *param)
 {
     param->memref.buffer        = (unsigned int)(uintptr_t)tempRef->buffer;
-    param->memref.buffer_h_addr = ((unsigned long long)(uintptr_t)tempRef->buffer) >> H_OFFSET;
+    param->memref.buffer_h_addr = (unsigned int)(((unsigned long long)(uintptr_t)tempRef->buffer) >> H_OFFSET);
     param->memref.size_addr     = (unsigned int)(uintptr_t)&tempRef->size;
-    param->memref.size_h_addr   = ((unsigned long long)(uintptr_t)&tempRef->size) >> H_OFFSET;
+    param->memref.size_h_addr   = (unsigned int)(((unsigned long long)(uintptr_t)&tempRef->size) >> H_OFFSET);
 }
 
 static void TEEC_EncodePartialParam(uint32_t paramType, const TEEC_RegisteredMemoryReference *memRef,
@@ -525,20 +544,23 @@ static void TEEC_EncodePartialParam(uint32_t paramType, const TEEC_RegisteredMem
     if (paramType == TEEC_MEMREF_WHOLE) {
         param->memref.offset      = 0;
         param->memref.size_addr   = (unsigned int)(uintptr_t)&memRef->parent->size;
-        param->memref.size_h_addr = ((unsigned long long)(uintptr_t)&memRef->parent->size) >> H_OFFSET;
+        param->memref.size_h_addr =
+            (unsigned int)(((unsigned long long)(uintptr_t)&memRef->parent->size) >> H_OFFSET);
     } else {
         param->memref.offset      = memRef->offset;
         param->memref.size_addr   = (unsigned int)(uintptr_t)&memRef->size;
-        param->memref.size_h_addr = ((unsigned long long)(uintptr_t)&memRef->size) >> H_OFFSET;
+        param->memref.size_h_addr = (unsigned int)(((unsigned long long)(uintptr_t)&memRef->size) >> H_OFFSET);
     }
 
     if (memRef->parent->is_allocated) {
         param->memref.buffer        = (unsigned int)(uintptr_t)memRef->parent->buffer;
-        param->memref.buffer_h_addr = ((unsigned long long)(uintptr_t)memRef->parent->buffer) >> H_OFFSET;
+        param->memref.buffer_h_addr =
+            (unsigned int)(((unsigned long long)(uintptr_t)memRef->parent->buffer) >> H_OFFSET);
     } else {
         param->memref.buffer = (unsigned int)(uintptr_t)((unsigned char *)memRef->parent->buffer + memRef->offset);
         param->memref.buffer_h_addr =
-            (unsigned long long)(uintptr_t)((unsigned char *)memRef->parent->buffer + memRef->offset) >> H_OFFSET;
+            (unsigned int)((unsigned long long)(uintptr_t)((unsigned char *)memRef->parent->buffer +
+            memRef->offset) >> H_OFFSET);
         param->memref.offset = 0;
     }
 }
@@ -546,17 +568,17 @@ static void TEEC_EncodePartialParam(uint32_t paramType, const TEEC_RegisteredMem
 static void TEEC_EncodeValueParam(const TEEC_Value *val, TC_NS_ClientParam *param)
 {
     param->value.a_addr   = (unsigned int)(uintptr_t)&val->a;
-    param->value.a_h_addr = ((unsigned long long)(uintptr_t)&val->a) >> H_OFFSET;
+    param->value.a_h_addr = (unsigned int)(((unsigned long long)(uintptr_t)&val->a) >> H_OFFSET);
     param->value.b_addr   = (unsigned int)(uintptr_t)&val->b;
-    param->value.b_h_addr = ((unsigned long long)(uintptr_t)&val->b) >> H_OFFSET;
+    param->value.b_h_addr = (unsigned int)(((unsigned long long)(uintptr_t)&val->b) >> H_OFFSET);
 }
 
 static void TEEC_EncodeIonParam(const TEEC_IonReference *ionRef, TC_NS_ClientParam *param)
 {
-    param->value.a_addr   = (unsigned int)(uintptr_t)&ionRef->ionShareFd;
-    param->value.a_h_addr = (unsigned int)(((unsigned long long)(uintptr_t)&ionRef->ionShareFd) >> H_OFFSET);
-    param->value.b_addr   = (unsigned int)(uintptr_t)&ionRef->ionSize;
-    param->value.b_h_addr = (unsigned int)(((unsigned long long)(uintptr_t)&ionRef->ionSize) >> H_OFFSET);
+    param->value.a_addr   = (unsigned int)(uintptr_t)&ionRef->ion_share_fd;
+    param->value.a_h_addr = (unsigned int)(((unsigned long long)(uintptr_t)&ionRef->ion_share_fd) >> H_OFFSET);
+    param->value.b_addr   = (unsigned int)(uintptr_t)&ionRef->ion_size;
+    param->value.b_h_addr = (unsigned int)(((unsigned long long)(uintptr_t)&ionRef->ion_size) >> H_OFFSET);
 }
 
 static void TEEC_EncodeParam(TC_NS_ClientContext *cliContext, const TEEC_Operation *operation)
@@ -572,7 +594,7 @@ static void TEEC_EncodeParam(TC_NS_ClientContext *cliContext, const TEEC_Operati
         bool checkValue     = (paramType[paramCnt] == TEEC_ION_INPUT || paramType[paramCnt] == TEEC_ION_SGLIST_INPUT);
         if (IS_TEMP_MEM(paramType[paramCnt])) {
             TEEC_EncodeTempParam(&operation->params[paramCnt].tmpref, &cliContext->params[paramCnt]);
-        } else if (IS_PARTIAL_MEM(paramType[paramCnt])) {
+        } else if (IS_PARTIAL_MEM(paramType[paramCnt]) || IS_SHARED_MEM(paramType[paramCnt])) {
             const TEEC_RegisteredMemoryReference *memref = &operation->params[paramCnt].memref;
 
             TEEC_EncodePartialParam(paramType[paramCnt], memref, &cliContext->params[paramCnt]);
@@ -591,11 +613,13 @@ static void TEEC_EncodeParam(TC_NS_ClientContext *cliContext, const TEEC_Operati
             TEEC_EncodeValueParam(&operation->params[paramCnt].value, &cliContext->params[paramCnt]);
         } else if (checkValue == true) {
             TEEC_EncodeIonParam(&operation->params[paramCnt].ionref, &cliContext->params[paramCnt]);
+        } else {
+            /* if type is none, ignore it */
         }
     }
 
     cliContext->paramTypes = TEEC_PARAM_TYPES(paramType[0], paramType[1], paramType[2], paramType[3]);
-    tlogd("cli param type %x\n", cliContext->paramTypes);
+    tlogd("cli param type %" PUBLIC "x\n", cliContext->paramTypes);
     return;
 }
 
@@ -622,7 +646,7 @@ static TEEC_Result TEEC_Encode(TC_NS_ClientContext *cliContext, const TEEC_Sessi
         return (TEEC_Result)TEEC_ERROR_BAD_PARAMETERS;
     }
 
-    if ((operation == NULL) || (!operation->paramTypes)) {
+    if ((operation == NULL) || (operation->paramTypes == 0)) {
         return TEEC_SUCCESS;
     }
     cliContext->started = operation->cancel_flag;
@@ -691,7 +715,7 @@ static int32_t SetLoginInfo(const CaAuthInfo *caInfo, int32_t fd)
             }
             break;
         default:
-            tloge("invaild ca type %d\n", caInfo->type);
+            tloge("invaild ca type %" PUBLIC "d\n", caInfo->type);
             rc = -1;
             break;
     }
@@ -704,7 +728,7 @@ static int32_t SetLoginInfo(const CaAuthInfo *caInfo, int32_t fd)
     }
 
     if (ret != 0) {
-        tloge("Failed to set login information for client err = %d, %d\n", ret, caInfo->type);
+        tloge("Failed to set login information for client err = %" PUBLIC "d, %" PUBLIC "d\n", ret, caInfo->type);
     } else {
         ret = rc;
     }
@@ -714,33 +738,60 @@ END:
     buf = NULL;
     return ret;
 }
+
+static TEEC_Result SendLoginInfo(CaAuthInfo *caInfo, int32_t fd)
+{
+    CaAuthInfo *tmpCaInfo = NULL;
+    TEEC_Result ret;
+
+    if (caInfo == NULL) {
+        caInfo = (CaAuthInfo *)malloc(sizeof(*caInfo));
+        if (caInfo == NULL) {
+            tloge("malloc CaAuthInfo failed\n");
+            return TEEC_ERROR_GENERIC;
+        }
+        (void)memset_s(caInfo, sizeof(*caInfo), 0, sizeof(*caInfo));
+
+        int32_t ret = ConstructSelfAuthInfo(caInfo);
+        if (ret != 0) {
+            tloge("ConstructSelfAuthInfo failed\n");
+            free(caInfo);
+            return TEEC_ERROR_GENERIC;
+        }
+        tmpCaInfo = caInfo;
+    }
+
+    ret = SetLoginInfo(caInfo, fd);
+    if (ret != TEEC_SUCCESS) {
+        tloge("set login failed\n");
+    }
+    if (tmpCaInfo != NULL) {
+        free(tmpCaInfo);
+    }
+    return ret;
+}
 #endif
 
-TEEC_Result TEEC_InitializeContextInner(TEEC_ContextInner *context, const CaAuthInfo *caInfo)
+TEEC_Result TEEC_InitializeContextInner(TEEC_ContextInner *context, CaAuthInfo *caInfo)
 {
     if (context == NULL) {
         tloge("Initial context: context is NULL\n");
         return TEEC_ERROR_BAD_PARAMETERS;
     }
 #ifdef LIB_TEEC_VENDOR
+    (void)caInfo;
     int32_t fd = CaDaemonConnectWithoutCaInfo();
     if (fd < 0) {
-        tloge("connect() failed, fd %d", fd);
+        tloge("connect() failed, fd %" PUBLIC "d", fd);
         return TEEC_ERROR_GENERIC;
     }
 #else
-    if (caInfo == NULL) {
-        return TEEC_ERROR_BAD_PARAMETERS;
-    }
-
     int32_t fd = ObtainTzdriveFd();
     if (fd < 0) {
-        tloge("obtain fd failed\n");
         return TEEC_ERROR_BAD_PARAMETERS;
     }
 
-    if (SetLoginInfo(caInfo, fd) != TEEC_SUCCESS) {
-        tloge("set login failed\n");
+    if (SendLoginInfo(caInfo, fd) != TEEC_SUCCESS) {
         close(fd);
         return TEEC_ERROR_GENERIC;
     }
@@ -753,12 +804,12 @@ TEEC_Result TEEC_InitializeContextInner(TEEC_ContextInner *context, const CaAuth
 
     errno_t nRet = memset_s(context->shm_bitmap, sizeof(context->shm_bitmap), 0x00, sizeof(context->shm_bitmap));
     if (nRet != EOK) {
-        tloge("Initial context: context->shm_bitmap memset failed : %d\n", (int)nRet);
+        tloge("Initial context: context->shm_bitmap memset failed : %" PUBLIC "d\n", (int)nRet);
         close((int)context->fd);
         return TEEC_FAIL;
     }
 
-    int retMutexLock = MutexLockContext();
+    int retMutexLock = MutexLockContext(&g_mutexWriteContextList);
     if (retMutexLock != 0) {
         tloge("get context lock failed.\n");
         close((int)context->fd);
@@ -769,11 +820,28 @@ TEEC_Result TEEC_InitializeContextInner(TEEC_ContextInner *context, const CaAuth
     (void)pthread_mutex_init(&context->shrMemBitMapLock, NULL);
     ListInsertTail(&g_teecContextList, &context->c_node);
     AtomInc(&context->ops_cnt);
-    MutexUnlockContext(retMutexLock);
+    MutexUnlockContext(retMutexLock, &g_mutexWriteContextList);
 
     return TEEC_SUCCESS;
 }
 
+static TEEC_Result ContextCountLimitCheck(void)
+{
+    struct ListNode *ptr = NULL;
+    uint32_t conCxt = 0;
+
+    if (!LIST_EMPTY(&g_teecContextList)) {
+        LIST_FOR_EACH(ptr, &g_teecContextList) {
+            conCxt++;
+        }
+    }
+    if (conCxt >= MAX_CXTCNT_ONECA) {
+        tloge("ContextCountLimitCheck: the contexts is already full, please finalize some of them\n");
+        return TEEC_FAIL;
+    }
+
+    return TEEC_SUCCESS;
+}
 /*
  * Function:      TEEC_InitializeContext
  * Description:   This function initializes a new TEE Context, forming a connection between
@@ -786,11 +854,6 @@ TEEC_Result TEEC_InitializeContextInner(TEEC_ContextInner *context, const CaAuth
  */
 TEEC_Result TEEC_InitializeContext(const char *name, TEEC_Context *context)
 {
-    TEEC_Result ret;
-    errno_t nRet;
-    uint32_t conCxt = 0;
-    struct ListNode *ptr = NULL;
-
     (void)name;
 
     if (context == NULL) {
@@ -798,30 +861,33 @@ TEEC_Result TEEC_InitializeContext(const char *name, TEEC_Context *context)
         return TEEC_ERROR_BAD_PARAMETERS;
     }
 
-    if (!LIST_EMPTY(&g_teecContextList)) {
-        LIST_FOR_EACH(ptr, &g_teecContextList) {
-            conCxt++;
-        }
+    int retMutexLock = MutexLockContext(&g_mutexReadContextList);
+    if (retMutexLock != 0) {
+        tloge("get context lock failed.\n");
+        close((int)context->fd);
+        return TEEC_FAIL;
     }
 
-    if (conCxt >= MAX_CXTCNT_ONECA) {
-        tloge("the contexts is already full, please finalize some of them\n");
+    if (ContextCountLimitCheck() != TEEC_SUCCESS) {
+        MutexUnlockContext(retMutexLock, &g_mutexReadContextList);
         return TEEC_FAIL;
     }
 
     TEEC_ContextInner *contextInner = (TEEC_ContextInner *)malloc(sizeof(*contextInner));
     if (contextInner == NULL) {
         tloge("initialize context: Failed to malloc teec contextInner\n");
+        MutexUnlockContext(retMutexLock, &g_mutexReadContextList);
         return TEEC_ERROR_GENERIC;
     }
-    nRet = memset_s(contextInner, sizeof(*contextInner), 0, sizeof(*contextInner));
+    errno_t nRet = memset_s(contextInner, sizeof(*contextInner), 0, sizeof(*contextInner));
     if (nRet != EOK) {
-        tloge("initialize context: contextInner memset failed : %d\n", (int)nRet);
+        tloge("initialize context: contextInner memset failed : %" PUBLIC "d\n", (int)nRet);
         free(contextInner);
+        MutexUnlockContext(retMutexLock, &g_mutexReadContextList);
         return TEEC_FAIL;
     }
 
-    ret = TEEC_InitializeContextInner(contextInner, NULL);
+    TEEC_Result ret = TEEC_InitializeContextInner(contextInner, NULL);
     if (ret == TEEC_SUCCESS) {
         context->fd      = contextInner->fd;
         context->ta_path = NULL;
@@ -829,11 +895,13 @@ TEEC_Result TEEC_InitializeContext(const char *name, TEEC_Context *context)
         ListInit(&context->session_list);
         ListInit(&context->shrd_mem_list);
         (void)PutBnContext(contextInner); /* pair with ops_cnt++ when add to list */
+        MutexUnlockContext(retMutexLock, &g_mutexReadContextList);
         return TEEC_SUCCESS;
     }
 
-    tloge("initialize context: failed:0x%x\n", ret);
+    tloge("initialize context: failed:0x%" PUBLIC "x\n", ret);
     free(contextInner);
+    MutexUnlockContext(retMutexLock, &g_mutexReadContextList);
     return ret;
 }
 
@@ -928,22 +996,25 @@ static TEEC_Result TEEC_DoOpenSession(int fd, TC_NS_ClientContext *cliContext, c
     } while (((TEEC_Result)cliContext->returns.code == TEE_ERROR_CA_AUTH_FAIL) && i--);
 
     if (ret < 0) {
-        tloge("open session failed, ioctl errno = %d\n", ret);
+        tloge("open session failed, ioctl errno = %" PUBLIC "d\n", ret);
         teecRet                    = TranslateRetValue(ret);
         cliContext->returns.origin = TEEC_ORIGIN_COMMS;
-        return teecRet;
+        goto ERROR;
     } else if (ret > 0) {
-        tloge("open session failed(%d), code=0x%x, origin=%u\n", ret, cliContext->returns.code,
-              cliContext->returns.origin);
-        if (cliContext->returns.code) {
+        tloge("open session failed(%" PUBLIC "d), code=0x%" PUBLIC "x, origin=%" PUBLIC "u\n",
+            ret, cliContext->returns.code, cliContext->returns.origin);
+        if (cliContext->returns.code != 0) {
             teecRet = (TEEC_Result)cliContext->returns.code;
         } else {
             teecRet = (TEEC_Result)TEEC_ERROR_GENERIC;
         }
-        return teecRet;
+        goto ERROR;
     }
 
     return AddSessionList(cliContext->session_id, destination, context, session);
+
+ERROR:
+    return teecRet;
 }
 
 TEEC_Result TEEC_OpenSessionInner(int callingPid, const TaFileInfo *taFile, TEEC_ContextInner *context,
@@ -989,14 +1060,13 @@ TEEC_Result TEEC_OpenSessionInner(int callingPid, const TaFileInfo *taFile, TEEC
      */
     teecRet = TEEC_Encode(&cliContext, session, GLOBAL_CMD_ID_OPEN_SESSION, &cliLogin, operation);
     if (teecRet != TEEC_SUCCESS) {
-        tloge("OpenSession: teec encode failed(0x%x)!\n", teecRet);
+        tloge("OpenSession: teec encode failed(0x%" PUBLIC "x)!\n", teecRet);
         goto ERROR;
     }
 
     cliContext.callingPid = (unsigned int)callingPid;
 
-    int32_t ret = TEEC_GetApp(taFile, destination, &cliContext);
-    if (ret < 0) {
+    if (TEEC_GetApp(taFile, destination, &cliContext) < 0) {
         tloge("get app error\n");
         teecRet = (TEEC_Result)TEEC_ERROR_TRUSTED_APP_LOAD_ERROR;
         goto ERROR;
@@ -1061,7 +1131,13 @@ TEEC_Result TEEC_OpenSession(TEEC_Context *context, TEEC_Session *session, const
         goto END;
     }
 
-    ret = TEEC_OpenSessionInner(0, &taFile, contextInner, session, destination,
+#ifdef LIB_TEEC_VENDOR
+    int callingPid = 0;
+#else
+    /* for dstb tee service, will run int cadaemon */
+    int callingPid = getpid();
+#endif
+    ret = TEEC_OpenSessionInner(callingPid, &taFile, contextInner, session, destination,
         connectionMethod, connectionData, operation, &retOrigin);
     (void)PutBnContext(contextInner);
 
@@ -1087,13 +1163,13 @@ void TEEC_CloseSessionInner(TEEC_Session *session, const TEEC_ContextInner *cont
 
     teecRet = TEEC_Encode(&cliContext, session, GLOBAL_CMD_ID_CLOSE_SESSION, &cliLogin, NULL);
     if (teecRet != TEEC_SUCCESS) {
-        tloge("close session: teec encode failed(0x%x)!\n", teecRet);
+        tloge("close session: teec encode failed(0x%" PUBLIC "x)!\n", teecRet);
         return;
     }
 
     ret = ioctl((int)context->fd, (int)TC_NS_CLIENT_IOCTL_SES_CLOSE_REQ, &cliContext);
     if (ret != 0) {
-        tloge("close session failed, ret=0x%x\n", ret);
+        tloge("close session failed, ret=0x%" PUBLIC "x\n", ret);
     }
     session->session_id = 0;
     session->context    = NULL;
@@ -1144,12 +1220,12 @@ static TEEC_Result ProcessInvokeCommand(const TEEC_ContextInner *context, TC_NS_
         teecRet = TEEC_SUCCESS;
     } else if (ret < 0) {
         teecRet                   = TranslateRetValue(-errno);
-        tloge("invoke cmd failed, ioctl errno = %d\n", errno);
+        tloge("invoke cmd failed, ioctl errno = %" PUBLIC "d\n", errno);
         cliContext->returns.origin = TEEC_ORIGIN_COMMS;
     } else {
-        tloge("invoke cmd failed(%d), code=0x%x, origin=%u\n", ret,
+        tloge("invoke cmd failed(%" PUBLIC "d), code=0x%" PUBLIC "x, origin=%" PUBLIC "u\n", ret,
               cliContext->returns.code, cliContext->returns.origin);
-        if (cliContext->returns.code) {
+        if (cliContext->returns.code != 0) {
             teecRet = (TEEC_Result)cliContext->returns.code;
         } else {
             teecRet = (TEEC_Result)TEEC_ERROR_GENERIC;
@@ -1180,7 +1256,7 @@ TEEC_Result TEEC_InvokeCommandInner(TEEC_ContextInner *context, const TEEC_Sessi
     /* Paramters all right, start execution */
     teecRet = TEEC_Encode(&cliContext, session, commandID, &cliLogin, operation);
     if (teecRet != TEEC_SUCCESS) {
-        tloge("InvokeCommand: teec encode failed(0x%x)!\n", teecRet);
+        tloge("InvokeCommand: teec encode failed(0x%" PUBLIC "x)!\n", teecRet);
         goto ERROR;
     }
 
@@ -1314,7 +1390,7 @@ TEEC_Result TEEC_RegisterSharedMemory(TEEC_Context *context, TEEC_SharedMemory *
         (void)PutBnContext(contextInner);
         return ret;
     }
-    tloge("register shardmem: failed:0x%x\n", ret);
+    tloge("register shardmem: failed:0x%" PUBLIC "x\n", ret);
     (void)PutBnContext(contextInner);
     free(shmInner);
     return ret;
@@ -1331,10 +1407,8 @@ static void RelaseBufferAndClearBit(TEEC_ContextInner *context, TEEC_SharedMemor
     sharedMem->offset = 0;
 }
 
-TEEC_Result TEEC_AllocateSharedMemoryInner(TEEC_ContextInner *context, TEEC_SharedMemoryInner *sharedMem)
+static TEEC_Result CheckSharedMemoryParam(const TEEC_ContextInner *context, const TEEC_SharedMemoryInner *sharedMem)
 {
-    TEEC_Result ret;
-
     /* First, check parameters is valid or not */
     if ((context == NULL) || (sharedMem == NULL)) {
         tloge("allocate shardmem: context or sharedMem is NULL\n");
@@ -1342,10 +1416,42 @@ TEEC_Result TEEC_AllocateSharedMemoryInner(TEEC_ContextInner *context, TEEC_Shar
     }
 
     bool condition = (sharedMem->flags != TEEC_MEM_INPUT) && (sharedMem->flags != TEEC_MEM_OUTPUT) &&
-                     (sharedMem->flags != TEEC_MEM_INOUT);
+                     (sharedMem->flags != TEEC_MEM_INOUT) && (sharedMem->flags != TEEC_MEM_SHARED_INOUT);
     if (condition) {
         tloge("allocate shardmem: sharedMem->flags wrong\n");
         return (TEEC_Result)TEEC_ERROR_BAD_PARAMETERS;
+    }
+
+    return TEEC_SUCCESS;
+}
+
+static TEEC_Result AllocateSharedMem(TEEC_SharedMemoryInner *sharedMem)
+{
+    errno_t rc;
+    if (sharedMem == NULL || sharedMem->size == 0 || sharedMem->size > MAX_SHAREDMEM_LEN) {
+        return (TEEC_Result)TEEC_ERROR_BAD_PARAMETERS;
+    }
+
+    sharedMem->buffer = malloc(sharedMem->size);
+    if (sharedMem->buffer == NULL) {
+        return (TEEC_Result)TEEC_ERROR_OUT_OF_MEMORY;
+    }
+
+    rc = memset_s(sharedMem->buffer, sharedMem->size, 0, sharedMem->size);
+    if (rc != EOK) {
+        return (TEEC_Result)TEEC_ERROR_SECURITY;
+    }
+
+    return TEEC_SUCCESS;
+}
+
+TEEC_Result TEEC_AllocateSharedMemoryInner(TEEC_ContextInner *context, TEEC_SharedMemoryInner *sharedMem)
+{
+    TEEC_Result ret;
+
+    ret = CheckSharedMemoryParam(context, sharedMem);
+    if (ret != TEEC_SUCCESS) {
+        return ret;
     }
 
     /* Paramters all right, start execution */
@@ -1359,9 +1465,16 @@ TEEC_Result TEEC_AllocateSharedMemoryInner(TEEC_ContextInner *context, TEEC_Shar
     }
 
     sharedMem->offset = (uint32_t)validBit;
-    if (sharedMem->size != 0) {
+    if (sharedMem->flags == TEEC_MEM_SHARED_INOUT) {
+        ret = AllocateSharedMem(sharedMem);
+        if (ret != TEEC_SUCCESS) {
+            ClearBitWithLock(&context->shrMemBitMapLock, sharedMem->offset,
+                             sizeof(context->shm_bitmap), context->shm_bitmap);
+            return ret;
+        }
+    } else if (sharedMem->size != 0) {
         sharedMem->buffer = mmap(0, (unsigned long)sharedMem->size, (PROT_READ | PROT_WRITE), MAP_SHARED,
-                                 (int)context->fd, (long)(sharedMem->offset * PAGE_SIZE));
+                                 (int)context->fd, (long)(sharedMem->offset * (uint32_t)PAGE_SIZE));
     } else {
         sharedMem->buffer = ZERO_SIZE_PTR;
     }
@@ -1436,7 +1549,7 @@ TEEC_Result TEEC_AllocateSharedMemory(TEEC_Context *context, TEEC_SharedMemory *
         return TEEC_SUCCESS;
     }
 
-    tloge("allocate shardmem: failed:0x%x\n", ret);
+    tloge("allocate shardmem: failed:0x%" PUBLIC "x\n", ret);
     (void)PutBnContext(contextInner);
     free(shmInner);
     return ret;
@@ -1458,11 +1571,20 @@ static bool TEEC_FindAndRemoveShrMemInner(TEEC_SharedMemoryInner **sharedMem, TE
     LIST_FOR_EACH(ptr, &contextInner->shrd_mem_list)
     {
         tempSharedMem = CONTAINER_OF(ptr, TEEC_SharedMemoryInner, head);
-        if (tempSharedMem->offset == shm->offset && tempSharedMem->context == shm->context) {
-            found = true;
-            ListRemoveEntry(&tempSharedMem->head);
-            *sharedMem = tempSharedMem;
-            break;
+        if (contextInner->callFromService && shm->is_allocated) {
+            if (tempSharedMem->offset == shm->offset && tempSharedMem->context == shm->context) {
+                found = true;
+                ListRemoveEntry(&tempSharedMem->head);
+                *sharedMem = tempSharedMem;
+                break;
+            }
+        } else {
+            if (tempSharedMem->buffer == shm->buffer && tempSharedMem->context == shm->context) {
+                found = true;
+                ListRemoveEntry(&tempSharedMem->head);
+                *sharedMem = tempSharedMem;
+                break;
+            }
         }
     }
 
@@ -1485,8 +1607,6 @@ void TEEC_ReleaseSharedMemoryInner(TEEC_SharedMemoryInner *sharedMem)
         tloge("Shared Memory is not in the list\n");
         return;
     }
-
-    tloge("Shared Memory found\n");
 
     PutBnShrMem(shm); /* pair with Initial value 1 */
 }
@@ -1526,8 +1646,12 @@ void TEEC_ReleaseSharedMemory(TEEC_SharedMemory *sharedMem)
 
 static TEEC_Result TEEC_CheckTmpRef(TEEC_TempMemoryReference tmpref)
 {
-    if ((tmpref.buffer == NULL) || (tmpref.size == 0)) {
-        tloge("tmpref buffer is null, or size is zero\n");
+    if ((tmpref.buffer == NULL) && (tmpref.size != 0)) {
+        tloge("tmpref buffer is null, but size is not zero\n");
+        return (TEEC_Result)TEEC_ERROR_BAD_PARAMETERS;
+    }
+    if ((tmpref.buffer != NULL) && (tmpref.size == 0)) {
+        tloge("tmpref buffer is not null, but size is zero\n");
         return (TEEC_Result)TEEC_ERROR_BAD_PARAMETERS;
     }
     return (TEEC_Result)TEEC_SUCCESS;
@@ -1570,20 +1694,23 @@ static TEEC_Result TEEC_CheckMemRef(TEEC_ContextInner *context, TEEC_RegisteredM
         tloge("parent of memref is null, or the buffer is zero\n");
         return (TEEC_Result)TEEC_ERROR_BAD_PARAMETERS;
     }
-
+    if (memref.parent->size == 0) {
+        tloge("buffer size is zero\n");
+        return (TEEC_Result)TEEC_ERROR_BAD_PARAMETERS;
+    }
     if (paramType == TEEC_MEMREF_PARTIAL_INPUT) {
-        if (!(memref.parent->flags & TEEC_MEM_INPUT)) {
+        if ((memref.parent->flags & TEEC_MEM_INPUT) == 0) {
             goto PARAM_ERROR;
         }
     } else if (paramType == TEEC_MEMREF_PARTIAL_OUTPUT) {
-        if (!(memref.parent->flags & TEEC_MEM_OUTPUT)) {
+        if ((memref.parent->flags & TEEC_MEM_OUTPUT) == 0) {
             goto PARAM_ERROR;
         }
     } else if (paramType == TEEC_MEMREF_PARTIAL_INOUT) {
-        if (!(memref.parent->flags & TEEC_MEM_INPUT)) {
+        if ((memref.parent->flags & TEEC_MEM_INPUT) == 0) {
             goto PARAM_ERROR;
         }
-        if (!(memref.parent->flags & TEEC_MEM_OUTPUT)) {
+        if ((memref.parent->flags & TEEC_MEM_OUTPUT) == 0) {
             goto PARAM_ERROR;
         }
     } else {
@@ -1646,13 +1773,13 @@ TEEC_Result TEEC_CheckOperation(TEEC_ContextInner *context, const TEEC_Operation
         } else if (IS_VALUE_MEM(paramType[paramCnt])) {
             /*  if type is value, ignore it */
         } else if (checkValue == true) {
-            if (operation->params[paramCnt].ionref.ionShareFd < 0 ||
-                operation->params[paramCnt].ionref.ionSize == 0) {
+            if (operation->params[paramCnt].ionref.ion_share_fd < 0 ||
+                operation->params[paramCnt].ionref.ion_size == 0) {
                 tloge("check failed: ion_share_fd and ion_size\n");
                 ret = (TEEC_Result)TEEC_ERROR_BAD_PARAMETERS;
                 break;
             }
-        } else if (paramType[paramCnt] == TEEC_NONE) {
+        } else if (paramType[paramCnt] == TEEC_NONE || paramType[paramCnt] == TEEC_MEMREF_SHARED_INOUT) {
             /*  if type is none, ignore it */
         } else {
             tloge("paramType is not support\n");
@@ -1661,7 +1788,7 @@ TEEC_Result TEEC_CheckOperation(TEEC_ContextInner *context, const TEEC_Operation
         }
 
         if (ret != TEEC_SUCCESS) {
-            tloge("paramCnt is %u\n", paramCnt);
+            tloge("paramCnt is %" PUBLIC "u\n", paramCnt);
             break;
         }
     }
@@ -1703,7 +1830,7 @@ void TEEC_RequestCancellation(TEEC_Operation *operation)
     /* Paramters all right, start execution */
     teecRet = TEEC_Encode(&cliContext, session, TC_NS_CLIENT_IOCTL_CANCEL_CMD_REQ, &cliLogin, operation);
     if (teecRet != TEEC_SUCCESS) {
-        tloge("RequestCancellation: teec encode failed(0x%x)!\n", teecRet);
+        tloge("RequestCancellation: teec encode failed(0x%" PUBLIC "x)!\n", teecRet);
         return;
     }
 
@@ -1711,9 +1838,10 @@ void TEEC_RequestCancellation(TEEC_Operation *operation)
     if (ret == 0) {
         tlogd("invoke cmd success\n");
     } else if (ret < 0) {
-        tloge("invoke cmd failed, ioctl errno = %d\n", ret);
+        tloge("invoke cmd failed, ioctl errno = %" PUBLIC "d\n", ret);
     } else {
-        tloge("invoke cmd failed, code=0x%x, origin=%u\n", cliContext.returns.code, cliContext.returns.origin);
+        tloge("invoke cmd failed, code=0x%" PUBLIC "x, origin=%" PUBLIC "u\n",
+            cliContext.returns.code, cliContext.returns.origin);
     }
 
     return;
@@ -1756,7 +1884,7 @@ TEEC_Result TEEC_EXT_WaitEvent(uint32_t agentId, int devFd)
 
     ret = ioctl(devFd, TC_NS_CLIENT_IOCTL_WAIT_EVENT, agentId);
     if (ret != 0) {
-        tloge("Agent 0x%x wait failed, errno=%d\n", agentId, ret);
+        tloge("Agent 0x%" PUBLIC "x wait failed, errno=%" PUBLIC "d\n", agentId, ret);
         return TEEC_ERROR_GENERIC;
     }
 
@@ -1768,7 +1896,7 @@ TEEC_Result TEEC_EXT_SendEventResponse(uint32_t agentId, int devFd)
     int ret;
     ret = ioctl(devFd, TC_NS_CLIENT_IOCTL_SEND_EVENT_RESPONSE, agentId);
     if (ret != 0) {
-        tloge("Agent %u failed to send response, ret is %d!\n", agentId, ret);
+        tloge("Agent %" PUBLIC "u failed to send response, ret is %" PUBLIC "d!\n", agentId, ret);
         return (TEEC_Result)TEEC_ERROR_GENERIC;
     }
 
@@ -1790,7 +1918,7 @@ TEEC_Result TEEC_EXT_UnregisterAgent(uint32_t agentId, int devFd, void **buffer)
     }
     ret = ioctl(devFd, TC_NS_CLIENT_IOCTL_UNREGISTER_AGENT, agentId);
     if (ret != 0) {
-        tloge("Failed to unregister agent %u, ret is %d\n", agentId, ret);
+        tloge("Failed to unregister agent %" PUBLIC "u, ret is %" PUBLIC "d\n", agentId, ret);
         result = TEEC_ERROR_GENERIC;
     }
 

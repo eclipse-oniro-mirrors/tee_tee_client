@@ -1,0 +1,182 @@
+# Copyright (c) 2022 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("//build/test.gni")
+import("../../tee_client.gni")
+
+component_type = ""
+if (defined(global_parts_info) && defined(global_parts_info.bundle_framework) &&
+    global_parts_info.bundle_framework) {
+  component_type = "system"
+}
+if (tee_client_features_tui) {
+  ohos_unittest("tuidaemontest") {
+    subsystem_name = "tee"
+    part_name = "tee_client"
+    test_module = "tee_client_features_tui"
+    module_out_path = subsystem_name + "/" + part_name + "/" + test_module
+
+    include_dirs = [
+      "../../interfaces/inner_api",
+      "../../frameworks/include/",
+      "../../frameworks/include/standard",
+      "../../frameworks/include/standard/teec_system",
+      "../../frameworks/libteec_vendor",
+      "../../services/authentication",
+      "../../services/cadaemon/src/ca_daemon",
+      "../../services/cadaemon/src/tui_daemon",
+      "../../test/unittest",
+    ]
+    defines = [ "ENABLE_FDSAN_CHECK" ]
+    sources = [
+      "../../frameworks/tee_file/tee_file.c",
+      "../../services/cadaemon/src/tui_daemon/tee_tui_daemon.cpp",
+      "../../services/cadaemon/src/tui_daemon/tee_tui_daemon_wrapper.cpp",
+      "../../services/cadaemon/src/tui_daemon/tui_event.cpp",
+      "stubMock.cpp",
+      "tuidaemontest.cpp",
+    ]
+
+    external_deps = [
+      "ability_base:want",
+      "c_utils:utils",
+      "call_manager:tel_call_manager_api",
+      "googletest:gmock",
+      "googletest:gtest_main",
+      "hilog:libhilog",
+      "image_framework:image_native",
+      "ipc:ipc_single",
+      "power_manager:powermgr_client",
+      "safwk:system_ability_fwk",
+      "samgr:samgr_proxy",
+      "window_manager:libdm",
+    ]
+  }
+}
+
+ohos_unittest("cadaemontest") {
+  subsystem_name = "tee"
+  part_name = "tee_client"
+  test_module = "cadaemon"
+  module_out_path = subsystem_name + "/" + part_name + "/" + test_module
+
+  include_dirs = [
+    "../../interfaces/inner_api",
+    "../../frameworks/include/",
+    "../../frameworks/include/standard",
+    "../../services/cadaemon/src/ca_daemon/",
+    "../../services/authentication/",
+    "../../src/ca_daemon/",
+    "../../frameworks/libteec_vendor/",
+  ]
+
+  sources = [ "cadaemontest.cpp" ]
+
+  deps = [ "../../frameworks/build/standard:libteec" ]
+
+  external_deps = [
+    "c_utils:utils",
+    "googletest:gtest_main",
+    "hilog:libhilog",
+    "ipc:ipc_single",
+    "safwk:system_ability_fwk",
+    "samgr:samgr_proxy",
+  ]
+  ldflags = [ "--coverage" ]
+}
+
+ohos_unittest("teecvendortest") {
+  subsystem_name = "tee"
+  part_name = "tee_client"
+  test_module = "teec_vendor"
+  module_out_path = subsystem_name + "/" + part_name + "/" + test_module
+
+  include_dirs = [
+    "../../interfaces/inner_api",
+    "../../frameworks/include/",
+    "../../frameworks/include/standard",
+    "../../services/cadaemon/src/ca_daemon/",
+    "../../services/authentication/",
+    "../../frameworks/libteec_vendor/",
+    "../../frameworks/libteec_client/",
+  ]
+
+  sources = [ "teecvendortest.cpp" ]
+
+  deps = [ "../../frameworks/build/standard:libteec_vendor" ]
+
+  external_deps = [
+    "c_utils:utils",
+    "googletest:gtest_main",
+    "hilog:libhilog",
+    "ipc:ipc_single",
+    "safwk:system_ability_fwk",
+  ]
+  ldflags = [ "--coverage" ]
+}
+
+ohos_unittest("authenticationtest") {
+  subsystem_name = "tee"
+  part_name = "tee_client"
+  test_module = "authentication"
+  module_out_path = subsystem_name + "/" + part_name + "/" + test_module
+  defines = [ "ENABLE_FDSAN_CHECK" ]
+  include_dirs = [
+    "../../services/authentication/",
+    "../../interfaces/inner_api/",
+    "../../frameworks/include/",
+    "../../frameworks/include/standard/",
+    "../../test/unittest/authenticationtest_stub/include/",
+  ]
+
+  sources = [
+    "../../frameworks/tee_file/tee_file.c",
+    "../../services/authentication/tcu_authentication.c",
+    "../../services/authentication/tee_auth_common.c",
+    "../../services/authentication/tee_auth_system.cpp",
+    "../../services/authentication/tee_get_native_cert.c",
+    "authenticationtest.cpp",
+    "authenticationtest_stub/accesstoken_kit.cpp",
+    "authenticationtest_stub/if_system_ability_manager.cpp",
+    "authenticationtest_stub/ipc_skeleton.cpp",
+    "authenticationtest_stub/iservice_registry.cpp",
+  ]
+
+  external_deps = [
+    "c_utils:utils",
+    "googletest:gmock",
+    "googletest:gmock_main",
+    "googletest:gtest",
+    "googletest:gtest_main",
+    "hilog:libhilog",
+    "ipc:ipc_single",
+    "openssl:libcrypto_shared",
+  ]
+  ldflags = [ "--coverage" ]
+}
+
+group("unittest") {
+  testonly = true
+  deps = [ ":cadaemontest" ]
+  deps += [ ":teecvendortest" ]
+  deps += [ ":authenticationtest" ]
+
+  if (component_type == "system") {
+    if (tee_client_features_tui) {
+      deps += [
+        # deps file
+        ":tuidaemontest",
+      ]
+    }
+  }
+}

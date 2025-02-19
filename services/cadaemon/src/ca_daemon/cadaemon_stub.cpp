@@ -26,19 +26,11 @@ using namespace std;
 namespace OHOS {
 namespace CaDaemon {
 const std::u16string INTERFACE_TOKEN = u"ohos.tee_client.accessToken";
-CaDaemonStub::CaDaemonStub()
-{
-}
-
-CaDaemonStub::~CaDaemonStub()
-{
-    memberFuncMap_.clear();
-}
 
 int32_t CaDaemonStub::OnRemoteRequest(uint32_t code,
     MessageParcel& data, MessageParcel &reply, MessageOption &option)
 {
-    tlogi("CaDaemonStub::OnReceived, code = %{public}u, flags= %{public}d.", code, option.GetFlags());
+    tlogi("CaDaemonStub::OnReceived, code = %" PUBLIC "u, flags= %" PUBLIC "d.", code, option.GetFlags());
     int32_t result;
     (void)mallopt(M_SET_THREAD_CACHE, M_THREAD_CACHE_DISABLE);
     (void)mallopt(M_DELAYED_FREE, M_DELAYED_FREE_DISABLE);
@@ -104,7 +96,7 @@ static bool GetChar(MessageParcel &data, char tempChar[], const char **str)
         }
 
         if (strcpy_s(tempChar, PATH_MAX + 1, tempStr.c_str()) != EOK) {
-            tloge("copy str fail, errno = %{public}d\n", errno);
+            tloge("copy str fail, errno = %" PUBLIC "d\n", errno);
             return false;
         }
         *str = tempChar;
@@ -115,7 +107,6 @@ static bool GetChar(MessageParcel &data, char tempChar[], const char **str)
 
 int32_t CaDaemonStub::InitContextRecvProc(MessageParcel &data, MessageParcel &reply)
 {
-    tlogi("CaDaemonStub: InitContextRecvProc start");
     if (!EnforceInterceToken(data)) {
         tloge("CaDaemonStub: InitContextRecvProc interface token check failed!");
         return ERR_UNKNOWN_REASON;
@@ -139,7 +130,6 @@ int32_t CaDaemonStub::InitContextRecvProc(MessageParcel &data, MessageParcel &re
 int32_t CaDaemonStub::FinalContextRecvProc(MessageParcel &data, MessageParcel &reply)
 {
     (void)reply;
-    tlogi("CaDaemonStub: FinalContextRecvProc start");
     if (!EnforceInterceToken(data)) {
         tloge("CaDaemonStub: FinalContextRecvProc interface token check failed!");
         return -1;
@@ -180,7 +170,7 @@ static bool GetSessionFromData(MessageParcel &data, TEEC_Session *session)
     size_t len = sizeof(*tempSession);
     tempSession = (TEEC_Session *)(data.ReadBuffer(len));
     if (tempSession == nullptr) {
-        return ERR_UNKNOWN_OBJECT;
+        return false;
     }
 
     if (memcpy_s(session, len, tempSession, len) != EOK) {
@@ -197,7 +187,7 @@ static bool GetSharedMemFromData(MessageParcel &data, TEEC_SharedMemory *shm)
     size_t len = sizeof(*tempShm);
     tempShm = (TEEC_SharedMemory *)(data.ReadBuffer(len));
     if (tempShm == nullptr) {
-        return ERR_UNKNOWN_OBJECT;
+        return false;
     }
 
     if (memcpy_s(shm, len, tempShm, len) != EOK) {
@@ -205,6 +195,31 @@ static bool GetSharedMemFromData(MessageParcel &data, TEEC_SharedMemory *shm)
         return false;
     }
     return true;
+}
+
+static void SetInvalidIonFd(TEEC_Operation *operation)
+{
+    uint32_t paramType[TEEC_PARAM_NUM] = { 0 };
+    for (uint32_t paramCnt = 0; paramCnt < TEEC_PARAM_NUM; paramCnt++) {
+        paramType[paramCnt] = TEEC_PARAM_TYPE_GET(operation->paramTypes, paramCnt);
+        if (paramType[paramCnt] == TEEC_ION_INPUT) {
+            operation->params[paramCnt].ionref.ion_share_fd = -1;
+        }
+    }
+}
+
+static void CloseDupIonFd(TEEC_Operation *operation)
+{
+    uint32_t paramType[TEEC_PARAM_NUM] = { 0 };
+    for (uint32_t paramCnt = 0; paramCnt < TEEC_PARAM_NUM; paramCnt++) {
+        paramType[paramCnt] = TEEC_PARAM_TYPE_GET(operation->paramTypes, paramCnt);
+        if (paramType[paramCnt] != TEEC_ION_INPUT) {
+            continue;
+        }
+        if (operation->params[paramCnt].ionref.ion_share_fd >= 0) {
+            close(operation->params[paramCnt].ionref.ion_share_fd);
+        }
+    }
 }
 
 static bool GetOperationFromData(MessageParcel &data, TEEC_Operation *operation, bool &opFlag)
@@ -229,6 +244,8 @@ static bool GetOperationFromData(MessageParcel &data, TEEC_Operation *operation,
         return false;
     }
 
+    /* First, set ion fd invalid, easy to judge if a dup fd can be closed */
+    SetInvalidIonFd(operation);
     /* clear the pointer from ca to avoid access to invalid address */
     operation->session = nullptr;
     for (uint32_t paramCnt = 0; paramCnt < TEEC_PARAM_NUM; paramCnt++) {
@@ -237,6 +254,13 @@ static bool GetOperationFromData(MessageParcel &data, TEEC_Operation *operation,
             operation->params[paramCnt].tmpref.buffer = nullptr;
         } else if (IS_PARTIAL_MEM(paramType[paramCnt])) {
             operation->params[paramCnt].memref.parent = nullptr;
+        } else if (paramType[paramCnt] == TEEC_ION_INPUT) {
+            operation->params[paramCnt].ionref.ion_share_fd = data.ReadFileDescriptor();
+            if (operation->params[paramCnt].ionref.ion_share_fd < 0) {
+                tloge("read ion fd from parcel failed\n");
+                CloseDupIonFd(operation);
+                return false;
+            }
         }
     }
     return true;
@@ -256,7 +280,7 @@ static bool ReadFd(MessageParcel &data, int32_t &fd)
             tloge("read fd failed\n");
             return false;
         }
-        tloge("read fd success = %{public}d\n", fd);
+        tloge("read fd success = %" PUBLIC "d\n", fd);
     }
     return true;
 }
@@ -271,7 +295,6 @@ static void ClearAsmMem(sptr<Ashmem> &optMem)
 
 static bool GetOptMemFromData(MessageParcel &data, sptr<Ashmem> &optMem, uint32_t &optMemSize)
 {
-    tlogi("get optMem start\n");
     bool retTmp = data.ReadUint32(optMemSize);
     CHECK_ERR_RETURN(retTmp, true, retTmp);
 
@@ -287,7 +310,6 @@ static bool GetOptMemFromData(MessageParcel &data, sptr<Ashmem> &optMem, uint32_
             tloge("map ashmem failed\n");
             return false;
         }
-        tloge("get optMem success\n");
     }
 
     return true;
@@ -328,7 +350,6 @@ ERROR:
 int32_t CaDaemonStub::OpenSessionRecvProc(MessageParcel &data, MessageParcel &reply)
 {
     int32_t result = ERR_NONE;
-    tlogi("CaDaemonStub: OpenSessionRecvProc start");
     if (!EnforceInterceToken(data)) {
         tloge("CaDaemonStub: OpenSessionRecvProc interface token check failed!");
         return -1;
@@ -374,7 +395,7 @@ int32_t CaDaemonStub::OpenSessionRecvProc(MessageParcel &data, MessageParcel &re
 
 END:
     ClearAsmMem(optMem);
-
+    CloseDupIonFd(&operation);
     if (fd >= 0) {
         close(fd);
     }
@@ -385,7 +406,6 @@ END:
 int32_t CaDaemonStub::CloseSessionRecvProc(MessageParcel &data, MessageParcel &reply)
 {
     (void)reply;
-    tlogi("CaDaemonStub: CloseSessionRecvProc start");
     if (!EnforceInterceToken(data)) {
         tloge("CaDaemonStub: CloseSessionRecvProc interface token check failed!");
         return -1;
@@ -408,7 +428,6 @@ int32_t CaDaemonStub::CloseSessionRecvProc(MessageParcel &data, MessageParcel &r
 int32_t CaDaemonStub::InvokeCommandRecvProc(MessageParcel &data, MessageParcel &reply)
 {
     int32_t result = ERR_NONE;
-    tlogi("CaDaemonStub: InvokeCommandRecvProc start");
     if (!EnforceInterceToken(data)) {
         tloge("CaDaemonStub: InvokeCommandRecvProc interface token check failed!");
         return -1;
@@ -447,12 +466,12 @@ int32_t CaDaemonStub::InvokeCommandRecvProc(MessageParcel &data, MessageParcel &
 
 END:
     ClearAsmMem(optMem);
+    CloseDupIonFd(&operation);
     return result;
 }
 
 int32_t CaDaemonStub::RegisterMemRecvProc(MessageParcel &data, MessageParcel &reply)
 {
-    tlogi("CaDaemonStub: RegisterMemRecvProc start");
     if (!EnforceInterceToken(data)) {
         tloge("CaDaemonStub: RegisterMemRecvProc interface token check failed!");
         return -1;
@@ -475,7 +494,6 @@ int32_t CaDaemonStub::RegisterMemRecvProc(MessageParcel &data, MessageParcel &re
 
 int32_t CaDaemonStub::AllocMemRecvProc(MessageParcel &data, MessageParcel &reply)
 {
-    tlogi("CaDaemonStub: AllocMemRecvProc start");
     if (!EnforceInterceToken(data)) {
         tloge("CaDaemonStub: AllocMemRecvProc interface token check failed!");
         return -1;
@@ -498,7 +516,6 @@ int32_t CaDaemonStub::AllocMemRecvProc(MessageParcel &data, MessageParcel &reply
 
 int32_t CaDaemonStub::ReleaseMemRecvProc(MessageParcel &data, MessageParcel &reply)
 {
-    tlogi("CaDaemonStub: ReleaseMemRecvProc start");
     if (!EnforceInterceToken(data)) {
         tloge("CaDaemonStub: ReleaseMemRecvProc interface token check failed!");
         return -1;
@@ -523,7 +540,6 @@ int32_t CaDaemonStub::ReleaseMemRecvProc(MessageParcel &data, MessageParcel &rep
 
 int32_t CaDaemonStub::SetCallBackRecvProc(MessageParcel &data, MessageParcel &reply)
 {
-    tlogi("CaDaemonStub: SetCallBackRecvProc start");
     if (!EnforceInterceToken(data)) {
         tloge("CaDaemonStub: SetCallBackRecvProc interface token check failed!");
         return -1;
@@ -547,7 +563,6 @@ bool CaDaemonStub::EnforceInterceToken(MessageParcel& data)
 
 int32_t CaDaemonStub::SendSecFileRecvProc(MessageParcel& data, MessageParcel &reply)
 {
-    tlogi("CaDaemonStub: SendSecFileRecvProc start");
     if (!EnforceInterceToken(data)) {
         tloge("CaDaemonStub: SendSecFileRecvProc interface token check failed!");
         return -1;
@@ -559,21 +574,37 @@ int32_t CaDaemonStub::SendSecFileRecvProc(MessageParcel& data, MessageParcel &re
         return ERR_UNKNOWN_OBJECT;
     }
 
-    int fd;
-    FILE *fp = nullptr;
-    bool retTmp = ReadFd(data, fd);
-    CHECK_ERR_RETURN(retTmp, true, ERR_UNKNOWN_OBJECT);
-    fp = fdopen(fd, "r");
+    int fd = -1;
+    (void)ReadFd(data, fd);
+    if (fd < 0) {
+        tloge("SendSecFileRecvProc: ReadFd failed\n");
+        return ERR_UNKNOWN_OBJECT;
+    }
 
     TEEC_Context context;
-    retTmp = GetContextFromData(data, &context);
-    CHECK_ERR_RETURN(retTmp, true, ERR_UNKNOWN_OBJECT);
+    if (GetContextFromData(data, &context) != true) {
+        tloge("SendSecFileRecvProc: get context failed\n");
+        close(fd);
+        return ERR_UNKNOWN_OBJECT;
+    }
 
     TEEC_Session session;
-    retTmp = GetSessionFromData(data, &session);
-    CHECK_ERR_RETURN(retTmp, true, ERR_UNKNOWN_OBJECT);
+    if (GetSessionFromData(data, &session) != true) {
+        tloge("SendSecFileRecvProc: get session failed\n");
+        close(fd);
+        return ERR_UNKNOWN_OBJECT;
+    }
 
-    (void)SendSecfile(path, context.fd, fp, reply);
+    FILE *fp = fdopen(fd, "r");
+    if (fp != nullptr) {
+        (void)SendSecfile(path, context.fd, fp, reply);
+        /* within fclose function, fd has been closed */
+        fclose(fp);
+    } else {
+        tloge("SendSecFileRecvProc: fdopen failed\n");
+        close(fd);
+        return ERR_INVALID_DATA;
+    }
 
     return ERR_NONE;
 }

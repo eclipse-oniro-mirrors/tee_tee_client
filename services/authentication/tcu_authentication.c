@@ -22,7 +22,7 @@
 #include "tee_log.h"
 #include "tc_ns_client.h"
 #include "tee_client_type.h"
-
+#include "tee_file.h"
 #ifdef LOG_TAG
 #undef LOG_TAG
 #endif
@@ -142,7 +142,7 @@ static int GetFileInfo(int bufLen, uint8_t *buffer, const char *path)
 
     fileSize = (int)fread(buffer, sizeof(char), (unsigned int)bufLen, fp);
     if (fileSize != bufLen) {
-        tloge("read file read number:%d\n", fileSize);
+        tloge("read file read number:%" PUBLIC "d\n", fileSize);
         fclose(fp);
         fp = NULL;
         return -1;
@@ -218,22 +218,21 @@ static int TeeSetNativeCaHash(const char *xmlFlie)
         return fd;
     }
 
-    fd = open(TC_PRIVATE_DEV_NAME, O_RDWR);
+    fd = tee_open(TC_PRIVATE_DEV_NAME, O_RDWR, 0);
     if (fd < 0) {
-        tloge("Failed to open dev node: %d\n", errno);
+        tloge("Failed to open dev node: %" PUBLIC "d\n", errno);
         free(buffer);
         buffer = NULL;
         return -1;
     }
     ret = ioctl(fd, (int)(TC_NS_CLIENT_IOCTL_SET_NATIVE_IDENTITY), buffer);
     if (ret != 0) {
-        tloge("ioctl fail %d\n", ret);
+        tloge("ioctl fail %" PUBLIC "d\n", ret);
     }
 
     free(buffer);
     buffer = NULL;
-    close(fd);
-    fd = -1;
+    tee_close(&fd);
     return ret;
 }
 
@@ -246,7 +245,7 @@ static bool IsFileExist(const char *name)
     }
     if (stat(name, &statbuf) != 0) {
         if (errno == ENOENT) { /* file not exist */
-            tlogi("file not exist: %s\n", name);
+            tlogi("file not exist: %" PUBLIC "s\n", name);
             return false;
         }
         return true;
@@ -272,7 +271,7 @@ int TcuAuthentication(uint8_t hash_type)
     if (gHashXmlSetted == 0) {
         for (uint8_t index = 0; index < listLen; index++) {
             if (hashFileList[index] == NULL) {
-                tloge("get hashFile failed, index is %d\n", index);
+                tloge("get hashFile failed, index is %" PUBLIC "d\n", index);
                 continue;
             }
             if (!IsFileExist(hashFileList[index])) {
@@ -281,7 +280,7 @@ int TcuAuthentication(uint8_t hash_type)
 
             int setRet = TeeSetNativeCaHash(hashFileList[index]);
             if (setRet != 0) {
-                tloge("hashfile read failed, index is %d\n", index);
+                tloge("hashfile read failed, index is %" PUBLIC "d\n", index);
                 continue;
             }
             count++;

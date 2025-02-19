@@ -31,11 +31,11 @@ static int GetLoginInfo(const struct ucred *cr, int fd, uint8_t *buf, unsigned i
 
     ret = TeeGetNativeCert(cr->pid, cr->uid, &bufLen, buf);
     if (ret != 0) {
-        tloge("CERT check failed<%d>\n", ret);
+        tloge("CERT check failed<%" PUBLIC "d>\n", ret);
         /* Inform the driver the cert could not be set */
         ret = ioctl(fd, TC_NS_CLIENT_IOCTL_LOGIN, NULL);
         if (ret != 0) {
-            tloge("Failed to set login information for client err=%d!\n", ret);
+            tloge("Failed to set login information for client err=%" PUBLIC "d!\n", ret);
         }
         return -1;
     }
@@ -60,7 +60,7 @@ int SendLoginInfo(const struct ucred *cr, const CaRevMsg *caRevInfo, int fd)
     }
     ret = memset_s(buf, bufLen, 0, bufLen);
     if (ret != EOK) {
-        tloge("memset failed, ret=0x%x\n", ret);
+        tloge("memset failed, ret=0x%" PUBLIC "x\n", ret);
         goto END;
     }
 
@@ -72,7 +72,7 @@ int SendLoginInfo(const struct ucred *cr, const CaRevMsg *caRevInfo, int fd)
 
     ret = ioctl(fd, TC_NS_CLIENT_IOCTL_LOGIN, buf);
     if (ret != 0) {
-        tloge("Failed set login info for client err=%d!\n", ret);
+        tloge("Failed set login info for client err=%" PUBLIC "d!\n", ret);
     }
 
 END:
@@ -113,7 +113,7 @@ int RecvCaMsg(int socket, CaRevMsg *caInfo)
     FD_SET(socket, &fds);
     ret = select(socket + 1, &fds, NULL, NULL, &timeout);
     if (ret <= 0) {
-        tloge("teecd socket timeout or err, err=%d.\n", errno);
+        tloge("teecd socket timeout or err, err=%" PUBLIC "d.\n", errno);
         return -1;
     }
     ret = (int)recvmsg(socket, &message, 0);

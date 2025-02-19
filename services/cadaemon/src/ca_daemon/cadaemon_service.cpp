@@ -30,11 +30,15 @@
 #include "tee_log.h"
 #include "tee_auth_system.h"
 #include "tcu_authentication.h"
+#include "tee_ta_version_ctrl.h"
 #include "tc_ns_client.h"
 #include "tee_ioctl_cmd.h"
 #include <sys/ioctl.h>
-
+#include "tee_client_inner.h"
+#include "tui_threadwork.h"
+#include "tee_file.h"
 using namespace std;
+
 namespace OHOS {
 namespace CaDaemon {
 static LIST_DECLARE(g_teecProcDataList);
@@ -58,24 +62,25 @@ void CaDaemonService::OnStart()
         tloge("get the tee version failed\n");
         mTeeVersion = 0;
     }
-    tloge("the tee version is %x\n", mTeeVersion);
+    tloge("the tee version is %" PUBLIC "x\n", mTeeVersion);
     CreateTuiThread();
+    CreateDstbTeeService();
 }
 
 int CaDaemonService::GetTEEVersion()
 {
     int ret;
 
-    int fd = open(TC_PRIVATE_DEV_NAME, O_RDWR);
+    int fd = tee_open(TC_PRIVATE_DEV_NAME, O_RDWR, 0);
     if (fd == -1) {
-        tloge("Failed to open %s: %d\n", TC_PRIVATE_DEV_NAME, errno);
+        tloge("Failed to open %" PUBLIC "s: %" PUBLIC "d\n", TC_PRIVATE_DEV_NAME, errno);
         return -1;
     }
 
     ret = ioctl(fd, TC_NS_CLIENT_IOCTL_GET_TEE_VERSION, &mTeeVersion);
-    close(fd);
+    tee_close(&fd);
     if (ret != 0) {
-        tloge("Failed to get tee version, err=%d\n", ret);
+        tloge("Failed to get tee version, err=%" PUBLIC "d\n", ret);
         return -1;
     }
 
@@ -84,25 +89,38 @@ int CaDaemonService::GetTEEVersion()
 
 void CaDaemonService::CreateTuiThread()
 {
+    std::thread tuiThread(TeeTuiThreadWork);
+    tuiThread.detach();
+    tlogi("CaDaemonService teeTuiThreadWork start \n");
+}
+
+__attribute__((no_sanitize("cfi"))) void CaDaemonService::CreateDstbTeeService()
+{
+    TEEC_FuncMap funcMap = {
+        .initializeContext = TEEC_InitializeContext,
+        .finalizeContext = TEEC_FinalizeContext,
+        .openSession = TEEC_OpenSession,
+        .closeSession = TEEC_CloseSession,
+        .invokeCommand = TEEC_InvokeCommand,
+    };
+
 #if defined(__LP64__)
-    void *handle = dlopen("/system/lib64/libcadaemon_tui.so", RTLD_LAZY);
+    void *handle = dlopen("/system/lib64/libdistributed_tee_service.so", RTLD_LAZY);
 #else
-    void *handle = dlopen("/system/lib/libcadaemon_tui.so", RTLD_LAZY);
+    void *handle = dlopen("/system/lib/libdistributed_tee_service.so", RTLD_LAZY);
 #endif
     if (handle == nullptr) {
-        tlogi("tui daemon handle is null");
+        tlogi("dstb tee service handle is null");
         return;
     }
 
-    void (*teeTuiThreadFunc)(void) = nullptr;
-    teeTuiThreadFunc = (void(*)(void))dlsym(handle, "TeeTuiThreadWork");
-    if (teeTuiThreadFunc == nullptr) {
-        tloge("teeTuiThreadFunc is null\n");
+    void (*initDstbTee)(TEEC_FuncMap *funcMap) = nullptr;
+    initDstbTee = (void(*)(TEEC_FuncMap *funcMap))dlsym(handle, "InitDstbTeeService");
+    if (initDstbTee == nullptr) {
+        tloge("dstb tee service init func is null\n");
         return;
     }
-    std::thread tuiThread(teeTuiThreadFunc);
-    tuiThread.detach();
-    tlogi("CaDaemonService teeTuiThreadWork start \n");
+    initDstbTee(&funcMap);
 }
 
 bool CaDaemonService::Init()
@@ -191,12 +209,12 @@ static void TidMutexUnlock(int lockRet)
 {
     int unlockRet;
     if (lockRet != 0) {
-        tloge("not exe, mutex not in lock state. lock_ret = %{public}d\n", lockRet);
+        tloge("not exe, mutex not in lock state. lock_ret = %" PUBLIC "d\n", lockRet);
         return;
     }
     unlockRet = pthread_mutex_unlock(&g_mutexTidList);
     if (unlockRet != 0) {
-        tloge("exe mutexUnlock error, ret = %{public}d\n", unlockRet);
+        tloge("exe mutexUnlock error, ret = %" PUBLIC "d\n", unlockRet);
     }
 }
 
@@ -240,7 +258,7 @@ static TEEC_Result AddTidData(TidData **tidData, int pid)
     }
     ListInsertTail(&g_teecTidList, &(*tidData)->tidHead);
     TidMutexUnlock(mutexRet);
-    tlogd("tid %{public}d is sending command to TEE\n", (*tidData)->tid);
+    tlogd("tid %" PUBLIC "d is sending command to TEE\n", (*tidData)->tid);
     return TEEC_SUCCESS;
 }
 
@@ -262,7 +280,7 @@ static void SendSigToTzdriver(int pid)
             TidData *tmp = LIST_ENTRY(ptr, TidData, tidHead);
             if (tmp->callingPid == pid) {
                 int ret = tgkill(getpid(), tmp->tid, SIGUSR1);
-                tlogd("send signal SIGUSR1 to tid: %{public}d! ret = %{public}d\n", tmp->tid, ret);
+                tlogd("send signal SIGUSR1 to tid: %" PUBLIC "d! ret = %" PUBLIC "d\n", tmp->tid, ret);
             }
         }
     }
@@ -302,7 +320,7 @@ DaemonProcdata *CaDaemonService::CallGetProcDataPtr(int pid)
     DaemonProcdata *outProcData = GetProcdataByPid(pid);
     if (outProcData != nullptr) {
         if (CheckProcDataFdFull(outProcData)) {
-            tloge("pid[%{public}d] can not get more context, please finalize some of them\n", pid);
+            tloge("pid[%" PUBLIC "d] can not get more context, please finalize some of them\n", pid);
             return nullptr;
         }
     } else {
@@ -344,7 +362,7 @@ TEEC_Result CaDaemonService::SetContextToProcData(int32_t pid, TEEC_ContextInner
         }
     }
 
-    tloge("the cnt of contexts in outProcData is already %{public}d, please finalize some of them\n", i);
+    tloge("the cnt of contexts in outProcData is already %" PUBLIC "d, please finalize some of them\n", i);
     return TEEC_FAIL;
 }
 
@@ -379,12 +397,14 @@ void CaDaemonService::PutBnContextAndReleaseFd(int32_t pid, TEEC_ContextInner *o
         ListRemoveEntry(&outProcData->procdataHead);
         free(outProcData);
     } else {
-        tlogd("still have context not finalize in pid[%{public}d]\n", pid);
+        tlogd("still have context not finalize in pid[%" PUBLIC "d]\n", pid);
     }
 }
 
 static TEEC_Result InitCaAuthInfo(CaAuthInfo *caInfo)
 {
+    caInfo->pid = IPCSkeleton::GetCallingPid();
+    caInfo->uid = (unsigned int)IPCSkeleton::GetCallingUid();
     static bool sendXmlSuccFlag = false;
     /* Trans the system xml file to tzdriver */
     if (!sendXmlSuccFlag) {
@@ -399,7 +419,7 @@ static TEEC_Result InitCaAuthInfo(CaAuthInfo *caInfo)
     uint32_t callingTokenID = IPCSkeleton::GetCallingTokenID();
     TEEC_Result ret = (TEEC_Result)ConstructCaAuthInfo(callingTokenID, caInfo);
     if (ret != 0) {
-        tloge("construct ca auth info failed, ret %d\n", ret);
+        tloge("construct ca auth info failed, ret %" PUBLIC "d\n", ret);
         return TEEC_FAIL;
     }
 
@@ -431,12 +451,12 @@ TEEC_Result CaDaemonService::InitializeContext(const char *name, MessageParcel &
     }
     (void)memset_s(contextInner, sizeof(*contextInner), 0, sizeof(*contextInner));
     (void)memset_s(caInfo, sizeof(*caInfo), 0, sizeof(*caInfo));
-    caInfo->pid = IPCSkeleton::GetCallingPid();
-    caInfo->uid = (unsigned int)IPCSkeleton::GetCallingUid();
 
     if (InitCaAuthInfo(caInfo) != TEEC_SUCCESS) {
         goto FREE_CONTEXT;
     }
+
+    InitTaVersionCtrl(CTRL_TYPE_SYSTEM);
 
     ret = TEEC_InitializeContextInner(contextInner, caInfo);
     if (ret != TEEC_SUCCESS) {
@@ -680,7 +700,7 @@ TEEC_Result CaDaemonService::TeecOptDecodePartialMem(DecodePara *paraDecode, uin
     return TEEC_SUCCESS;
 
 FILLBUFFEREND:
-    tloge("partial mem:%{public}x greater than mem:%{public}x:%{public}x:%{public}x\n",
+    tloge("partial mem:%" PUBLIC "x greater than mem:%" PUBLIC "x:%" PUBLIC "x:%" PUBLIC "x\n",
         refSize, shmInfoOffset, memSize, inputPara->totalSize);
     return TEEC_FAIL;
 }
@@ -708,11 +728,13 @@ TEEC_Result CaDaemonService::GetTeecOptMem(TEEC_Operation *operation, size_t opt
         if (IS_TEMP_MEM(paramType[paramCnt])) {
             uint32_t refSize = operation->params[paramCnt].tmpref.size;
             if (CheckSizeStatus(shmInfoOffset, refSize, optMemSize, sizeLeft)) {
-                tloge("temp mem:%x greater than opt mem:%x:%x:%x\n",
+                tloge("temp mem:%" PUBLIC "x greater than opt mem:%" PUBLIC "x:%" PUBLIC "x:%" PUBLIC "x\n",
                     refSize, shmInfoOffset, (uint32_t)sizeLeft, (uint32_t)optMemSize);
                 return TEEC_FAIL;
             }
-            operation->params[paramCnt].tmpref.buffer = static_cast<void *>(ptr + shmInfoOffset);
+            if (refSize != 0) {
+                operation->params[paramCnt].tmpref.buffer = static_cast<void *>(ptr + shmInfoOffset);
+            }
             sizeLeft -= refSize;
             shmInfoOffset += refSize;
         } else if (IS_PARTIAL_MEM(paramType[paramCnt])) {
@@ -733,7 +755,7 @@ TEEC_Result CaDaemonService::GetTeecOptMem(TEEC_Operation *operation, size_t opt
         }
 
         if (teeRet != TEEC_SUCCESS) {
-            tloge("decodeTempMem: opt decode param fail. paramCnt: %{public}u, ret: 0x%{public}x\n",
+            tloge("decodeTempMem: opt decode param fail. paramCnt: %" PUBLIC "u, ret: 0x%" PUBLIC "x\n",
                 paramCnt, teeRet);
             return teeRet;
         }
@@ -777,15 +799,17 @@ static void PrePareParmas(DecodePara &paraDecode, TaFileInfo &taFile,
     }
 }
 
-static void CloseTaFile(TaFileInfo taFile)
+static void CloseTaFile(TaFileInfo taFile, int32_t &fd)
 {
     if (taFile.taFp != nullptr) {
         fclose(taFile.taFp);
         taFile.taFp = nullptr;
+        /* close taFp will close fd, resolve double close */
+        fd = -1;
     }
 }
 
-TEEC_Result CaDaemonService::OpenSession(TEEC_Context *context, const char *taPath, int32_t fd,
+TEEC_Result CaDaemonService::OpenSession(TEEC_Context *context, const char *taPath, int32_t &fd,
     const TEEC_UUID *destination, uint32_t connectionMethod,
     TEEC_Operation *operation, uint32_t optMemSize, sptr<Ashmem> &optMem, MessageParcel &reply)
 {
@@ -832,7 +856,7 @@ TEEC_Result CaDaemonService::OpenSession(TEEC_Context *context, const char *taPa
     }
 
     PutBnSession(outSession); /* pair with ops_cnt++ when add to list */
-    CloseTaFile(taFile);
+    CloseTaFile(taFile, fd);
 
     return TEEC_SUCCESS;
 
@@ -848,7 +872,7 @@ ERROR:
         outSession = nullptr;
     }
 
-    CloseTaFile(taFile);
+    CloseTaFile(taFile, fd);
 
     return TEEC_SUCCESS;
 }
@@ -1002,7 +1026,7 @@ TEEC_Result CaDaemonService::RegisterSharedMemory(TEEC_Context *context,
     (void)memset_s(outShm, sizeof(TEEC_SharedMemoryInner), 0, sizeof(TEEC_SharedMemoryInner));
 
     if (memcpy_s(outShm, sizeof(*outShm), sharedMem, sizeof(*sharedMem))) {
-        tloge("registeMem: memcpy failed when copy data to shm, errno = %{public}d!\n", errno);
+        tloge("registeMem: memcpy failed when copy data to shm, errno = %" PUBLIC "d!\n", errno);
         free(outShm);
         goto ERROR_END;
     }
@@ -1133,7 +1157,7 @@ TEEC_Result CaDaemonService::ReleaseSharedMemory(TEEC_Context *context,
     (void)memset_s(&outShm, sizeof(TEEC_SharedMemoryInner), 0, sizeof(TEEC_SharedMemoryInner));
 
     if (memcpy_s(&outShm, sizeof(outShm), sharedMem, sizeof(*sharedMem))) {
-        tloge("releaseShamem: memcpy failed when copy data to shm, errno = %{public}d!\n", errno);
+        tloge("releaseShamem: memcpy failed when copy data to shm, errno = %" PUBLIC "d!\n", errno);
         return TEEC_FAIL;
     }
 
@@ -1166,11 +1190,11 @@ int32_t CaDaemonService::SetCallBack(const sptr<IRemoteObject> &notify)
 
     /* register CA dead notify */
     pid_t pid = IPCSkeleton::GetCallingPid();
-    tloge("SetCallBack, ca pid=%{public}d", pid);
+    tloge("SetCallBack, ca pid=%" PUBLIC "d", pid);
 
     int32_t ret = AddClient(pid, notify);
     if (ret != 0) {
-        tloge("client link to death failed, pid=%{public}d", pid);
+        tloge("client link to death failed, pid=%" PUBLIC "d", pid);
     }
     return ret;
 }
@@ -1181,19 +1205,19 @@ int32_t CaDaemonService::AddClient(pid_t pid, const sptr<IRemoteObject> &notify)
     size_t count = mClients.size();
     for (size_t index = 0; index < count; index++) {
         if (mClients[index]->GetMyPid() == pid) {
-            tloge("client exist, pid=%{public}d", pid);
+            tloge("client exist, pid=%" PUBLIC "d", pid);
             return ERR_NONE;
         }
     }
 
     sptr<Client> c = new (std::nothrow) Client(pid, notify, this);
     if (c == nullptr) {
-        tloge("addclient:new client failed, pid=%{public}d", pid);
+        tloge("addclient:new client failed, pid=%" PUBLIC "d", pid);
         return ERR_UNKNOWN_REASON;
     }
     bool ret = notify->AddDeathRecipient(c);
     if (!ret) {
-        tloge("addclient:link to death failed, pid=%{public}d", pid);
+        tloge("addclient:link to death failed, pid=%" PUBLIC "d", pid);
         return ERR_UNKNOWN_REASON;
     }
     mClients.push_back(c);
@@ -1202,7 +1226,7 @@ int32_t CaDaemonService::AddClient(pid_t pid, const sptr<IRemoteObject> &notify)
 
 CaDaemonService::Client::~Client()
 {
-    tloge("delete client come in, pid=%{public}d", mPid);
+    tloge("delete client come in, pid=%" PUBLIC "d", mPid);
 }
 
 pid_t CaDaemonService::Client::GetMyPid() const
@@ -1213,14 +1237,14 @@ pid_t CaDaemonService::Client::GetMyPid() const
 void CaDaemonService::Client::OnRemoteDied(const wptr<IRemoteObject> &deathNotify)
 {
     (void)deathNotify;
-    tloge("teec client is died, pid=%{public}d", mPid);
+    tloge("teec client is died, pid=%" PUBLIC "d", mPid);
     vector<sptr<Client>>::iterator vec;
     if (mService != nullptr) {
         size_t index = 0;
         lock_guard<mutex> autoLock(mService->mClientLock);
         for (vec = mService->mClients.begin(); vec != mService->mClients.end();) {
             if (mService->mClients[index]->GetMyPid() == mPid) {
-                tloge("died teec client found, pid=%{public}d", mPid);
+                tloge("died teec client found, pid=%" PUBLIC "d", mPid);
                 /* release resources */
                 mService->ProcessCaDied(mPid);
                 vec = mService->mClients.erase(vec);
@@ -1254,13 +1278,13 @@ void CaDaemonService::CleanProcDataForOneCa(DaemonProcdata *procData)
 
 void CaDaemonService::ProcessCaDied(int32_t pid)
 {
-    tloge("caDied: getCallingPid=%{public}d\n", pid);
+    tloge("caDied: getCallingPid=%" PUBLIC "d\n", pid);
     DaemonProcdata *outProcData = nullptr;
     {
         lock_guard<mutex> autoLock(mProcDataLock);
         outProcData = GetProcdataByPid(pid);
         if (outProcData == nullptr) {
-            tloge("caDied: outProcdata[%{public}d] not in the list\n", pid);
+            tloge("caDied: outProcdata[%" PUBLIC "d] not in the list\n", pid);
             return;
         }
         ListRemoveEntry(&outProcData->procdataHead);

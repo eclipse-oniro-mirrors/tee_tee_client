@@ -21,16 +21,24 @@
 #include <sys/stat.h>
 #include <sys/statfs.h>
 #include <sys/types.h>
+#include <sys/vfs.h>
 #include <time.h>
 #include "tc_ns_client.h"
 #include "tee_agent.h"
 #include "tee_log.h"
-
+#include "tee_file.h"
 #ifdef LOG_TAG
 #undef LOG_TAG
 #endif
 #define LOG_TAG       "teecd_agent"
 #define USER_PATH_LEN 10
+
+#define USEC_PER_SEC    1000000ULL
+#define USEC_PER_MSEC   1000ULL
+#define NSEC_PER_USEC   1000ULL
+#define FSCMD_TIMEOUT_US (1 * USEC_PER_SEC)
+
+static int32_t CopyFile(const char *fromPath, const char *toPath);
 
 /* record the current g_userId and g_storageId */
 static uint32_t g_userId;
@@ -148,12 +156,12 @@ static void ChownSecStorage(const char *path, bool is_file)
     /* create dirs with 700 mode, create files with 600 mode */
     int32_t ret;
     if (is_file) {
-        ret = chmod(path, S_IRUSR | S_IWUSR);
+        ret = chmod(path, SFS_FILE_PERM);
     } else {
-        ret = chmod(path, S_IRUSR | S_IWUSR | S_IXUSR);
+        ret = chmod(path, SFS_DIR_PERM);
     }
     if (ret < 0) {
-        tloge("chmod failed: %d\n", errno);
+        tloge("chmod failed: %" PUBLIC "d\n", errno);
     }
 }
 
@@ -204,17 +212,21 @@ static int32_t CreateDir(const char *path, size_t pathLen)
             *position = '\0';
 
             if (access(pathTemp, F_OK) == 0) {
+                /* Temporary solution to incorrect permission on the sfs
+                 * directory, avoiding factory settings restoration
+                 */
+                (void)chmod(pathTemp, SFS_DIR_PERM);
+
                 *position = '/';
                 continue;
             }
 
-            if (mkdir(pathTemp, ROOT_DIR_PERM) != 0) {
-                tloge("mkdir fail err %d \n", errno);
+            if (mkdir(pathTemp, SFS_DIR_PERM) != 0) {
+                tloge("mkdir fail err %" PUBLIC "d \n", errno);
                 free(pathTemp);
                 return -1;
             }
 
-            ChownSecStorage(pathTemp, false);
             *position = '/';
         }
     }
@@ -237,6 +249,40 @@ static int32_t CheckFileNameAndPath(const char *name, const char *path)
     return 0;
 }
 
+#ifdef CONFIG_BACKUP_PARTITION
+static int32_t CheckEnvPath(const char *envPath, char *trustPath, size_t trustPathLen)
+{
+    struct stat st;
+
+    if (strnlen(envPath, PATH_MAX) > trustPathLen) {
+        tloge("too long envPath\n");
+        return -1;
+    }
+    char *retPath = realpath(envPath, trustPath);
+    if (retPath == NULL) {
+        tloge("error envpath, errno is %" PUBLIC "d\n", errno);
+        return errno;
+    }
+
+    if (stat(trustPath, &st) < 0) {
+        tloge("stat failed, errno is %" PUBLIC "x\n", errno);
+        return -1;
+    }
+    if (!S_ISDIR(st.st_mode)) {
+        tloge("error path: is not a dir\n");
+        return -1;
+    }
+    size_t pathLen = strlen(trustPath);
+    if (pathLen >= trustPathLen - 1) {
+        tloge("too long to add / \n");
+        return -1;
+    }
+    trustPath[pathLen] = '/';
+    trustPath[pathLen + 1] = '\0';
+    return 0;
+}
+#endif
+
 static int32_t GetPathStorage(char *path, size_t pathLen, const char *env)
 {
     errno_t rc;
@@ -252,7 +298,7 @@ static int32_t GetPathStorage(char *path, size_t pathLen, const char *env)
 
     rc = strncpy_s(path, pathLen, defaultPath, strlen(defaultPath) + 1);
     if (rc != EOK) {
-        tloge("strncpy_s failed %d\n", rc);
+        tloge("strncpy_s failed %" PUBLIC "d\n", rc);
         return -1;
     }
     return 0;
@@ -284,19 +330,19 @@ static int32_t JoinFileNameTransient(const char *name, char *path, size_t pathLe
         char userPath[USER_PATH_SIZE] = { 0 };
         rc = snprintf_s(userPath, sizeof(userPath), sizeof(userPath) - 1, "%u/", userId);
         if (rc == -1) {
-            tloge("snprintf_s failed %d\n", rc);
+            tloge("snprintf_s failed %" PUBLIC "d\n", rc);
             return -1;
         }
 
         rc = strncat_s(path, pathLen, SFS_PARTITION_USER_SYMLINK, strlen(SFS_PARTITION_USER_SYMLINK));
         if (rc != EOK) {
-            tloge("strncat_s failed %d\n", rc);
+            tloge("strncat_s failed %" PUBLIC "d\n", rc);
             return -1;
         }
 
         rc = strncat_s(path, pathLen, userPath, strlen(userPath));
         if (rc != EOK) {
-            tloge("strncat_s failed %d\n", rc);
+            tloge("strncat_s failed %" PUBLIC "d\n", rc);
             return -1;
         }
 
@@ -307,13 +353,13 @@ static int32_t JoinFileNameTransient(const char *name, char *path, size_t pathLe
         rc = strncat_s(path, pathLen, name + strlen(SFS_PARTITION_TRANSIENT),
                        (strlen(name) - strlen(SFS_PARTITION_TRANSIENT)));
         if (rc != EOK) {
-            tloge("strncat_s failed %d\n", rc);
+            tloge("strncat_s failed %" PUBLIC "d\n", rc);
             return -1;
         }
     } else {
         rc = strncat_s(path, pathLen, name, strlen(name));
         if (rc != EOK) {
-            tloge("strncat_s failed %d\n", rc);
+            tloge("strncat_s failed %" PUBLIC "d\n", rc);
             return -1;
         }
     }
@@ -333,11 +379,62 @@ static int32_t GetDefaultDir(char *path, size_t pathLen)
 
     rc = strncat_s(path, pathLen, SFS_PARTITION_PERSISTENT, strlen(SFS_PARTITION_PERSISTENT));
     if (rc != EOK) {
-        tloge("strncat_s failed %d\n", rc);
+        tloge("strncat_s failed %" PUBLIC "d\n", rc);
         return -1;
     }
     return 0;
 }
+
+#ifdef CONFIG_BACKUP_PARTITION
+#define BACKUP_PARTITION_ENV             "BACKUP_PARTITION"
+static int GetBackupPath(char *path, size_t pathLen)
+{
+    const char *envPath = getenv(BACKUP_PARTITION_ENV);
+    if (envPath == NULL) {
+        tloge("databack envPath is NULL.\n");
+        return -1;
+    }
+
+    return CheckEnvPath(envPath, path, pathLen);
+}
+
+static bool IsBackupDir(const char *path)
+{
+    char secBackupDir[FILE_NAME_MAX_BUF] = { 0 };
+    int32_t ret;
+
+    ret = GetBackupPath(secBackupDir, FILE_NAME_MAX_BUF);
+    if (ret != 0)
+        return false;
+    if (path == strstr(path, secBackupDir))
+        return true;
+    return false;
+}
+
+static int32_t DoJoinBackupFileName(const char *name, char *path, size_t pathLen)
+{
+    int32_t ret;
+    errno_t rc;
+    ret = GetBackupPath(path, pathLen);
+    if (ret != 0)
+        return ret;
+
+    if (name != strstr(name, SFS_PARTITION_TRANSIENT) && name != strstr(name, SFS_PARTITION_PERSISTENT)) {
+        rc = strncat_s(path, pathLen, SFS_PARTITION_PERSISTENT, strlen(SFS_PARTITION_PERSISTENT));
+        if (rc != EOK) {
+            tloge("strncat_s backup file default prefix failed %" PUBLIC "d\n", rc);
+            return -1;
+        }
+    }
+
+    rc = strncat_s(path, pathLen, name, strlen(name));
+    if (rc != EOK) {
+        tloge("strncat_s backup file name failed %" PUBLIC "d\n", rc);
+        return -1;
+    }
+    return 0;
+}
+#endif
 
 static int32_t DoJoinFileName(const char *name, char *path, size_t pathLen)
 {
@@ -353,13 +450,13 @@ static int32_t DoJoinFileName(const char *name, char *path, size_t pathLen)
     }
 
     if (ret != 0) {
-        tloge("get dir failed %d\n", ret);
+        tloge("get dir failed %" PUBLIC "d\n", ret);
         return -1;
     }
 
     rc = strncat_s(path, pathLen, name, strlen(name));
     if (rc != EOK) {
-        tloge("strncat_s failed %d\n", rc);
+        tloge("strncat_s failed %" PUBLIC "d\n", rc);
         return -1;
     }
 
@@ -382,38 +479,38 @@ static int32_t JoinFileNameForStorageCE(const char *name, char *path, size_t pat
 
     idString = strtok_r(nameTemp, "/", &nameWithoutUserId);
     if (idString == NULL) {
-        tloge("the name %s does not match th rule as userid/xxx\n", name);
+        tloge("the name %" PUBLIC "s does not match th rule as userid/xxx\n", name);
         return -1;
     }
 
     rc = strncpy_s(path, pathLen, SEC_STORAGE_DATA_CE, sizeof(SEC_STORAGE_DATA_CE));
     if (rc != EOK) {
-        tloge("strncpy_s failed %d\n", rc);
+        tloge("strncpy_s failed %" PUBLIC "d\n", rc);
         return -1;
     }
 
     rc = strncat_s(path, pathLen, idString, strlen(idString));
     if (rc != EOK) {
-        tloge("strncat_s failed %d\n", rc);
+        tloge("strncat_s failed %" PUBLIC "d\n", rc);
         return -1;
     }
 
     rc = strncat_s(path, pathLen, SEC_STORAGE_DATA_CE_SUFFIX_DIR, sizeof(SEC_STORAGE_DATA_CE_SUFFIX_DIR));
     if (rc != EOK) {
-        tloge("strncat_s failed %d\n", rc);
+        tloge("strncat_s failed %" PUBLIC "d\n", rc);
         return -1;
     }
 
     rc = strncat_s(path, pathLen, nameWithoutUserId, strlen(nameWithoutUserId));
     if (rc != EOK) {
-        tloge("strncat_s failed %d\n", rc);
+        tloge("strncat_s failed %" PUBLIC "d\n", rc);
         return -1;
     }
 
     return 0;
 }
 
-static int32_t JoinFileName(const char *name, char *path, size_t pathLen)
+static int32_t JoinFileName(const char *name, bool isBackup, char *path, size_t pathLen)
 {
     int32_t ret = -1;
     uint32_t storageId = GetCurrentStorageId();
@@ -425,6 +522,10 @@ static int32_t JoinFileName(const char *name, char *path, size_t pathLen)
     if (storageId == TEE_OBJECT_STORAGE_CE) {
         ret = JoinFileNameForStorageCE(name, path, pathLen);
     } else {
+#ifdef CONFIG_BACKUP_PARTITION
+        if (isBackup)
+            return DoJoinBackupFileName(name, path, pathLen);
+#endif
         /*
         * If the path name does not start with sec_storage or sec_storage_data,
         * add sec_storage str for the path
@@ -437,6 +538,7 @@ static int32_t JoinFileName(const char *name, char *path, size_t pathLen)
     }
 
     tlogv("joined path done\n");
+    (void)isBackup;
     return ret;
 }
 
@@ -447,17 +549,20 @@ static bool IsDataDir(const char *path, bool isUsers)
     errno_t rc;
 
     ret = GetTransientDir(secDataDir, FILE_NAME_MAX_BUF);
-    if (ret != 0)
+    if (ret != 0) {
         return false;
+    }
     if (isUsers) {
         rc = strncat_s(secDataDir, FILE_NAME_MAX_BUF, SFS_PARTITION_USER_SYMLINK, strlen(SFS_PARTITION_USER_SYMLINK));
     } else {
         rc = strncat_s(secDataDir, FILE_NAME_MAX_BUF, SFS_PARTITION_TRANSIENT, strlen(SFS_PARTITION_TRANSIENT));
     }
-    if (rc != EOK)
+    if (rc != EOK) {
         return false;
-    if (path == strstr(path, secDataDir))
+    }
+    if (path == strstr(path, secDataDir)) {
         return true;
+    }
     return false;
 }
 
@@ -468,19 +573,26 @@ static bool IsRootDir(const char *path)
     errno_t rc;
 
     ret = GetPersistentDir(secRootDir, FILE_NAME_MAX_BUF);
-    if (ret != 0)
+    if (ret != 0) {
         return false;
+    }
     rc = strncat_s(secRootDir, FILE_NAME_MAX_BUF, SFS_PARTITION_PERSISTENT, strlen(SFS_PARTITION_PERSISTENT));
-    if (rc != EOK)
+    if (rc != EOK) {
         return false;
-    if (path == strstr(path, secRootDir))
+    }
+    if (path == strstr(path, secRootDir)) {
         return true;
+    }
+
     return false;
 }
 
 static bool IsValidFilePath(const char *path)
 {
     if (IsDataDir(path, false) || IsDataDir(path, true) || IsRootDir(path) ||
+#ifdef CONFIG_BACKUP_PARTITION
+        IsBackupDir(path) ||
+#endif
         (path == strstr(path, SEC_STORAGE_DATA_CE))) {
         return true;
     }
@@ -494,7 +606,7 @@ static uint32_t GetRealFilePath(const char *originPath, char *trustPath, size_t 
     if (retPath == NULL) {
         /* the file may be not exist, will create after */
         if ((errno != ENOENT) && (errno != EACCES)) {
-            tloge("get realpath failed: %d\n", errno);
+            tloge("get realpath failed: %" PUBLIC "d\n", errno);
             return (uint32_t)errno;
         }
         /* check origin path */
@@ -504,7 +616,7 @@ static uint32_t GetRealFilePath(const char *originPath, char *trustPath, size_t 
         }
         errno_t rc = strncpy_s(trustPath, tPathLen, originPath, strlen(originPath));
         if (rc != EOK) {
-            tloge("strncpy_s failed %d\n", rc);
+            tloge("strncpy_s failed %" PUBLIC "d\n", rc);
             return EPERM;
         }
     } else {
@@ -543,7 +655,7 @@ static int32_t UnlinkRecursiveDir(const char *name)
         }
         rc = snprintf_s(dn, sizeof(dn), sizeof(dn) - 1, "%s/%s", name, de->d_name);
         if (rc == -1) {
-            tloge("snprintf_s failed %d\n", rc);
+            tloge("snprintf_s failed %" PUBLIC "d\n", rc);
             fail = true;
             break;
         }
@@ -562,19 +674,19 @@ static int32_t UnlinkRecursiveDir(const char *name)
         int32_t save = errno;
         closedir(dir);
         errno = save;
-        tloge("fail is %d, errno is %d\n", fail, errno);
+        tloge("fail is %" PUBLIC "d, errno is %" PUBLIC "d\n", fail, errno);
         return -1;
     }
 
     /* close directory handle */
     if (closedir(dir) < 0) {
-        tloge("closedir failed, errno is %d\n", errno);
+        tloge("closedir failed, errno is %" PUBLIC "d\n", errno);
         return -1;
     }
 
     /* delete target directory */
     if (rmdir(name) < 0) {
-        tloge("rmdir failed, errno is %d\n", errno);
+        tloge("rmdir failed, errno is %" PUBLIC "d\n", errno);
         return -1;
     }
     return 0;
@@ -586,14 +698,14 @@ static int32_t UnlinkRecursive(const char *name)
 
     /* is it a file or directory? */
     if (lstat(name, &st) < 0) {
-        tloge("lstat failed, errno is %x\n", errno);
+        tloge("lstat failed, errno is %" PUBLIC "x\n", errno);
         return -1;
     }
 
     /* a file, so unlink it */
     if (!S_ISDIR(st.st_mode)) {
         if (unlink(name) < 0) {
-            tloge("unlink failed, errno is %d\n", errno);
+            tloge("unlink failed, errno is %" PUBLIC "d\n", errno);
             return -1;
         }
         return 0;
@@ -620,19 +732,92 @@ static int32_t IsFileExist(const char *name)
     return 1;
 }
 
+#ifdef CONFIG_BACKUP_PARTITION
+#define SFS_BACKUP_FILE_SUFFIX  ".bk"
+
+static int32_t CopyFromOldFile(const char *name, const char *path, size_t pathLen)
+{
+    char oldNameBuff[FILE_NAME_MAX_BUF] = { 0 };
+    int32_t ret = JoinFileName(name, false, oldNameBuff, sizeof(oldNameBuff));
+    if (ret != 0) {
+        if (ret == ENOENT) {
+            tlogw("main partition file dont exist \n");
+            return 0;
+        }
+        return -1;
+    }
+
+    if (IsFileExist(oldNameBuff) == 0) {
+        return 0;
+    }
+
+    tlogd("try copy bk file from main partition to backup partition\n");
+    if (strncmp(path, oldNameBuff, strlen(oldNameBuff) + 1) == 0) {
+        tlogd("name of bk file is the same as main file, needn't copy\n");
+        return 0;
+    }
+
+    if (CreateDir(path, pathLen) != 0) {
+        return -1;
+    }
+
+    ret = CopyFile((char *)oldNameBuff, path);
+    if (ret != 0) {
+        tloge("copy file failed: %" PUBLIC "d\n", errno);
+        return -1;
+    }
+
+    ret = UnlinkRecursive((char *)oldNameBuff);
+    /* if old file delete failed, OpenWork failed */
+    if (ret != 0) {
+        tloge("delete old file failed: %" PUBLIC "d\n", errno);
+        (void)UnlinkRecursive(path);
+        return -1;
+    }
+
+    return 0;
+}
+
+static int32_t DeleteBackupFile(char *nameBuff, size_t nameLen)
+{
+    char oldNameBuff[FILE_NAME_MAX_BUF] = { 0 };
+    errno_t rc = memcpy_s(oldNameBuff, sizeof(oldNameBuff), nameBuff, nameLen);
+    if (rc != EOK) {
+        tloge("memcpy_s failed %" PUBLIC "d \n", rc);
+        return -1;
+    }
+
+    rc = strcat_s(oldNameBuff, sizeof(oldNameBuff), SFS_BACKUP_FILE_SUFFIX);
+    if (rc != EOK) {
+        tloge("strcat_s failed %" PUBLIC "d \n", rc);
+        return -1;
+    }
+
+    if (IsFileExist(oldNameBuff) == 0)
+        return 0;
+
+    tlogd("try unlink exist backfile in main partition\n");
+    if (unlink((char *)oldNameBuff) < 0) {
+        tloge("unlink failed, errno is %" PUBLIC "d\n", errno);
+        return -1;
+    }
+    return 0;
+}
+#endif
+
 static uint32_t DoOpenFile(const char *path, struct SecStorageType *transControl)
 {
     char trustPath[PATH_MAX] = { 0 };
 
     uint32_t rRet = GetRealFilePath(path, trustPath, sizeof(trustPath));
     if (rRet != 0) {
-        tloge("get real path failed. err=%u\n", rRet);
+        tloge("get real path failed. err=%" PUBLIC "u\n", rRet);
         return rRet;
     }
 
     FILE *pFile = fopen(trustPath, transControl->args.open.mode);
     if (pFile == NULL) {
-        tloge("open file with flag %s failed: %d\n", transControl->args.open.mode, errno);
+        tloge("open file with flag %" PUBLIC "s failed: %" PUBLIC "d\n", transControl->args.open.mode, errno);
         return (uint32_t)errno;
     }
     ChownSecStorage(trustPath, true);
@@ -646,46 +831,94 @@ static uint32_t DoOpenFile(const char *path, struct SecStorageType *transControl
     return 0;
 }
 
+#ifndef CONFIG_SMART_LOCK_PLATFORM
 static int32_t CheckPartitionReady(const char *mntDir)
 {
-    struct mntent *mentry = NULL;
-    int32_t findFlag      = -1;
+    int err;
+    struct statfs rootStat, secStorageStat;
+    err = statfs("/", &rootStat);
+    if (err != 0) {
+        tloge("statfs root fail, errno=%" PUBLIC "d\n", errno);
+        return err;
+    }
 
-    FILE *fp = setmntent("/proc/mounts", "r");
-    if (fp == NULL) {
-        tloge("Failed to open /proc/mounts.\n");
-        return -1;
+    err = statfs(mntDir, &secStorageStat);
+    if (err != 0) {
+        tloge("statfs mntDir[%" PUBLIC "s] fail, errno=%" PUBLIC "d\n", mntDir, errno);
+        return err;
     }
-    mentry = getmntent(fp);
-    while (mentry != NULL) {
-        if (mentry->mnt_dir != NULL) {
-            if (strlen(mentry->mnt_dir) == strlen(mntDir) &&
-                strncmp(mentry->mnt_dir, mntDir, strlen(mntDir)) == 0) {
-                findFlag = 1;
-                break;
-            }
+    tlogd("statfs root.f_blocks=%" PUBLIC "llx, mntDir.f_blocks=%" PUBLIC "llx\n",
+        (unsigned long long)(rootStat.f_blocks), (unsigned long long)(secStorageStat.f_blocks));
+
+    return rootStat.f_blocks != secStorageStat.f_blocks;
+}
+#endif
+
+static inline uint64_t GetTimeStampUs(void)
+{
+    struct timespec ts = { 0 };
+    (void)clock_gettime(CLOCK_MONOTONIC, &ts);
+    return ts.tv_sec * USEC_PER_SEC + ts.tv_nsec / NSEC_PER_USEC;
+}
+
+static int CheckOpenWorkValid(struct SecStorageType *transControl, bool isBackup, char *nameBuff, size_t nameLen)
+{
+    int ret = 0;
+    if (transControl->cmd == SEC_CREATE) {
+        /* create a exist file, remove it at first */
+        errno_t rc = strncpy_s(transControl->args.open.mode,
+            sizeof(transControl->args.open.mode), "w+", sizeof("w+"));
+        if (rc != EOK) {
+            tloge("strncpy_s failed %" PUBLIC "d\n", rc);
+            ret = ENOENT;
         }
-        mentry = getmntent(fp);
+    } else {
+#ifdef CONFIG_BACKUP_PARTITION
+        if (isBackup && CopyFromOldFile((char *)(transControl->args.open.name), nameBuff, nameLen) != 0) {
+            tloge("failed to copy bk file from main partition to backup partition\n");
+            return ENOENT;
+        }
+#endif
+
+        if (IsFileExist(nameBuff) == 0) {
+            /* open a nonexist file, return fail */
+            tloge("file is not exist, open failed\n");
+            ret = ENOENT;
+        }
     }
-    endmntent(fp);
-    return findFlag;
+    (void)isBackup;
+    (void)nameLen;
+    return ret;
 }
 
 static void OpenWork(struct SecStorageType *transControl)
 {
     uint32_t error;
     char nameBuff[FILE_NAME_MAX_BUF] = { 0 };
+    bool isBackup = false;
 
     SetCurrentUserId(transControl->userId);
     SetCurrentStorageId(transControl->storageId);
 
-    tlogv("sec storage : open\n");
+    tlogw("sec storage: cmd=%" PUBLIC "d, file=%" PUBLIC "s\n",
+        transControl->cmd, (char *)(transControl->args.open.name));
 
-    if (JoinFileName((char *)(transControl->args.open.name), nameBuff, sizeof(nameBuff)) != 0) {
+#ifdef CONFIG_BACKUP_PARTITION
+    isBackup = transControl->isBackup;
+#endif
+    if (JoinFileName((char *)(transControl->args.open.name), isBackup, nameBuff, sizeof(nameBuff)) != 0) {
         transControl->ret = -1;
         return;
     }
-    
+#ifdef CONFIG_BACKUP_PARTITION
+    if (transControl->cmd == SEC_CREATE && DeleteBackupFile(nameBuff, sizeof(nameBuff)) != 0) {
+        tloge("create failed, bk file exist and delete it failed\n");
+        transControl->ret = -1;
+        return;
+    }
+#endif
+
+#ifndef CONFIG_SMART_LOCK_PLATFORM
     if (strstr((char *)nameBuff, SFS_PARTITION_PERSISTENT) != NULL) {
         if (CheckPartitionReady("/sec_storage") <= 0) {
             tloge("check /sec_storage partition_ready failed ----------->\n");
@@ -693,23 +926,11 @@ static void OpenWork(struct SecStorageType *transControl)
             return;
         }
     }
+#endif
 
-    if (transControl->cmd == SEC_CREATE) {
-        /* create an exist file, remove it at first */
-        errno_t rc = strncpy_s(transControl->args.open.mode,
-            sizeof(transControl->args.open.mode), "w+", sizeof("w+"));
-        if (rc != EOK) {
-            tloge("strncpy_s failed %d\n", rc);
-            error = ENOENT;
-            goto ERROR;
-        }
-    } else {
-        if (IsFileExist(nameBuff) == 0) {
-            /* open a nonexist file, return fail */
-            tloge("file is not exist, open failed\n");
-            error = ENOENT;
-            goto ERROR;
-        }
+    if (CheckOpenWorkValid(transControl, isBackup, nameBuff, sizeof(nameBuff)) != 0) {
+        error = ENOENT;
+        goto ERROR;
     }
 
     /* mkdir -p for new create files */
@@ -740,18 +961,18 @@ static void CloseWork(struct SecStorageType *transControl)
     if (FindOpenFile(transControl->args.close.fd, &selFile) != 0) {
         int32_t ret = fclose(selFile->file);
         if (ret == 0) {
-            tlogv("close file %d success\n", transControl->args.close.fd);
+            tlogv("close file %" PUBLIC "d success\n", transControl->args.close.fd);
             DelOpenFile(selFile);
             free(selFile);
             selFile = NULL;
             (void)selFile;
         } else {
-            tloge("close file %d failed: %d\n", transControl->args.close.fd, errno);
+            tloge("close file %" PUBLIC "d failed: %" PUBLIC "d\n", transControl->args.close.fd, errno);
             transControl->error = (uint32_t)errno;
         }
         transControl->ret = ret;
     } else {
-        tloge("can't find opened file(fileno = %d)\n", transControl->args.close.fd);
+        tloge("can't find opened file(fileno = %" PUBLIC "d)\n", transControl->args.close.fd);
         transControl->ret   = -1;
         transControl->error = EBADF;
     }
@@ -761,7 +982,7 @@ static void ReadWork(struct SecStorageType *transControl)
 {
     struct OpenedFile *selFile = NULL;
 
-    tlogv("sec storage : read count = %u\n", transControl->args.read.count);
+    tlogv("sec storage : read count = %" PUBLIC "u\n", transControl->args.read.count);
 
     if (FindOpenFile(transControl->args.read.fd, &selFile) != 0) {
         size_t count = fread((void *)(transControl->args.read.buffer), 1, transControl->args.read.count, selFile->file);
@@ -774,17 +995,17 @@ static void ReadWork(struct SecStorageType *transControl)
             } else {
                 transControl->ret2  = -1;
                 transControl->error = (uint32_t)errno;
-                tloge("read file failed: %d\n", errno);
+                tloge("read file failed: %" PUBLIC "d\n", errno);
             }
         } else {
             transControl->ret2 = 0;
-            tlogv("read file success, content len=%zu\n", count);
+            tlogv("read file success, content len=%" PUBLIC "zu\n", count);
         }
     } else {
         transControl->ret   = 0;
         transControl->ret2  = -1;
         transControl->error = EBADF;
-        tloge("can't find opened file(fileno = %d)\n", transControl->args.read.fd);
+        tloge("can't find opened file(fileno = %" PUBLIC "d)\n", transControl->args.read.fd);
     }
 }
 
@@ -792,13 +1013,13 @@ static void WriteWork(struct SecStorageType *transControl)
 {
     struct OpenedFile *selFile = NULL;
 
-    tlogv("sec storage : write count = %u\n", transControl->args.write.count);
+    tlogv("sec storage : write count = %" PUBLIC "u\n", transControl->args.write.count);
 
     if (FindOpenFile(transControl->args.write.fd, &selFile) != 0) {
         size_t count = fwrite((void *)(transControl->args.write.buffer), 1,
                               transControl->args.write.count, selFile->file);
         if (count < transControl->args.write.count) {
-            tloge("write file failed: %d\n", errno);
+            tloge("write file failed: %" PUBLIC "d\n", errno);
             transControl->ret   = (int32_t)count;
             transControl->error = (uint32_t)errno;
             return;
@@ -806,7 +1027,7 @@ static void WriteWork(struct SecStorageType *transControl)
 
         if (transControl->ret2 == SEC_WRITE_SSA) {
             if (fflush(selFile->file) != 0) {
-                tloge("fflush file failed: %d\n", errno);
+                tloge("fflush file failed: %" PUBLIC "d\n", errno);
                 transControl->ret   = 0;
                 transControl->error = (uint32_t)errno;
             } else {
@@ -817,7 +1038,7 @@ static void WriteWork(struct SecStorageType *transControl)
             transControl->error = 0;
         }
     } else {
-        tloge("can't find opened file(fileno = %d)\n", transControl->args.write.fd);
+        tloge("can't find opened file(fileno = %" PUBLIC "d)\n", transControl->args.write.fd);
         transControl->ret   = 0;
         transControl->error = EBADF;
     }
@@ -827,19 +1048,20 @@ static void SeekWork(struct SecStorageType *transControl)
 {
     struct OpenedFile *selFile = NULL;
 
-    tlogv("sec storage : seek offset=%d, whence=%u\n", transControl->args.seek.offset, transControl->args.seek.whence);
+    tlogv("sec storage : seek offset=%" PUBLIC "d, whence=%" PUBLIC "u\n",
+        transControl->args.seek.offset, transControl->args.seek.whence);
 
     if (FindOpenFile(transControl->args.seek.fd, &selFile) != 0) {
         int32_t ret = fseek(selFile->file, transControl->args.seek.offset, (int32_t)transControl->args.seek.whence);
         if (ret) {
-            tloge("seek file failed: %d\n", errno);
+            tloge("seek file failed: %" PUBLIC "d\n", errno);
             transControl->error = (uint32_t)errno;
         } else {
             tlogv("seek file success\n");
         }
         transControl->ret = ret;
     } else {
-        tloge("can't find opened file(fileno = %d)\n", transControl->args.seek.fd);
+        tloge("can't find opened file(fileno = %" PUBLIC "d)\n", transControl->args.seek.fd);
         transControl->ret   = -1;
         transControl->error = EBADF;
     }
@@ -848,16 +1070,20 @@ static void SeekWork(struct SecStorageType *transControl)
 static void RemoveWork(struct SecStorageType *transControl)
 {
     char nameBuff[FILE_NAME_MAX_BUF] = { 0 };
+    bool isBackup = false;
 
-    tlogv("sec storage : remove\n");
+    tlogw("sec storage: remove=%" PUBLIC "s\n", (char *)(transControl->args.remove.name));
 
     SetCurrentUserId(transControl->userId);
     SetCurrentStorageId(transControl->storageId);
 
-    if (JoinFileName((char *)(transControl->args.remove.name), nameBuff, sizeof(nameBuff)) == 0) {
+#ifdef CONFIG_BACKUP_PARTITION
+    isBackup = transControl->isBackup;
+#endif
+    if (JoinFileName((char *)(transControl->args.remove.name), isBackup, nameBuff, sizeof(nameBuff)) == 0) {
         int32_t ret = UnlinkRecursive(nameBuff);
         if (ret != 0) {
-            tloge("remove file failed: %d\n", errno);
+            tloge("remove file failed: %" PUBLIC "d\n", errno);
             transControl->error = (uint32_t)errno;
         } else {
             tlogv("remove file success\n");
@@ -871,16 +1097,19 @@ static void RemoveWork(struct SecStorageType *transControl)
 static void TruncateWork(struct SecStorageType *transControl)
 {
     char nameBuff[FILE_NAME_MAX_BUF] = { 0 };
+    bool isBackup = false;
 
-    tlogv("sec storage : truncate, len=%u\n", transControl->args.truncate.len);
+    tlogv("sec storage : truncate, len=%" PUBLIC "u\n", transControl->args.truncate.len);
 
     SetCurrentUserId(transControl->userId);
     SetCurrentStorageId(transControl->storageId);
-
-    if (JoinFileName((char *)(transControl->args.truncate.name), nameBuff, sizeof(nameBuff)) == 0) {
+#ifdef CONFIG_BACKUP_PARTITION
+    isBackup = transControl->isBackup;
+#endif
+    if (JoinFileName((char *)(transControl->args.truncate.name), isBackup, nameBuff, sizeof(nameBuff)) == 0) {
         int32_t ret = truncate(nameBuff, (long)transControl->args.truncate.len);
         if (ret != 0) {
-            tloge("truncate file failed: %d\n", errno);
+            tloge("truncate file failed: %" PUBLIC "d\n", errno);
             transControl->error = (uint32_t)errno;
         } else {
             tlogv("truncate file success\n");
@@ -895,17 +1124,27 @@ static void RenameWork(struct SecStorageType *transControl)
 {
     char nameBuff[FILE_NAME_MAX_BUF]  = { 0 };
     char nameBuff2[FILE_NAME_MAX_BUF] = { 0 };
+    bool oldIsBackup = false;
+    bool newIsBackup = false;
 
     SetCurrentUserId(transControl->userId);
     SetCurrentStorageId(transControl->storageId);
 
-    int32_t joinRet1 = JoinFileName((char *)(transControl->args.rename.buffer), nameBuff, sizeof(nameBuff));
+    tlogw("sec storage: rename, old=%" PUBLIC "s, new=%" PUBLIC "s\n", (char *)(transControl->args.open.name),
+        (char *)(transControl->args.rename.buffer) + transControl->args.rename.oldNameLen);
+
+#ifdef CONFIG_BACKUP_PARTITION
+    oldIsBackup = transControl->isBackup;
+    newIsBackup = transControl->isBackupExt;
+#endif
+    int32_t joinRet1 = JoinFileName((char *)(transControl->args.rename.buffer), oldIsBackup, nameBuff,
+        sizeof(nameBuff));
     int32_t joinRet2 = JoinFileName((char *)(transControl->args.rename.buffer) + transControl->args.rename.oldNameLen,
-                                    nameBuff2, sizeof(nameBuff2));
+                                    newIsBackup, nameBuff2, sizeof(nameBuff2));
     if (joinRet1 == 0 && joinRet2 == 0) {
         int32_t ret = rename(nameBuff, nameBuff2);
         if (ret != 0) {
-            tloge("rename file failed: %d\n", errno);
+            tloge("rename file failed: %" PUBLIC "d\n", errno);
             transControl->error = (uint32_t)errno;
         } else {
             tlogv("rename file success\n");
@@ -934,7 +1173,7 @@ static int32_t DoCopy(int32_t fromFd, int32_t toFd)
     while (rcount > 0) {
         wcount = write(toFd, buf, (size_t)rcount);
         if (rcount != wcount || wcount == -1) {
-            tloge("write file failed: %d\n", errno);
+            tloge("write file failed: %" PUBLIC "d\n", errno);
             ret = -1;
             goto OUT;
         }
@@ -942,7 +1181,7 @@ static int32_t DoCopy(int32_t fromFd, int32_t toFd)
     }
 
     if (rcount < 0) {
-        tloge("read file failed: %d\n", errno);
+        tloge("read file failed: %" PUBLIC "d\n", errno);
         ret = -1;
         goto OUT;
     }
@@ -950,7 +1189,7 @@ static int32_t DoCopy(int32_t fromFd, int32_t toFd)
     /* fsync memory from kernel to disk */
     ret = fsync(toFd);
     if (ret != 0) {
-        tloge("CopyFile:fsync file failed: %d\n", errno);
+        tloge("CopyFile:fsync file failed: %" PUBLIC "d\n", errno);
         goto OUT;
     }
 
@@ -967,33 +1206,33 @@ static int32_t CopyFile(const char *fromPath, const char *toPath)
 
     uint32_t rRet = GetRealFilePath(fromPath, realFromPath, sizeof(realFromPath));
     if (rRet != 0) {
-        tloge("get real from path failed. err=%u\n", rRet);
+        tloge("get real from path failed. err=%" PUBLIC "u\n", rRet);
         return -1;
     }
 
     rRet = GetRealFilePath(toPath, realToPath, sizeof(realToPath));
     if (rRet != 0) {
-        tloge("get real to path failed. err=%u\n", rRet);
+        tloge("get real to path failed. err=%" PUBLIC "u\n", rRet);
         return -1;
     }
 
-    int32_t fromFd = open(realFromPath, O_RDONLY, 0);
+    int32_t fromFd = tee_open(realFromPath, O_RDONLY, 0);
     if (fromFd == -1) {
-        tloge("open file failed: %d\n", errno);
+        tloge("open file failed: %" PUBLIC "d\n", errno);
         return -1;
     }
 
     int32_t ret = fstat(fromFd, &fromStat);
     if (ret == -1) {
-        tloge("stat file failed: %d\n", errno);
-        close(fromFd);
+        tloge("stat file failed: %" PUBLIC "d\n", errno);
+        tee_close(&fromFd);
         return ret;
     }
 
-    int32_t toFd = open(realToPath, O_WRONLY | O_TRUNC | O_CREAT, fromStat.st_mode);
+    int32_t toFd = tee_open(realToPath, O_WRONLY | O_TRUNC | O_CREAT, fromStat.st_mode);
     if (toFd == -1) {
-        tloge("stat file failed: %d\n", errno);
-        close(fromFd);
+        tloge("stat file failed: %" PUBLIC "d\n", errno);
+        tee_close(&fromFd);
         return -1;
     }
 
@@ -1004,8 +1243,8 @@ static int32_t CopyFile(const char *fromPath, const char *toPath)
         ChownSecStorage((char *)realToPath, true);
     }
 
-    close(fromFd);
-    close(toFd);
+    tee_close(&fromFd);
+    tee_close(&toFd);
     return ret;
 }
 
@@ -1013,17 +1252,32 @@ static void CopyWork(struct SecStorageType *transControl)
 {
     char fromPath[FILE_NAME_MAX_BUF] = { 0 };
     char toPath[FILE_NAME_MAX_BUF]   = { 0 };
+    bool fromIsBackup = false;
+    bool toIsBackup = false;
 
     SetCurrentUserId(transControl->userId);
     SetCurrentStorageId(transControl->storageId);
 
-    int32_t joinRet1 = JoinFileName((char *)(transControl->args.cp.buffer), fromPath, sizeof(fromPath));
-    int32_t joinRet2 = JoinFileName((char *)(transControl->args.cp.buffer) + transControl->args.cp.fromPathLen, toPath,
-                                    sizeof(toPath));
+#ifdef CONFIG_BACKUP_PARTITION
+    fromIsBackup = transControl->isBackup;
+    toIsBackup   = transControl->isBackupExt;
+#endif
+    int32_t joinRet1 = JoinFileName((char *)(transControl->args.cp.buffer), fromIsBackup, fromPath, sizeof(fromPath));
+    int32_t joinRet2 = JoinFileName((char *)(transControl->args.cp.buffer) + transControl->args.cp.fromPathLen,
+        toIsBackup, toPath, sizeof(toPath));
     if (joinRet1 == 0 && joinRet2 == 0) {
+#ifdef CONFIG_BACKUP_PARTITION
+        if (IsFileExist(toPath) == 0) {
+            tlogd("copy_to path not exist, mkdir it.\n");
+            if (CreateDir(toPath, sizeof(toPath)) != 0) {
+                transControl->ret = -1;
+                return;
+            }
+        }
+#endif
         int32_t ret = CopyFile(fromPath, toPath);
         if (ret != 0) {
-            tloge("copy file failed: %d\n", errno);
+            tloge("copy file failed: %" PUBLIC "d\n", errno);
             transControl->error = (uint32_t)errno;
         } else {
             tlogv("copy file success\n");
@@ -1049,7 +1303,7 @@ static void FileInfoWork(struct SecStorageType *transControl)
             transControl->args.info.fileLen = (uint32_t)statBuff.st_size;
             transControl->args.info.curPos  = (uint32_t)ftell(selFile->file);
         } else {
-            tloge("fstat file failed: %d\n", errno);
+            tloge("fstat file failed: %" PUBLIC "d\n", errno);
             transControl->error = (uint32_t)errno;
         }
         transControl->ret = ret;
@@ -1062,6 +1316,7 @@ static void FileInfoWork(struct SecStorageType *transControl)
 static void FileAccessWork(struct SecStorageType *transControl)
 {
     int32_t ret;
+    bool isBackup = false;
 
     tlogv("sec storage : file access\n");
 
@@ -1070,10 +1325,13 @@ static void FileAccessWork(struct SecStorageType *transControl)
         SetCurrentUserId(transControl->userId);
         SetCurrentStorageId(transControl->storageId);
 
-        if (JoinFileName((char *)(transControl->args.access.name), nameBuff, sizeof(nameBuff)) == 0) {
+#ifdef CONFIG_BACKUP_PARTITION
+        isBackup = transControl->isBackup;
+#endif
+        if (JoinFileName((char *)(transControl->args.access.name), isBackup, nameBuff, sizeof(nameBuff)) == 0) {
             ret = access(nameBuff, transControl->args.access.mode);
             if (ret < 0) {
-                tloge("access file mode %d failed: %d\n", transControl->args.access.mode, errno);
+                tloge("access file mode %" PUBLIC "d failed: %" PUBLIC "d\n", transControl->args.access.mode, errno);
             }
             transControl->ret   = ret;
             transControl->error = (uint32_t)errno;
@@ -1083,7 +1341,7 @@ static void FileAccessWork(struct SecStorageType *transControl)
     } else {
         ret = access((char *)(transControl->args.access.name), transControl->args.access.mode);
         if (ret < 0) {
-            tloge("access2 file mode %d failed: %d\n", transControl->args.access.mode, errno);
+            tloge("access2 file mode %" PUBLIC "d failed: %" PUBLIC "d\n", transControl->args.access.mode, errno);
         }
         transControl->ret   = ret;
         transControl->error = (uint32_t)errno;
@@ -1094,33 +1352,34 @@ static void FsyncWork(struct SecStorageType *transControl)
 {
     struct OpenedFile *selFile = NULL;
 
-    tlogv("sec storage : file fsync\n");
+    tlogw("sec storage : file fsync\n");
 
     /* opened file */
     if (transControl->args.fsync.fd != 0 && FindOpenFile(transControl->args.fsync.fd, &selFile) != 0) {
         /* first,flush memory from user to kernel */
         int32_t ret = fflush(selFile->file);
         if (ret != 0) {
-            tloge("fsync:fflush file failed: %d\n", errno);
+            tloge("fsync:fflush file failed: %" PUBLIC "d\n", errno);
             transControl->ret   = -1;
             transControl->error = (uint32_t)errno;
             return;
         }
+        tlogw("fflush file %" PUBLIC "d success\n", transControl->args.fsync.fd);
 
         /* second,fsync memory from kernel to disk */
         int32_t fd  = fileno(selFile->file);
         ret = fsync(fd);
         if (ret != 0) {
-            tloge("fsync:fsync file failed: %d\n", errno);
+            tloge("fsync:fsync file failed: %" PUBLIC "d\n", errno);
             transControl->ret   = -1;
             transControl->error = (uint32_t)errno;
             return;
         }
 
         transControl->ret = 0;
-        tlogv("fsync file %d success\n", transControl->args.fsync.fd);
+        tlogw("fsync file %" PUBLIC "d success\n", transControl->args.fsync.fd);
     } else {
-        tloge("can't find opened file(fileno = %d)\n", transControl->args.fsync.fd);
+        tloge("can't find opened file(fileno = %" PUBLIC "d)\n", transControl->args.fsync.fd);
         transControl->ret   = -1;
         transControl->error = EBADF;
     }
@@ -1138,7 +1397,7 @@ static void DiskUsageWork(struct SecStorageType *transControl)
     if (GetTransientDir(nameBuff, FILE_NAME_MAX_BUF) != 0)
         goto ERROR;
     if (statfs((const char*)nameBuff, &st) < 0) {
-        tloge("statfs /secStorageData failed, err=%d\n", errno);
+        tloge("statfs /secStorageData failed, err=%" PUBLIC "d\n", errno);
         goto ERROR;
     }
     dataRemain = (uint32_t)st.f_bfree * (uint32_t)st.f_bsize / KBYTE;
@@ -1152,7 +1411,7 @@ static void DiskUsageWork(struct SecStorageType *transControl)
         goto ERROR;
     }
     if (statfs((const char*)nameBuff, &st) < 0) {
-        tloge("statfs /secStorage failed, err=%d\n", errno);
+        tloge("statfs /secStorage failed, err=%" PUBLIC "d\n", errno);
         goto ERROR;
     }
     secStorageRemain = (uint32_t)st.f_bfree * (uint32_t)st.f_bsize / KBYTE;
@@ -1174,11 +1433,11 @@ static void DeleteAllWork(struct SecStorageType *transControl)
     char *pathIn                 = (char *)(transControl->args.deleteAll.path);
     SetCurrentUserId(transControl->userId);
 
-    tlogv("sec storage : delete path, userid:%d\n", transControl->userId);
+    tlogv("sec storage : delete path, userid:%" PUBLIC "d\n", transControl->userId);
 
     ret = DoJoinFileName(pathIn, path, sizeof(path));
     if (ret != EOK) {
-        tloge("join name failed %d\n", ret);
+        tloge("join name failed %" PUBLIC "d\n", ret);
         transControl->ret = -1;
         return;
     }
@@ -1187,7 +1446,7 @@ static void DeleteAllWork(struct SecStorageType *transControl)
 
     ret = UnlinkRecursive(path);
     if (ret != 0) {
-        tloge("delete file failed: %d\n", errno);
+        tloge("delete file failed: %" PUBLIC "d\n", errno);
         transControl->error = (uint32_t)errno;
     } else {
         tloge("delete file success\n");
@@ -1213,9 +1472,53 @@ static const struct FsWorkTbl g_fsWorkTbl[] = {
     { SEC_DISKUSAGE, DiskUsageWork }, { SEC_DELETE_ALL, DeleteAllWork },
 };
 
+static int FsWorkEventHandle(struct SecStorageType *transControl, int32_t fsFd)
+{
+    int32_t ret;
+    uint64_t tsStart, tsEnd;
+
+    ret = ioctl(fsFd, (int32_t)TC_NS_CLIENT_IOCTL_WAIT_EVENT, AGENT_FS_ID);
+    if (ret != 0) {
+        tloge("fs agent wait event failed, errno = %" PUBLIC "d\n", errno);
+        return ret;
+    }
+
+    tlogv("fs agent wake up and working!!\n");
+    tsStart = GetTimeStampUs();
+
+    if ((transControl->cmd < SEC_MAX) && (g_fsWorkTbl[transControl->cmd].fn != NULL)) {
+        g_fsWorkTbl[transControl->cmd].fn(transControl);
+    } else {
+        tloge("fs agent error cmd:transControl->cmd=%" PUBLIC "x\n", transControl->cmd);
+    }
+
+    tsEnd = GetTimeStampUs();
+    if (tsEnd - tsStart > FSCMD_TIMEOUT_US) {
+        tlogw("fs agent timeout, cmd=0x%" PUBLIC "x, cost=%" PUBLIC "llums\n",
+            transControl->cmd, (tsEnd - tsStart) / USEC_PER_MSEC);
+    }
+
+    __asm__ volatile("isb");
+    __asm__ volatile("dsb sy");
+
+    transControl->magic = AGENT_FS_ID;
+
+    __asm__ volatile("isb");
+    __asm__ volatile("dsb sy");
+
+    ret = ioctl(fsFd, (int32_t)TC_NS_CLIENT_IOCTL_SEND_EVENT_RESPONSE, AGENT_FS_ID);
+    if (ret != 0) {
+        tloge("fs agent send reponse failed\n");
+        return ret;
+    }
+
+    return 0;
+}
+
 void *FsWorkThread(void *control)
 {
     struct SecStorageType *transControl = NULL;
+    int32_t ret;
     int32_t fsFd;
 
     if (control == NULL) {
@@ -1230,33 +1533,17 @@ void *FsWorkThread(void *control)
     }
 
     transControl->magic = AGENT_FS_ID;
+
+#ifdef CONFIG_FSWORK_THREAD_ELEVATE_PRIO
+    if (setpriority(0, 0, FS_AGENT_THREAD_PRIO) != 0) {
+        tloge("set fs work thread priority fail, err=%" PUBLIC "d\n", errno);
+    }
+#endif
+
     while (1) {
         tlogv("++ fs agent loop ++\n");
-        int32_t ret = ioctl(fsFd, (int32_t)TC_NS_CLIENT_IOCTL_WAIT_EVENT, AGENT_FS_ID);
+        ret = FsWorkEventHandle(transControl, fsFd);
         if (ret != 0) {
-            tloge("fs agent  wait event failed, errno = %d\n", errno);
-            break;
-        }
-
-        tlogv("fs agent wake up and working!!\n");
-
-        if ((transControl->cmd < SEC_MAX) && (g_fsWorkTbl[transControl->cmd].fn != NULL)) {
-            g_fsWorkTbl[transControl->cmd].fn(transControl);
-        } else {
-            tloge("fs agent error cmd:transControl->cmd=%x\n", transControl->cmd);
-        }
-
-        __asm__ volatile("isb");
-        __asm__ volatile("dsb sy");
-
-        transControl->magic = AGENT_FS_ID;
-
-        __asm__ volatile("isb");
-        __asm__ volatile("dsb sy");
-
-        ret = ioctl(fsFd, (int32_t)TC_NS_CLIENT_IOCTL_SEND_EVENT_RESPONSE, AGENT_FS_ID);
-        if (ret != 0) {
-            tloge("fs agent send reponse failed\n");
             break;
         }
         tlogv("-- fs agent loop --\n");
@@ -1277,6 +1564,6 @@ void SetFileNumLimit(void)
             (void)setrlimit(RLIMIT_NOFILE, &rlimNew);
         }
     } else {
-        tloge("getrlimit error is 0x%x, errno is %x", rRet, errno);
+        tloge("getrlimit error is 0x%" PUBLIC "x, errno is %" PUBLIC "x", rRet, errno);
     }
 }

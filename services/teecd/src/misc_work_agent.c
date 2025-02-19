@@ -43,7 +43,7 @@ static void GetTimeWork(struct MiscControlType *transControl)
                 tstruct->tm_min, tstruct->tm_sec, (int)(timeVal.tv_usec / 1000));
             if (rc == -1) {
                 transControl->ret = -1;
-                tloge("snprintf_s error %d\n", rc);
+                tloge("snprintf_s error %" PUBLIC "d\n", rc);
             }
         } else {
             tloge("get localtime error\n");
@@ -76,7 +76,7 @@ void *MiscWorkThread(void *control)
         tlogv("++ misc agent loop ++\n");
         int ret = ioctl(miscFd, (int)TC_NS_CLIENT_IOCTL_WAIT_EVENT, AGENT_MISC_ID);
         if (ret) {
-            tloge("misc agent wait event failed, errno = %d\n", errno);
+            tloge("misc agent wait event failed, errno = %" PUBLIC "d\n", errno);
             break;
         }
 

@@ -33,5 +33,6 @@
 #define TC_NS_CLIENT_IOCTL_LATEINIT                       _IO(TC_NS_CLIENT_IOC_MAGIC, 20)
 #define TC_NS_CLIENT_IOCTL_GET_TEE_VERSION                _IOWR(TC_NS_CLIENT_IOC_MAGIC, 21, unsigned int)
 #define TC_NS_CLIENT_IOCTL_UNMAP_SHARED_MEM               _IOWR(TC_NS_CLIENT_IOC_MAGIC, 22, unsigned int)
+#define TC_NS_CLIENT_IOCTL_SET_TA_CONTROL_VERSION         _IOWR(TC_NS_CLIENT_IOC_MAGIC, 34, struct TaCtrlInfo)
 
 #endif

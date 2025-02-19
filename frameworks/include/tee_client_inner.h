@@ -35,10 +35,15 @@ extern "C" {
 #define IS_VALUE_MEM(paramType) \
     (((paramType) == TEEC_VALUE_INPUT) || ((paramType) == TEEC_VALUE_OUTPUT) || ((paramType) == TEEC_VALUE_INOUT))
 
+#define IS_SHARED_MEM(paramType) \
+    ((paramType) == TEEC_MEMREF_SHARED_INOUT)
+
+#define MAX_SHAREDMEM_LEN 0x10000000
+
 #define CHECK_ERR_RETURN(val, ref, ret)                                                        \
     do {                                                                                       \
         if ((val) != (ref)) {                                                                  \
-            tloge("%{public}d: error: %{public}d\n", __LINE__, (int)val); \
+            tloge("%" PUBLIC "d: error: %" PUBLIC "d\n", __LINE__, (int)(val)); \
             return ret;                                                                        \
         }                                                                                      \
     } while (0)
@@ -46,7 +51,7 @@ extern "C" {
 #define CHECK_ERR_NO_RETURN(val, ref)                                                          \
     do {                                                                                       \
         if ((val) != (ref)) {                                                                  \
-            tloge("%{public}d: error: %{public}d\n", __LINE__, (int)val); \
+            tloge("%" PUBLIC "d: error: %" PUBLIC "d\n", __LINE__, (int)(val)); \
             return;                                                                            \
         }                                                                                      \
     } while (0)
@@ -54,7 +59,7 @@ extern "C" {
 #define CHECK_ERR_GOTO(val, ref, label)                                                        \
     do {                                                                                       \
         if ((val) != (ref)) {                                                                  \
-            tloge("%{public}d: error: %{public}d\n", __LINE__, (int)val); \
+            tloge("%" PUBLIC "d: error: %" PUBLIC "d\n", __LINE__, (int)(val)); \
             goto label;                                                                        \
         }                                                                                      \
     } while (0)
@@ -107,6 +112,22 @@ typedef struct {
     const uint8_t *taPath;
     FILE *taFp;
 } TaFileInfo;
+
+typedef TEEC_Result (*InitializeContextFunc)(const char *name, TEEC_Context *context);
+typedef void (*FinalizeContextFunc)(TEEC_Context *context);
+typedef TEEC_Result (*OpenSessionFunc)(TEEC_Context *context, TEEC_Session *session, const TEEC_UUID *destination,
+    uint32_t connectionMethod, const void *connectionData, TEEC_Operation *operation, uint32_t *returnOrigin);
+typedef void (*CloseSessionFunc)(TEEC_Session *session);
+typedef TEEC_Result (*InvokeCommandFunc)(TEEC_Session *session, uint32_t commandID,
+    TEEC_Operation *operation, uint32_t *returnOrigin);
+
+typedef struct {
+    InitializeContextFunc initializeContext;
+    FinalizeContextFunc finalizeContext;
+    OpenSessionFunc openSession;
+    CloseSessionFunc closeSession;
+    InvokeCommandFunc invokeCommand;
+} TEEC_FuncMap;
 
 #ifdef __cplusplus
 }

@@ -156,7 +156,7 @@ static int32_t InsertTaTagNode(char *tagName, uint32_t tagLen, const char **logT
     errno_t rc = memcpy_s(&tagInfo->uuid, sizeof(tagInfo->uuid),
         (struct TeeUuid *)logItem->uuid, sizeof(logItem->uuid));
     if (rc != EOK) {
-        tloge("memcpy_s uuid error %d\n", rc);
+        tloge("memcpy_s uuid error %" PUBLIC "d\n", rc);
         goto FREE_TAG;
     }
 
@@ -239,13 +239,13 @@ static bool GetTagName(bool isTa, const struct LogItem *logItem, const char **lo
 
     int32_t ret = snprintf_s(tagName, tagLen, tagLen - 1, "%s-%s", "teeos", logItemTag);
     if (ret < 0) {
-        tloge("snprintf_s for ta tag name is failed:0x%x\n", ret);
+        tloge("snprintf_s for ta tag name is failed:0x%" PUBLIC "x\n", ret);
         goto FREE_NAME;
     }
 
     ret = InsertTagNode(isTa, tagName, tagLen, logTag, logItem);
     if (ret < 0) {
-        tloge("insert tag node to list is failed:0x%x\n", ret);
+        tloge("insert tag node to list is failed:0x%" PUBLIC "x\n", ret);
         goto FREE_NAME;
     }
 

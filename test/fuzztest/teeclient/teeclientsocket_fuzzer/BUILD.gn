@@ -1,0 +1,43 @@
+# Copyright (C) 2022 Huawei Technologies Co., Ltd.
+# Licensed under the Mulan PSL v2.
+# You can use this software according to the terms and conditions of the Mulan PSL v2.
+# You may obtain a copy of Mulan PSL v2 at:
+#     http://license.coscl.org.cn/MulanPSL2
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR
+# PURPOSE.
+# See the Mulan PSL v2 for more details.
+
+#####################hydra-fuzz###################
+import("//build/config/features.gni")
+import("//build/test.gni")
+module_output_path = "tee_client/tee_client"
+
+##############################fuzztest##########################################
+ohos_fuzztest("TeeClientSocketFuzzTest") {
+  module_out_path = module_output_path
+  fuzz_config_file = "../teeclientsocket_fuzzer"
+  include_dirs = [
+    "../../../../interfaces/inner_api",
+    "../../../../services/cadaemon/src/ca_daemon",
+    "../../../../services/authentication",
+    "../../../../frameworks/libteec_vendor",
+    "../../../../frameworks/include",
+  ]
+  cflags = [
+    "-g",
+    "-O0",
+    "-Wno-unused-variable",
+    "-fno-omit-frame-pointer",
+  ]
+  sources = [ "teeclientsocket_fuzzer.cpp" ]
+
+  external_deps = [
+    "access_token:libaccesstoken_sdk",
+    "c_utils:utils",
+    "hilog:libhilog",
+    "ipc:ipc_single",
+    "safwk:system_ability_fwk",
+    "samgr:samgr_proxy",
+  ]
+}

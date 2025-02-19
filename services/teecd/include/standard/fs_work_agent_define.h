@@ -13,7 +13,12 @@
 #ifndef LIBTEEC_FS_WORK_AGENT_DEFINE_H
 #define LIBTEEC_FS_WORK_AGENT_DEFINE_H
 
+#ifndef CONFIG_SMART_LOCK_PLATFORM
 #define USER_DATA_DIR   "/data/service/el1/public/"
 #define ROOT_DIR "/"
+#else
+#define USER_DATA_DIR   "/quickstart/"
+#define ROOT_DIR "/default/"
+#endif
 
 #endif

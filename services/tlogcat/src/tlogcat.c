@@ -28,7 +28,7 @@
 #include "tarzip.h"
 #include "proc_tag.h"
 #include "sys_log_api.h"
-
+#include "tee_file.h"
 #ifdef LOG_TAG
 #undef LOG_TAG
 #endif
@@ -40,7 +40,6 @@
 #define LOG_FILE_TEE_COMPRESS_DEMO  "teeos-log-0.tar.gz"
 
 #define TLOGCAT_FILE_MODE           0750
-#define UUID_MAX_STR_LEN            40U
 /* for log item */
 #define LOG_ITEM_MAGIC              0x5A5A
 #define LOG_ITEM_LEN_ALIGN          64
@@ -73,9 +72,9 @@ struct LogFile {
     char logName[FILE_NAME_MAX_BUF];
 };
 static struct LogFile *g_files = NULL;
-#endif
 static char *g_compressFile = NULL;
 static struct TeeUuid g_compressUuid;
+#endif
 char *g_logBuffer = NULL;
 
 /* for ioctl */
@@ -142,15 +141,15 @@ static int32_t LogFilesMkdirR(const char *path)
                 *pos = '/';
                 continue;
             } else if (ret != 0) {
-                tloge("mkdir %s fail, errno %d\n", temp, errno);
+                tloge("mkdir %" PUBLIC "s fail, errno %" PUBLIC "d\n", temp, errno);
                 free(temp);
                 return -1;
             }
             ret = chmod(temp, TLOGCAT_FILE_MODE);
             if (ret < 0) {
-                tloge("chmod %s err %d\n", temp, ret);
+                tloge("chmod %" PUBLIC "s err %" PUBLIC "d\n", temp, ret);
             }
-            tlogv("for %s\n", temp);
+            tlogv("for %" PUBLIC "s\n", temp);
             *pos = '/';
         }
     }
@@ -159,7 +158,7 @@ static int32_t LogFilesMkdirR(const char *path)
     return 0;
 }
 
-static void GetUuidStr(const struct TeeUuid *uuid, char *name, uint32_t nameLen)
+void GetUuidStr(const struct TeeUuid *uuid, char *name, uint32_t nameLen)
 {
     int32_t ret = snprintf_s(name, nameLen, nameLen - 1, "%08X%04X%04X%02X%02X%02X%02X%02X%02X%02X%02X",
                              uuid->timeLow, uuid->timeMid, uuid->timeHiAndVersion, uuid->clockSeqAndNode[0],
@@ -226,6 +225,13 @@ static FILE *LogFilesOpen(const char *logName, long *fileLen)
     FILE *file = NULL;
     bool isNewFile = false;
 
+    if (access(logName, F_OK) == 0) {
+        ret = chmod(logName, S_IRUSR | S_IWUSR | S_IRGRP);
+        if (ret != 0) {
+            tloge("open chmod error, ret: %" PUBLIC "d, file:%" PUBLIC "s\n", ret, logName);
+            return NULL;
+        }
+    }
     int32_t fd1 = open(logName, O_WRONLY);
     if (fd1 < 0) {
         /* file is not exist */
@@ -237,7 +243,7 @@ static FILE *LogFilesOpen(const char *logName, long *fileLen)
     }
 
     if (file == NULL) {
-        tloge("open error:logName %s, errno %d\n", logName, errno);
+        tloge("open error:logName %" PUBLIC "s, errno %" PUBLIC "d\n", logName, errno);
         CloseFileFd(&fd1);
         return NULL;
     }
@@ -262,7 +268,7 @@ static FILE *LogFilesOpen(const char *logName, long *fileLen)
     if (isNewFile) {
         size_t ret1 = fwrite(g_teeVersion, 1, strlen(g_teeVersion), file);
         if (ret1 == 0) {
-            tloge("write tee verion to %s failed %zu\n", logName, ret1);
+            tloge("write tee verion to %" PUBLIC "s failed %" PUBLIC "zu\n", logName, ret1);
         }
     }
 
@@ -347,8 +353,13 @@ static void TriggerCompress(void)
         SetFileNameAttr(&nameAttr, uuidAscii, isTa, i);
         ret = LogAssembleFilename(filesToCompress[i], FILE_NAME_MAX_BUF, g_teeTempPath, &nameAttr);
         if (ret < 0) {
-            tloge("snprintf file to compress error %d %s, %s, %u\n", ret, g_teeTempPath, uuidAscii, i);
+            tloge("snprintf file to compress error %" PUBLIC "d %" PUBLIC "s, %" PUBLIC "s, %" PUBLIC "u\n",
+                ret, g_teeTempPath, uuidAscii, i);
             continue;
+        }
+        ret = chmod(filesToCompress[i], S_IRUSR | S_IWUSR | S_IRGRP);
+        if (ret != 0) {
+            tloge("trigger compress chmod failed\n");
         }
     }
 
@@ -363,14 +374,14 @@ FREE_RES:
 
         ret = unlink(filesToCompress[i]);
         if (ret < 0) {
-            tloge("unlink file %s failed, ret %d\n", filesToCompress[i], ret);
+            tloge("unlink file %" PUBLIC "s failed, ret %" PUBLIC "d\n", filesToCompress[i], ret);
         }
         free(filesToCompress[i]);
     }
 
     ret = rmdir(g_teeTempPath);
     if (ret < 0) {
-        tloge("rmdir failed %s, ret %d, errno %d\n", g_teeTempPath, ret, errno);
+        tloge("rmdir failed %" PUBLIC "s, ret %" PUBLIC "d, errno %" PUBLIC "d\n", g_teeTempPath, ret, errno);
     }
 }
 #endif
@@ -394,7 +405,8 @@ static char *GetCompressFile(const struct TeeUuid *uuid)
         SetFileNameAttr(&nameAttr, g_uuidAscii, isTa, i);
         int32_t rc = LogAssembleCompressFilename(g_logNameCompress, sizeof(g_logNameCompress), g_teePath, &nameAttr);
         if (rc < 0) {
-            tloge("snprintf log name compresserror error %d %s %s %u\n", rc, g_teePath, g_uuidAscii, i);
+            tloge("snprintf log name compresserror error %" PUBLIC "d %" PUBLIC "s %" PUBLIC "s %" PUBLIC "u\n",
+                rc, g_teePath, g_uuidAscii, i);
             continue;
         }
 
@@ -421,12 +433,13 @@ static void ArrangeCompressFile(const struct TeeUuid *uuid)
     SetFileNameAttr(&nameAttr, g_uuidAscii, isTa, 0);
     ret = LogAssembleCompressFilename(g_logName, sizeof(g_logName), g_teePath, &nameAttr);
     if (ret < 0) {
-        tloge("arrange snprintf error %d %s %s %d\n", ret, g_teePath, g_uuidAscii, 0);
+        tloge("arrange snprintf error %" PUBLIC "d %" PUBLIC "s %" PUBLIC "s %" PUBLIC "d\n",
+            ret, g_teePath, g_uuidAscii, 0);
         return;
     }
     ret = unlink(g_logName);
     if (ret < 0) {
-        tloge("unlink failed %s, %d\n", g_logName, ret);
+        tloge("unlink failed %" PUBLIC "s, %" PUBLIC "d\n", g_logName, ret);
     }
 
     /*
@@ -437,18 +450,20 @@ static void ArrangeCompressFile(const struct TeeUuid *uuid)
         SetFileNameAttr(&nameAttr, g_uuidAscii, isTa, i);
         ret = LogAssembleCompressFilename(g_logNameCompress, sizeof(g_logNameCompress), g_teePath, &nameAttr);
         if (ret < 0) {
-            tloge("snprintf log name compress error %d %s %s %u\n", ret, g_teePath, g_uuidAscii, i);
+            tloge("snprintf log name compress error %" PUBLIC "d %" PUBLIC "s %" PUBLIC "s %" PUBLIC "u\n",
+                ret, g_teePath, g_uuidAscii, i);
             continue;
         }
 
         ret = rename(g_logNameCompress, g_logName);
         if (ret < 0) {
-            tloge("rename error %s, %s, %d, errno %d\n", g_logNameCompress, g_logName, ret, errno);
+            tloge("rename error %" PUBLIC "s, %" PUBLIC "s, %" PUBLIC "d, errno %" PUBLIC "d\n",
+                g_logNameCompress, g_logName, ret, errno);
         }
 
         ret = memcpy_s(g_logName, sizeof(g_logName), g_logNameCompress, sizeof(g_logNameCompress));
         if (ret != EOK) {
-            tloge("memcpy_s error %d\n", ret);
+            tloge("memcpy_s error %" PUBLIC "d\n", ret);
             return;
         }
     }
@@ -459,7 +474,7 @@ static void UnlinkTmpFile(const char *name)
     struct stat st = {0};
 
     if (lstat(name, &st) < 0) {
-        tloge("lstat %s failed, errno is %d\n", name, errno);
+        tloge("lstat %" PUBLIC "s failed, errno is %" PUBLIC "d\n", name, errno);
         return;
     }
 
@@ -468,7 +483,7 @@ static void UnlinkTmpFile(const char *name)
     }
 
     if (unlink(name) < 0) {
-        tloge("unlink %s failed, errno is %d\n", name, errno);
+        tloge("unlink %" PUBLIC "s failed, errno is %" PUBLIC "d\n", name, errno);
     }
 }
 
@@ -479,7 +494,7 @@ static void LogTmpDirClear(const char *tmpPath)
 
     DIR *dir = opendir(tmpPath);
     if (dir == NULL) {
-        tloge("open dir %s failed, errno:%d\n", tmpPath, errno);
+        tloge("open dir %" PUBLIC "s failed, errno:%" PUBLIC "d\n", tmpPath, errno);
         return;
     }
 
@@ -493,7 +508,7 @@ static void LogTmpDirClear(const char *tmpPath)
         ret = snprintf_s(filePathName, sizeof(filePathName), sizeof(filePathName) - 1,
             "%s/%s", tmpPath, de->d_name);
         if (ret == -1) {
-            tloge("get fiel path name failed %d\n", ret);
+            tloge("get fiel path name failed %" PUBLIC "d\n", ret);
             de = readdir(dir);
             continue;
         }
@@ -504,7 +519,7 @@ static void LogTmpDirClear(const char *tmpPath)
     (void)closedir(dir);
     ret = rmdir(tmpPath);
     if (ret < 0) {
-        tloge("clear %s failed, err:%d, errno:%d\n", tmpPath, ret, errno);
+        tloge("clear %" PUBLIC "s failed, err:%" PUBLIC "d, errno:%" PUBLIC "d\n", tmpPath, ret, errno);
     }
 }
 
@@ -522,7 +537,7 @@ static int32_t MkdirTmpPath(const char *tmpPath)
 
     ret = mkdir(tmpPath, TLOGCAT_FILE_MODE);
     if (ret < 0) {
-        tloge("mkdir %s failed, errno:%d\n", tmpPath, errno);
+        tloge("mkdir %" PUBLIC "s failed, errno:%" PUBLIC "d\n", tmpPath, errno);
         return -1;
     }
     return 0;
@@ -536,13 +551,15 @@ static void MoveFileToTmpPath(bool isTa, uint32_t index)
     SetFileNameAttr(&nameAttr, g_uuidAscii, isTa, index);
     ret = LogAssembleFilename(g_logName, sizeof(g_logName), g_teePath, &nameAttr);
     if (ret < 0) {
-        tloge("snprintf log name error %d %s %s %u\n", ret, g_teePath, g_uuidAscii, index);
+        tloge("snprintf log name error %" PUBLIC "d %" PUBLIC "s %" PUBLIC "s %" PUBLIC "u\n",
+            ret, g_teePath, g_uuidAscii, index);
         return;
     }
 
     ret = LogAssembleFilename(g_logNameCompress, sizeof(g_logNameCompress), g_teeTempPath, &nameAttr);
     if (ret < 0) {
-        tloge("snprintf log name compress error %d %s %s %u\n", ret, g_teeTempPath, g_uuidAscii, index);
+        tloge("snprintf log name compress error %" PUBLIC "d %" PUBLIC "s %" PUBLIC "s %" PUBLIC "u\n",
+            ret, g_teeTempPath, g_uuidAscii, index);
         return;
     }
 
@@ -550,10 +567,10 @@ static void MoveFileToTmpPath(bool isTa, uint32_t index)
     bool check = (ret < 0 && errno != ENOENT);
     /* File is exist, but rename is failed */
     if (check) {
-        tloge("rename %s failed, err: %d, errno:%d\n", g_logName, ret, errno);
+        tloge("rename %" PUBLIC "s failed, err: %" PUBLIC "d, errno:%" PUBLIC "d\n", g_logName, ret, errno);
         ret = unlink(g_logName);
         if (ret < 0) {
-            tloge("unlink failed %s %d\n", g_logName, ret);
+            tloge("unlink failed %" PUBLIC "s %" PUBLIC "d\n", g_logName, ret);
         }
     }
 }
@@ -590,7 +607,7 @@ static void LogFilesCompress(const struct TeeUuid *uuid)
     g_compressFile = g_logNameCompress;
     rc = memcpy_s(&g_compressUuid, sizeof(g_compressUuid), uuid, sizeof(struct TeeUuid));
     if (rc != EOK) {
-        tloge("memcpy_s error %d\n", rc);
+        tloge("memcpy_s error %" PUBLIC "d\n", rc);
         return;
     }
 
@@ -606,7 +623,7 @@ static void LogFileFull(uint32_t fileNum)
     struct FileNameAttr nameAttr = {0};
 
     if (g_files[fileNum].fileIndex >= LOG_FILE_INDEX_MAX) {
-        tloge("the file index is overflow %u\n", g_files[fileNum].fileIndex);
+        tloge("the file index is overflow %" PUBLIC "u\n", g_files[fileNum].fileIndex);
         return;
     }
 
@@ -617,20 +634,28 @@ static void LogFileFull(uint32_t fileNum)
     SetFileNameAttr(&nameAttr, uuidAscii, isTa, 0);
     rc = LogAssembleFilename(logName, sizeof(logName), g_teePath, &nameAttr);
     if (rc < 0) {
-        tloge("snprintf log name error %d %s %s %d\n", rc, g_teePath, uuidAscii, 0);
+        tloge("snprintf log name error %" PUBLIC "d %" PUBLIC "s %" PUBLIC "s %" PUBLIC "d\n",
+            rc, g_teePath, uuidAscii, 0);
         return;
     }
 
     SetFileNameAttr(&nameAttr, uuidAscii, isTa, g_files[fileNum].fileIndex + 1);
     rc = LogAssembleFilename(logName2, sizeof(logName2), g_teePath, &nameAttr);
     if (rc < 0) {
-        tloge("snprintf log name2 error %d %s %s %u\n", rc, g_teePath, uuidAscii, g_files[fileNum].fileIndex + 1);
+        tloge("snprintf log name2 error %" PUBLIC "d %" PUBLIC "s %" PUBLIC "s %" PUBLIC "u\n",
+            rc, g_teePath, uuidAscii, g_files[fileNum].fileIndex + 1);
         return;
     }
 
     rc = rename(logName, logName2);
     if (rc < 0) {
-        tloge("file full and rename error %s, %s, %d, errno %d\n", logName, logName2, rc, errno);
+        tloge("file full and rename error %" PUBLIC "s, %" PUBLIC "s, %" PUBLIC "d, errno %" PUBLIC "d\n",
+            logName, logName2, rc, errno);
+    }
+
+    rc = chmod(logName2, S_IRUSR | S_IRGRP);
+    if (rc != 0) {
+        tloge("chmod file:%" PUBLIC "s failed, ret: %" PUBLIC "d\n", logName2, rc);
     }
 
     return;
@@ -651,7 +676,7 @@ static int32_t LogFilesChecklimit(uint32_t fileNum)
 
         errno_t rc = memset_s(&g_files[fileNum], sizeof(g_files[fileNum]), 0, sizeof(struct LogFile));
         if (rc != EOK) {
-            tloge("memset failed %d\n", rc);
+            tloge("memset failed %" PUBLIC "d\n", rc);
         }
 
         return -1;
@@ -674,7 +699,7 @@ static struct LogFile *GetUsableFile(const struct TeeUuid *uuid)
         }
 
         if (g_files[i].file == NULL) {
-            tloge("unexpected error in index %u, file is null\n", i);
+            tloge("unexpected error in index %" PUBLIC "u, file is null\n", i);
             (void)memset_s(&g_files[i], sizeof(g_files[i]), 0, sizeof(g_files[i]));
             continue;
         }
@@ -684,7 +709,7 @@ static struct LogFile *GetUsableFile(const struct TeeUuid *uuid)
             continue;
         }
 
-        tlogd("get log file %s\n", g_files[i].logName);
+        tlogd("get log file %" PUBLIC "s\n", g_files[i].logName);
         return &g_files[i];
     }
 
@@ -704,7 +729,8 @@ static void GetFileIndex(const char *uuidAscii, bool isTa, uint32_t *fileIndex)
         SetFileNameAttr(&nameAttr, uuidAscii, isTa, (uint32_t)i);
         int32_t ret = LogAssembleFilename(logName, sizeof(logName), g_teePath, &nameAttr);
         if (ret < 0) {
-            tloge("snprintf log name error %d %s %s %d\n", ret, g_teePath, uuidAscii, i);
+            tloge("snprintf log name error %" PUBLIC "d %" PUBLIC "s %" PUBLIC "s %" PUBLIC "d\n",
+                ret, g_teePath, uuidAscii, i);
             continue;
         }
 
@@ -747,7 +773,7 @@ static struct LogFile *LogFilesGet(const struct TeeUuid *uuid, bool isTa)
     SetFileNameAttr(&nameAttr, uuidAscii, isTa, 0);
     rc = LogAssembleFilename(logName, sizeof(logName), g_teePath, &nameAttr);
     if (rc < 0) {
-        tloge("snprintf log name error %d %s %s\n", rc, g_teePath, uuidAscii);
+        tloge("snprintf log name error %" PUBLIC "d %" PUBLIC "s %" PUBLIC "s\n", rc, g_teePath, uuidAscii);
         return NULL;
     }
 
@@ -776,7 +802,7 @@ static void LogFilesClose(void)
             continue;
         }
 
-        tlogd("close file %s, fileLen %ld\n", g_files[i].logName, g_files[i].fileLen);
+        tlogd("close file %" PUBLIC "s, fileLen %" PUBLIC "ld\n", g_files[i].logName, g_files[i].fileLen);
         (void)fflush(g_files[i].file);
         (void)fclose(g_files[i].file);
 
@@ -788,6 +814,12 @@ static void LogFilesClose(void)
                 /* this file is full */
                 LogFileFull(i);
             }
+        }
+
+        int32_t ret = chmod(g_files[i].logName, S_IRUSR | S_IRGRP);
+        if (ret != 0) {
+            tlogi("close file: %" PUBLIC "s chmod ret: %" PUBLIC "d errno: %" PUBLIC "d\n",
+                g_files[i].logName, ret, errno);
         }
 
         (void)memset_s(&g_files[i], sizeof(g_files[i]), 0, sizeof(g_files[i]));
@@ -822,7 +854,7 @@ static struct LogItem *LogItemGetNext(const char *logBuffer, size_t scopeLen)
         return logItemNext;
     }
 
-    tlogd("logItemNext info: magic %x, logBufferLen %x, logRealLen %x\n",
+    tlogd("logItemNext info: magic %" PUBLIC "x, logBufferLen %" PUBLIC "x, logRealLen %" PUBLIC "x\n",
           logItemNext->magic, logItemNext->logBufferLen, logItemNext->logRealLen);
     return NULL;
 }
@@ -836,7 +868,7 @@ static void LogSetReadposCur(void)
     }
     ret = ioctl(g_devFd, TEELOGGER_SET_READERPOS_CUR, 0);
     if (ret != 0) {
-        tloge("set readpos cur failed %d\n", ret);
+        tloge("set readpos cur failed %" PUBLIC "d\n", ret);
     }
 
     g_readposCur = 1;
@@ -854,7 +886,7 @@ static int32_t LogSetTlogcatF(void)
 
     ret = ioctl(g_devFd, TEELOGGER_SET_TLOGCAT_STAT, 0);
     if (ret != 0) {
-        tloge("set tlogcat status failed %d\n", ret);
+        tloge("set tlogcat status failed %" PUBLIC "d\n", ret);
     }
 
     return ret;
@@ -871,7 +903,7 @@ static int32_t LogGetTlogcatF(void)
 
     ret = ioctl(g_devFd, TEELOGGER_GET_TLOGCAT_STAT, 0);
     if (ret != 0) {
-        tloge("get tlogcat status failed %d\n", ret);
+        tloge("get tlogcat status failed %" PUBLIC "d\n", ret);
     }
 
     return ret;
@@ -890,7 +922,7 @@ static void WritePrivateLogFile(const struct LogItem *logItem, bool isTa)
 
     writeNum = fwrite(logItem->logBuffer, 1, (size_t)logItem->logRealLen, logFile->file);
     if (writeNum != (size_t)logItem->logRealLen) {
-        tloge("save file failed %zu, %u\n", writeNum, logItem->logRealLen);
+        tloge("save file failed %" PUBLIC "zu, %" PUBLIC "u\n", writeNum, logItem->logRealLen);
         (void)fclose(logFile->file);
         (void)memset_s(logFile, sizeof(struct LogFile), 0, sizeof(struct LogFile));
     }
@@ -934,14 +966,14 @@ static void ReadLogBuffer(bool writeFile, const char *logBuffer, size_t readLen)
     struct LogItem *logItem = LogItemGetNext(logBuffer, readLen);
 
     while (logItem != NULL) {
-        tlogd("get log length %u\n", logItem->logBufferLen);
+        tlogd("get log length %" PUBLIC "u\n", logItem->logBufferLen);
 
         OutputLog(logItem, writeFile);
 
         /* check log item have been finished */
         logItemTotalLen += logItem->logBufferLen + sizeof(struct LogItem);
         if (logItemTotalLen >= readLen) {
-            tlogd("totallen %zd, readLen %zd\n", logItemTotalLen, readLen);
+            tlogd("totallen %" PUBLIC "zd, readLen %" PUBLIC "zd\n", logItemTotalLen, readLen);
             break;
         }
 
@@ -969,16 +1001,16 @@ static int32_t ProcReadLog(bool writeFile, const fd_set *readset)
     READ_RETRY:
         ret = read(g_devFd, g_logBuffer, LOG_BUFFER_LEN);
         if (ret == 0) {
-            tlogd("tlogcat read no data:ret=%zd\n", ret);
+            tlogd("tlogcat read no data:ret=%" PUBLIC "zd\n", ret);
             return -1;
         } else if (ret < 0) {
-            tloge("tlogcat read failed:ret=%zd\n", ret);
+            tloge("tlogcat read failed:ret=%" PUBLIC "zd\n", ret);
             return -1;
         } else if (ret > LOG_BUFFER_LEN) {
-            tloge("invalid read length = %zd\n", ret);
+            tloge("invalid read length = %" PUBLIC "zd\n", ret);
             return -1;
         } else {
-            tlogd("read length ret = %zd\n", ret);
+            tlogd("read length ret = %" PUBLIC "zd\n", ret);
         }
 
         readLen = (size_t)ret;
@@ -1113,18 +1145,18 @@ static int32_t Prepare(void)
     (void)memset_s(g_files, (sizeof(struct LogFile) * LOG_FILES_MAX), 0, (sizeof(struct LogFile) * LOG_FILES_MAX));
 #endif
 
-    g_devFd = open("/dev/teelog", O_RDONLY);
+    g_devFd = tee_open("/dev/teelog", O_RDONLY, 0);
     if (g_devFd < 0) {
         tloge("open log device error\n");
         return -1;
     }
 
-    tlogd("open dev success g_devFd=%d\n", g_devFd);
+    tlogd("open dev success g_devFd=%" PUBLIC "d\n", g_devFd);
 
     /* get tee version info */
     ret = ioctl(g_devFd, TEELOGGER_GET_VERSION, g_teeVersion);
     if (ret != 0) {
-        tloge("get tee verison failed %d\n", ret);
+        tloge("get tee verison failed %" PUBLIC "d\n", ret);
     }
 
     OpenTeeLog();
@@ -1145,11 +1177,7 @@ static void Destruct(void)
     }
 #endif
 
-    if (g_devFd >= 0) {
-        close(g_devFd);
-        g_devFd = -1;
-    }
-
+    tee_close(&g_devFd);
     CloseTeeLog();
 }
 
@@ -1224,7 +1252,8 @@ int32_t main(int32_t argc, char *argv[])
     while ((ch = getopt(argc, argv, "f::ms:ghvt")) != -1) {
         g_defaultOp = false;
         if (optind > 0 && optind < argc) {
-            tlogd("optind: %d, argc:%d, argv[%d]:%s\n", optind, argc, optind, argv[optind]);
+            tlogd("optind: %" PUBLIC "d, argc:%" PUBLIC "d, argv[%" PUBLIC "d]:%" PUBLIC "s\n",
+                optind, argc, optind, argv[optind]);
         }
         if (SwitchSelect(ch) != 0) {
             tloge("option failed\n");
@@ -1232,7 +1261,7 @@ int32_t main(int32_t argc, char *argv[])
 
         printf("----------------------------\n");
         if (optind > 0 && optind < argc) {
-            tlogd("optind=%d, argv[%d]=%s\n", optind, optind, argv[optind]);
+            tlogd("optind=%" PUBLIC "d, argv[%" PUBLIC "d]=%" PUBLIC "s\n", optind, optind, argv[optind]);
         }
     }
 

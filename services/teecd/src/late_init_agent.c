@@ -20,7 +20,7 @@
 #include "fs_work_agent.h"
 #include "tc_ns_client.h"
 #include "tee_log.h"
-
+#include "tee_file.h"
 #ifdef LOG_TAG
 #undef LOG_TAG
 #endif
@@ -33,17 +33,17 @@ void *InitLateWorkThread(void *dummy)
 
     tlogd("now start to late init\n");
 
-    int fd = open(TC_PRIVATE_DEV_NAME, O_RDWR);
+    int fd = tee_open(TC_PRIVATE_DEV_NAME, O_RDWR, 0);
     if (fd < 0) {
-        tloge("open tee client dev failed, fd is %d\n", fd);
+        tloge("open tee client dev failed, fd is %" PUBLIC "d\n", fd);
         return NULL;
     }
 
     int ret = ioctl(fd, (int)TC_NS_CLIENT_IOCTL_LATEINIT, index);
     if (ret) {
-        tloge("failed to set late init, errno = %d\n", errno);
+        tloge("failed to set late init, errno = %" PUBLIC "d\n", errno);
     }
 
-    close(fd);
+    tee_close(&fd);
     return NULL;
 }

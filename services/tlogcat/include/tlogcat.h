@@ -34,6 +34,7 @@
 #define NEVER_USED_LEN              32U
 #define TEE_UUID_LEN                16U
 #define ITEM_RESERVED_LEN           1U
+#define UUID_MAX_STR_LEN            40U
 
 /* 64 byte head + user log */
 struct LogItem {
@@ -58,4 +59,7 @@ struct TeeUuid {
     uint16_t timeHiAndVersion;
     uint8_t clockSeqAndNode[CLOCK_SEG_NODE_LEN];
 };
+
+void GetUuidStr(const struct TeeUuid *uuid, char *name, uint32_t nameLen);
+
 #endif
