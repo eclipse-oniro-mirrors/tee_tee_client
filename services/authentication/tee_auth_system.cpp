@@ -66,7 +66,7 @@ static int32_t Base64Decode(string& encodedStr, unsigned char *decodedStr, uint3
         return -1;
     }
 
-    if (ret == 0 || ret <= static_cast<int32_t>padLen) {
+    if (ret == 0 || ret <= static_cast<int32_t>(padLen)) {
         tloge("base64 decoded failed, decoded len %" PUBLIC "u, pad len %" PUBLIC "u\n", ret, padLen);
         return -1;
     }
