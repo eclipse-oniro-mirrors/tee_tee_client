@@ -13,8 +13,8 @@ import("//build/ohos.gni")
 import("//build/ohos_var.gni")
 
 component_type = ""
-if (defined(global_parts_info) && defined(global_parts_info.bundle_framework) &&
-    global_parts_info.bundle_framework) {
+if (defined(global_parts_info) &&
+    defined(global_parts_info.bundlemanager_bundle_framework)) {
   component_type = "system"
 }
 
