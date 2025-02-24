@@ -66,7 +66,7 @@ static int32_t Base64Decode(string& encodedStr, unsigned char *decodedStr, uint3
         return -1;
     }
 
-    if (ret == 0 || ret <= padLen) {
+    if (ret == 0 || ret <= static_cast<int32_t>padLen) {
         tloge("base64 decoded failed, decoded len %" PUBLIC "u, pad len %" PUBLIC "u\n", ret, padLen);
         return -1;
     }
@@ -82,7 +82,7 @@ static int32_t FillEccHapCaInfo(string& packageName, const char *pubKey, uint32_
         sizeof(uint32_t) + sizeof(uint32_t) * BASE_NUM_TWO + pubKeyLen;
     if (hapInfoSize > sizeof(caInfo->certs)) {
         tloge("buf too short, %" PUBLIC "u, %" PUBLIC "u, %" PUBLIC "u\n",
-            (unsigned int)sizeof(caInfo->certs), packageName.length(), pubKeyLen);
+            (unsigned int)sizeof(caInfo->certs), (unsigned int)packageName.length(), (unsigned int)pubKeyLen);
         return -1;
     }
 

@@ -50,7 +50,7 @@ namespace OHOS {
                 memory[g_shareMemoryCnt] = *reinterpret_cast<TEEC_SharedMemory *>(temp);
                 temp += sizeof(TEEC_SharedMemory);
                 TEEC_Result allocRet = TEEC_AllocateSharedMemory(&context, &memory[g_shareMemoryCnt]);
-                if (allocRet = TEEC_SUCCESS) {
+                if (allocRet == TEEC_SUCCESS) {
                     g_recordShareMemory[g_shareMemoryCnt] = paramCnt;
                     param[paramCnt].memref.parent = &memory[g_shareMemoryCnt];
                     g_shareMemoryCnt++;
