@@ -87,7 +87,7 @@ public:
     int32_t SetCallBack(const sptr<IRemoteObject> &notify) override;
     TEEC_Result SendSecfile(const char *path, int fd, FILE *fp, MessageParcel &reply) override;
     TEEC_Result GetTeeVersion(MessageParcel &reply) override;
-
+    void OnAddSystemAbility(int32_t systemAbilityId, const std::string& deviceId) override;
 private:
     bool Init();
     bool registerToService_ = false;
@@ -135,6 +135,7 @@ private:
     std::mutex mClientLock;
     std::vector<sptr<Client>> mClients;
     int mTeeVersion;
+    void *mDstbHandle;
 };
 } // namespace CaDaemon
 } // namespace OHOS

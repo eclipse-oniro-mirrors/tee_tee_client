@@ -94,6 +94,28 @@ void CaDaemonService::CreateTuiThread()
     tlogi("CaDaemonService teeTuiThreadWork start \n");
 }
 
+void CaDaemonService::OnAddSystemAbility(
+    int32_t systemAbilityId, const std::string& deviceId)
+{
+    void (*initDevMgr)(void) = nullptr;
+    switch (systemAbilityId) {
+        case DISTRIBUTED_HARDWARE_DEVICEMANAGER_SA_ID:
+            initDevMgr = (void(*)(void))dlsym(mDstbHandle, "InitDeviceManager");
+            if (initDevMgr == nullptr) {
+                tloge("get InitDeviceManager handle is null, error=%" PUBLIC "s\n", dlerror());
+                return;
+            }
+            tlogi("callback init device manager\n");
+            initDevMgr();
+            break;
+        default:
+            tloge("invalid systemAbilityId\n");
+            break;
+    }
+
+    return;
+}
+
 __attribute__((no_sanitize("cfi"))) void CaDaemonService::CreateDstbTeeService()
 {
     TEEC_FuncMap funcMap = {
@@ -105,21 +127,26 @@ __attribute__((no_sanitize("cfi"))) void CaDaemonService::CreateDstbTeeService()
     };
 
 #if defined(__LP64__)
-    void *handle = dlopen("/system/lib64/libdistributed_tee_service.so", RTLD_LAZY);
+    mDstbHandle = dlopen("/system/lib64/libdistributed_tee_service.so", RTLD_LAZY);
 #else
-    void *handle = dlopen("/system/lib/libdistributed_tee_service.so", RTLD_LAZY);
+    mDstbHandle = dlopen("/system/lib/libdistributed_tee_service.so", RTLD_LAZY);
 #endif
-    if (handle == nullptr) {
+    if (mDstbHandle == nullptr) {
         tlogi("dstb tee service handle is null");
         return;
     }
 
     void (*initDstbTee)(TEEC_FuncMap *funcMap) = nullptr;
-    initDstbTee = (void(*)(TEEC_FuncMap *funcMap))dlsym(handle, "InitDstbTeeService");
+    initDstbTee = (void(*)(TEEC_FuncMap *funcMap))dlsym(mDstbHandle, "InitDstbTeeService");
     if (initDstbTee == nullptr) {
         tloge("dstb tee service init func is null\n");
         return;
     }
+
+    if (AddSystemAbilityListener(DISTRIBUTED_HARDWARE_DEVICEMANAGER_SA_ID) == false) {
+        tloge("add DHDM system ability listener faile\n");
+    }
+
     initDstbTee(&funcMap);
 }
 
