@@ -120,10 +120,4 @@ struct DstbMsg {
     uint64_t msgBuffer;
     uint32_t msgSize;
 };
-
-struct TaCtrlInfo {
-    uint8_t *buffer;
-    uint32_t size;
-};
-
 #endif

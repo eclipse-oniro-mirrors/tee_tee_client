@@ -30,7 +30,6 @@
 #include "tee_log.h"
 #include "tee_auth_system.h"
 #include "tcu_authentication.h"
-#include "tee_ta_version_ctrl.h"
 #include "tc_ns_client.h"
 #include "tee_ioctl_cmd.h"
 #include <sys/ioctl.h>
@@ -482,8 +481,6 @@ TEEC_Result CaDaemonService::InitializeContext(const char *name, MessageParcel &
     if (InitCaAuthInfo(caInfo) != TEEC_SUCCESS) {
         goto FREE_CONTEXT;
     }
-
-    InitTaVersionCtrl(CTRL_TYPE_SYSTEM);
 
     ret = TEEC_InitializeContextInner(contextInner, caInfo);
     if (ret != TEEC_SUCCESS) {

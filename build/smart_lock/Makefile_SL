@@ -62,7 +62,6 @@ TEECD_SRCS := services/teecd/src/tee_agent.c \
 			  services/authentication/tee_get_native_cert.c \
 			  services/authentication/tcu_authentication.c \
 			  services/authentication/tee_auth_common.c \
-			  services/taversion_ctrl/tee_ta_version_ctrl.c \
 			  frameworks/tee_file/tee_file.c
 
 TEECD_SRC_DIR := ${CURDIR}/../../

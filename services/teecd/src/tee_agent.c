@@ -29,7 +29,6 @@
 #include "tee_load_dynamic.h"
 #include "tee_log.h"
 #include "tcu_authentication.h"
-#include "tee_ta_version_ctrl.h"
 #include "tee_file.h"
 #ifdef LOG_TAG
 #undef LOG_TAG
@@ -214,7 +213,6 @@ int main(void)
 
     /* Trans the xml file to tzdriver: */
     (void)TcuAuthentication(HASH_TYPE_VENDOR);
-    (void)SetTaVersionCtrl(CTRL_TYPE_VENDOR);
 
     int ret = ProcessAgentInit();
     if (ret) {
@@ -222,6 +220,14 @@ int main(void)
     }
 
     TrySyncSysTimeToSecure();
+
+    SetFileNumLimit();
+
+    /* Since sfs is accessed during the first sec file load, 
+       the fs agent thread needs to be initialized before the first sec file is loaded */
+    if (g_fsThreadFlag == 1) {
+        (void)pthread_create(&fsThread, NULL, FsWorkThread, g_fsControl);
+    }
 
 #ifdef DYNAMIC_CRYPTO_DRV_DIR
     LoadDynamicCryptoDir();
@@ -244,12 +250,6 @@ int main(void)
     LoadDynamicSrvDir();
 #endif
 #endif
-
-    SetFileNumLimit();
-
-    if (g_fsThreadFlag == 1) {
-        (void)pthread_create(&fsThread, NULL, FsWorkThread, g_fsControl);
-    }
 
     (void)pthread_create(&miscThread, NULL, MiscWorkThread, g_miscControl);
 #ifdef CONFIG_LATE_INIT

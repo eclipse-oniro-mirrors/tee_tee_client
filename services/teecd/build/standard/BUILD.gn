@@ -25,7 +25,6 @@ ohos_executable("teecd") {
     "../../../authentication/tcu_authentication.c",
     "../../../authentication/tee_auth_common.c",
     "../../../authentication/tee_get_native_cert.c",
-    "../../../taversion_ctrl/tee_ta_version_ctrl.c",
     "../../src/fs_work_agent.c",
     "../../src/late_init_agent.c",
     "../../src/misc_work_agent.c",

@@ -34,7 +34,6 @@ ohos_shared_library("libcadaemon") {
       "../../../authentication/tee_auth_common.c",
       "../../../authentication/tee_auth_system.cpp",
       "../../../authentication/tee_get_native_cert.c",
-      "../../../taversion_ctrl/tee_ta_version_ctrl.c",
       "../../src/ca_daemon/cadaemon_service.cpp",
       "../../src/ca_daemon/cadaemon_stub.cpp",
       "../../src/tui_daemon/tee_tui_daemon_wrapper.cpp",
