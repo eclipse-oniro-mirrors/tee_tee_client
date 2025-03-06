@@ -31,6 +31,7 @@
 #include "tee_client_ext_api.h"
 #include "tee_client_api.h"
 #include "cadaemon_service.h"
+#include "tee_file.h"
 
 using namespace testing::ext;
 using namespace OHOS;
