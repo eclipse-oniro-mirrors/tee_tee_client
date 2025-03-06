@@ -114,7 +114,7 @@ void TEEC_FinalizeContext(TEEC_Context *context);
  *         Returns {@code TEEC_ERROR_OUT_OF_MEMORY} if the available system resources are insufficient.
  *         Returns {@code TEEC_ERROR_TRUSTED_APP_LOAD_ERROR} if the TA failed to be loaded.
  *         For details about other return values, see {@code TEEC_ReturnCode}.
- * 
+ *
  * @since 8
  */
 TEEC_Result TEEC_OpenSession(TEEC_Context *context, TEEC_Session *session, const TEEC_UUID *destination,
@@ -146,7 +146,7 @@ void TEEC_CloseSession(TEEC_Session *session);
  *         Returns {@code TEEC_ERROR_ACCESS_DENIED} if the access request is denied.
  *         Returns {@code TEEC_ERROR_OUT_OF_MEMORY} if the available system resources are insufficient.
  *         For details about other return values, see {@code TEEC_ReturnCode}.
- * 
+ *
  * @since 8
  */
 TEEC_Result TEEC_InvokeCommand(TEEC_Session *session, uint32_t commandID,
@@ -164,7 +164,7 @@ TEEC_Result TEEC_InvokeCommand(TEEC_Session *session, uint32_t commandID,
  *
  * @return Returns {@code TEEC_SUCCESS} if the operation is successful.
  *         Returns {@code TEEC_ERROR_BAD_PARAMETERS} if <b>context</b> or <b>sharedMem</b> is null or the pointed memory is empty.
- * 
+ *
  * @since 8
  */
 TEEC_Result TEEC_RegisterSharedMemory(TEEC_Context *context, TEEC_SharedMemory *sharedMem);

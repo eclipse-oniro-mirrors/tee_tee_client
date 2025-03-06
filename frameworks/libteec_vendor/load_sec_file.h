@@ -18,6 +18,12 @@
 #include "tc_ns_client.h"
 #include "tee_default_path.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 int32_t LoadSecFile(int tzFd, FILE *fp, enum SecFileType fileType, const TEEC_UUID *uuid);
 
+#ifdef __cplusplus
+}
 #endif
