@@ -25,13 +25,8 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
-#ifdef __cplusplus
-extern "C" {
-#endif
 #include "load_sec_file.h"
-#ifdef __cplusplus
-}
-#endif
+
 using namespace testing::ext;
 class CaDaemonTest : public testing::Test {
 public:
@@ -100,4 +95,3 @@ HWTEST_F(LoadSecfileTest, LoadSecfile_002, TestSize.Level1)
     EXPECT_TRUE(ret != 0);
 }
 }
-
