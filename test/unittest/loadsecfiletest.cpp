@@ -28,7 +28,7 @@
 #include "load_sec_file.h"
 
 using namespace testing::ext;
-class CaDaemonTest : public testing::Test {
+class LoadSecfileTest : public testing::Test {
 public:
     static void SetUpTestCase(void);
     static void TearDownTestCase(void);
@@ -36,22 +36,22 @@ public:
     void TearDown();
 };
 
-void CaDaemonTest::SetUpTestCase(void)
+void LoadSecfileTest::SetUpTestCase(void)
 {
     printf("SetUp\n");
 }
 
-void CaDaemonTest::TearDownTestCase(void)
+void LoadSecfileTest::TearDownTestCase(void)
 {
     printf("TearDownTestCase\n");
 }
 
-void CaDaemonTest::SetUp(void)
+void LoadSecfileTest::SetUp(void)
 {
     printf("SetUpTestCase\n");
 }
 
-void CaDaemonTest::TearDown(void)
+void LoadSecfileTest::TearDown(void)
 {
     printf("TearDown\n");
 }
