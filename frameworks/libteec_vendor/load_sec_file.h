@@ -27,3 +27,4 @@ int32_t LoadSecFile(int tzFd, FILE *fp, enum SecFileType fileType, const TEEC_UU
 #ifdef __cplusplus
 }
 #endif
+#endif
