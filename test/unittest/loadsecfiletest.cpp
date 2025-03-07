@@ -62,21 +62,21 @@ HWTEST_F(LoadSecfileTest, LoadSecfile_001, TestSize.Level1)
     int tzFd = -1;
     int ret = 0;
 
-    ret = LoadSecfile(tzFd, nullptr, LOAD_TA, nullptr);
+    ret = LoadSecFile(tzFd, nullptr, LOAD_TA, nullptr);
     EXPECT_TRUE(ret != 0);
 
     tzFd = 0;
-    ret = LoadSecfile(tzFd, nullptr, LOAD_TA, nullptr);
+    ret = LoadSecFile(tzFd, nullptr, LOAD_TA, nullptr);
     EXPECT_TRUE(ret != 0);
 }
-
+#define MAX_BUFFER_LEN (8 * 1024 * 1024)
 HWTEST_F(LoadSecfileTest, LoadSecfile_002, TestSize.Level1)
 {
     int tzFd = 0;
     int ret = 0;
 
     FILE *fp = fopen("./LoadSecfile_002.txt", "w+");
-    ret = LoadSecfile(tzFd, nullptr, LOAD_TA, nullptr);
+    ret = LoadSecFile(tzFd, nullptr, LOAD_TA, nullptr);
     fclose(fp);
     EXPECT_TRUE(ret != 0);
 
@@ -84,13 +84,13 @@ HWTEST_F(LoadSecfileTest, LoadSecfile_002, TestSize.Level1)
     (void)fseek(fp, MAX_BUFFER_LEN + 1, SEEK_SET);
     char chr = 0;
     fwrite(&chr, 1, sizeof(chr), fp);
-    ret = LoadSecfile(tzFd, fp, LOAD_TA, nullptr);
+    ret = LoadSecFile(tzFd, fp, LOAD_TA, nullptr);
     fclose(fp);
     EXPECT_TRUE(ret != 0);
 
     fp = fopen("./LoadSecfile_002.txt", "w+");
     fprintf(fp, "%s", "LoadSecfile_002");
-    ret = LoadSecfile(tzFd, fp, LOAD_TA, nullptr);
+    ret = LoadSecFile(tzFd, fp, LOAD_TA, nullptr);
     fclose(fp);
     EXPECT_TRUE(ret != 0);
 }
