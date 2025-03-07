@@ -213,4 +213,20 @@ HWTEST_F(TUIDaemonTest, TeeTuiThreadWork_002, TestSize.Level1)
     TeeTuiThreadWork();
     SetGlobalStubMock(nullptr);
 }
+
+HWTEST_F(TUIDaemonTest, TeeTuiThreadWork_003, TestSize.Level1)
+{
+    int ret = tee_open(nullptr, 0, 0);
+    EXPECT_TRUE(ret != 0);
+
+    ret = tee_open("/data/TeeTuiThreadWork_003", 0, 1);
+    EXPECT_TRUE(ret != 0);
+
+    int fd = -1;
+    tee_close(nullptr);
+    tee_close(&fd);
+    fd = tee_open("./TeeTuiThreadWork_003", O_WRONLY | O_TRUNC | O_CREAT, 0);
+    tee_close(&fd);
+    EXPECT_TRUE(ret != 0);
+}
 }
