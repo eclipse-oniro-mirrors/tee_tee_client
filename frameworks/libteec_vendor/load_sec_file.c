@@ -17,6 +17,10 @@
 #include "tc_ns_client.h"
 #include "tee_log.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifdef LOG_TAG
 #undef LOG_TAG
 #endif
@@ -108,3 +112,6 @@ int32_t LoadSecFile(int tzFd, FILE *fp, enum SecFileType fileType, const TEEC_UU
     return ret;
 }
 
+#ifdef __cplusplus
+}
+#endif
