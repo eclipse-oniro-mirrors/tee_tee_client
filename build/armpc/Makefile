@@ -18,7 +18,6 @@ COMMON_INCLUDES := ${CURDIR}/../../interfaces/inner_api \
 				   ${CURDIR}/../../services/teecd/include/standard \
 				   ${CURDIR}/../../services/teecd/include \
 				   ${CURDIR}/../../services/authentication \
-				   ${CURDIR}/../../services/taversion_ctrl \
 				   ${CURDIR}/../../../../../vendor/huawei/chipset_common/modules/libc_sec/include
 
 

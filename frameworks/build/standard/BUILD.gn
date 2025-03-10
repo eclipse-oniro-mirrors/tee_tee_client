@@ -32,7 +32,6 @@ ohos_shared_library("libteec") {
     "../../libteec_client/",
     "../../libteec_vendor/",
     "../../authentication",
-    "../../taversion_ctrl",
   ]
 
   external_deps = [
@@ -83,7 +82,6 @@ ohos_shared_library("libteec_vendor") {
     "../../include/standard/",
     "../../libteec_vendor/",
     "../../../services/authentication",
-    "../../../services/taversion_ctrl",
   ]
 
   external_deps = [
