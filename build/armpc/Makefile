@@ -11,14 +11,14 @@ include flags.mk
 
 # common flags
 COMMON_INCLUDES := ${CURDIR}/../../interfaces/inner_api \
-				   ${CURDIR}/../../frameworks/include/standard/teec_vendor \
-				   ${CURDIR}/../../frameworks/include/standard \
-				   ${CURDIR}/../../frameworks/include \
-				   ${CURDIR}/../../frameworks/libteec_vendor \
-				   ${CURDIR}/../../services/teecd/include/standard \
-				   ${CURDIR}/../../services/teecd/include \
-				   ${CURDIR}/../../services/authentication \
-				   ${CURDIR}/../../../../../vendor/huawei/chipset_common/modules/libc_sec/include
+                   ${CURDIR}/../../frameworks/include/standard/teec_vendor \
+                   ${CURDIR}/../../frameworks/include/standard \
+                   ${CURDIR}/../../frameworks/include \
+                   ${CURDIR}/../../frameworks/libteec_vendor \
+                   ${CURDIR}/../../services/teecd/include/standard \
+                   ${CURDIR}/../../services/teecd/include \
+                   ${CURDIR}/../../services/authentication \
+                   ${CURDIR}/../../../../../vendor/huawei/chipset_common/modules/libc_sec/include
 
 
 COMMON_CFLAGS  := $(addprefix -I, $(COMMON_INCLUDES)) $(CFLAGS) -D_GNU_SOURCE \
