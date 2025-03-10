@@ -165,11 +165,41 @@ ohos_unittest("authenticationtest") {
   ldflags = [ "--coverage" ]
 }
 
+ohos_unittest("loadsecfiletest") {
+  subsystem_name = "tee"
+  part_name = "tee_client"
+  test_module = "load_secfile"
+  module_out_path = subsystem_name + "/" + part_name + "/" + test_module
+
+  include_dirs = [
+    "../../interfaces/inner_api",
+    "../../frameworks/include/",
+    "../../frameworks/include/standard",
+    "../../services/cadaemon/src/ca_daemon/",
+    "../../services/authentication/",
+    "../../frameworks/libteec_vendor/",
+    "../../frameworks/libteec_client/",
+    "../../frameworks/include/standard/teec_system",
+  ]
+
+  sources = [ "loadsecfiletest.cpp" ]
+
+  deps = [ "../../frameworks/build/standard:libteec_vendor" ]
+
+  external_deps = [
+    "c_utils:utils",
+    "googletest:gtest_main",
+    "hilog:libhilog",
+  ]
+  ldflags = [ "--coverage" ]
+}
+
 group("unittest") {
   testonly = true
   deps = [ ":cadaemontest" ]
   deps += [ ":teecvendortest" ]
   deps += [ ":authenticationtest" ]
+  deps += [ ":loadsecfiletest" ]
 
   if (component_type == "system") {
     if (tee_client_features_tui) {

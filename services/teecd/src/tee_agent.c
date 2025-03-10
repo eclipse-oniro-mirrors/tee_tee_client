@@ -223,7 +223,7 @@ int main(void)
 
     SetFileNumLimit();
 
-    /* Since sfs is accessed during the first sec file load, 
+    /* Since sfs is accessed during the first sec file load,
        the fs agent thread needs to be initialized before the first sec file is loaded */
     if (g_fsThreadFlag == 1) {
         (void)pthread_create(&fsThread, NULL, FsWorkThread, g_fsControl);

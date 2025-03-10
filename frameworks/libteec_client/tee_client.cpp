@@ -319,7 +319,7 @@ static void SleepNs(long num)
     (void)nanosleep(&ts, nullptr);
 }
 
-#define SLEEP_TIME (200*1000*1000)
+#define SLEEP_TIME (200 * 1000 * 1000)
 #define CONNECT_MAX_NUM 10
 
 TEEC_Result TeeClient::InitializeContextSendCmd(const char *name, MessageParcel &reply)
@@ -781,7 +781,6 @@ TEEC_Result TeeClient::OpenSessionSendCmd(TEEC_Context *context, TEEC_Session *s
 
     CHECK_ERR_RETURN(WriteIonFd(data, operation), true, TEEC_FAIL);
 
-
     if (data.WriteUint32(optMemSize) != true) {
         return TEEC_FAIL;
     }
@@ -1155,7 +1154,7 @@ TEEC_Result TeeClient::InvokeCommandSendCmd(TEEC_Context *context, TEEC_Session 
     if (optMemSize > 0) {
         if (!data.WriteAshmem(optMem)) {
             tloge("write ash mem to parcel failed\n");
-            goto CLEAR_MEM;           
+            goto CLEAR_MEM;
         }
     }
 
@@ -1507,7 +1506,7 @@ void TeeClient::ReleaseSharedMemory(TEEC_SharedMemory *sharedMem)
 
     if (mTeecService->SendRequest(RELEASE_MEM, data, reply, option) != ERR_NONE) {
         tloge("releaseSharemem: send request failed\n");
-        return;      
+        return;
     }
 
     sharedMem->buffer  = nullptr;
