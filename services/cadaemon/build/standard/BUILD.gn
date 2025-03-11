@@ -47,7 +47,6 @@ ohos_shared_library("libcadaemon") {
       "../../../../frameworks/include/standard/teec_system",
       "../../../../frameworks/libteec_vendor/",
       "../../../authentication",
-      "../../../taversion_ctrl",
       "../../src/ca_daemon",
       "../../../../services/cadaemon/src/tui_daemon",
     ]
@@ -112,7 +111,6 @@ if (component_type == "system") {
       "../../../../frameworks/include/standard/teec_system",
       "../../../../frameworks/libteec_vendor/",
       "../../../authentication",
-      "../../../taversion_ctrl",
       "../../src/ca_daemon",
       "../../src/tui_daemon",
     ]

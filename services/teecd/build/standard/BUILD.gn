@@ -44,7 +44,6 @@ ohos_executable("teecd") {
     "../../../../frameworks/include/standard/teec_vendor",
     "../../../../frameworks/libteec_vendor",
     "../../../authentication",
-    "../../../taversion_ctrl",
   ]
 
   defines = [ "CONFIG_FSWORK_THREAD_ELEVATE_PRIO" ]
