@@ -15,6 +15,10 @@
 #include <stdint.h>
 #include "tee_auth_common.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define TC_NS_SOCKET_NAME        "#tc_ns_socket"
 
 typedef struct {
@@ -23,5 +27,9 @@ typedef struct {
 } CaRevMsg;
 
 int CaDaemonConnectWithCaInfo(const CaAuthInfo *caInfo, int cmd);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

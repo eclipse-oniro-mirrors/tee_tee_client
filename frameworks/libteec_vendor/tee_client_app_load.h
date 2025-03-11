@@ -19,6 +19,10 @@
 #include "tee_client_inner.h"
 #include "tee_client_type.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define MAX_FILE_PATH_LEN 20
 #define MAX_FILE_NAME_LEN 40
 #define MAX_FILE_EXT_LEN  6
@@ -72,5 +76,9 @@ typedef struct {
 
 int32_t TEEC_GetApp(const TaFileInfo *taFile, const TEEC_UUID *srvUuid, TC_NS_ClientContext *cliContext);
 int32_t TEEC_LoadSecfile(const char *filePath, int tzFd, FILE *fp);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
