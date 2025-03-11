@@ -26,6 +26,8 @@
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include "load_sec_file.h"
+#include "tee_client_app_load.h"
+#include "tee_client_socket.h"
 
 using namespace testing::ext;
 class LoadSecfileTest : public testing::Test {
@@ -92,6 +94,65 @@ HWTEST_F(LoadSecfileTest, LoadSecfile_002, TestSize.Level1)
     fprintf(fp, "%s", "LoadSecfile_002");
     ret = LoadSecFile(tzFd, fp, LOAD_TA, nullptr);
     fclose(fp);
+    EXPECT_TRUE(ret != 0);
+}
+
+HWTEST_F(LoadSecfileTest, ClientAppLoad_001, TestSize.Level1)
+{
+    int ret = 0;
+    TaFileInfo taFile = { 0 };
+    TEEC_UUID srvUuid = { 0 };
+    TC_NS_ClientContext cliContext = { { 0 } };
+
+    ret = TEEC_GetApp(nullptr, nullptr, nullptr);
+    EXPECT_TRUE(ret != 0);
+
+    ret = TEEC_GetApp(&taFile, nullptr, nullptr);
+    EXPECT_TRUE(ret != 0);
+
+    ret = TEEC_GetApp(&taFile, &srvUuid, nullptr);
+    EXPECT_TRUE(ret != 0);
+
+    FILE *fp = fopen("./ClientAppLoad_001.sec", "w+");
+    taFile.taFp = fp;
+    ret = TEEC_GetApp(&taFile, &srvUuid, &cliContext);
+    fclose(fp);
+    EXPECT_TRUE(ret != 0);
+}
+
+HWTEST_F(LoadSecfileTest, ClientAppLoad_002, TestSize.Level1)
+{
+    int ret = 0;
+    FILE *fp = fopen("./ClientAppLoad_002.txt", "w+");
+
+    ret = TEEC_LoadSecfile(nullptr, -1, nullptr);
+    EXPECT_TRUE(ret != 0);
+
+    ret = TEEC_LoadSecfile(nullptr, 0, fp);
+    EXPECT_TRUE(ret != 0);
+
+    string str("./ClientAppLoad_002.txt");
+    ret = TEEC_LoadSecfile(str.c_str(), 0, fp);
+    EXPECT_TRUE(ret != 0);
+
+    ret = TEEC_LoadSecfile(str.c_str(), 0, nullptr);
+    EXPECT_TRUE(ret != 0);
+
+    fclose(fp);
+}
+
+HWTEST_F(LoadSecfileTest, ClientSocket_001, TestSize.Level1)
+{
+    int ret = 0;
+    CaAuthInfo caInfo = { { 0 } };
+
+    ret = CaDaemonConnectWithCaInfo(nullptr, 0);
+    EXPECT_TRUE(ret != 0);
+
+    ret = CaDaemonConnectWithCaInfo(&caInfo, 0);
+    EXPECT_TRUE(ret != 0);
+
+    ret = CaDaemonConnectWithCaInfo(&caInfo, GET_TEEVERSION);
     EXPECT_TRUE(ret != 0);
 }
 }
