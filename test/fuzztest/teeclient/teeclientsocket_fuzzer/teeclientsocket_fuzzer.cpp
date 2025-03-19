@@ -21,7 +21,7 @@
 #include <securec.h>
 #include "tee_log.h"
 #include "tee_client_inner.h"
-
+#include "tee_client_socket.h"
 namespace OHOS {
     #define TC_NS_SOCKET_NAME "#tc_ns_socket"
     bool TeeClientTeeSrvIpcProcCmdFuzzTest(const uint8_t *data, size_t size)
@@ -31,6 +31,8 @@ namespace OHOS {
         uint32_t len;
         struct sockaddr_un remote;
         struct msghdr message;
+        CaRevMsg revBuffer = { 0 };
+        char ctrlBuffer[CMSG_SPACE(sizeof(int))];
         size_t msgLen = size >= sizeof(message) ? sizeof(message) : size;
 
         if (memset_s(&message, sizeof(message), 0, sizeof(message)) != EOK) {
@@ -39,6 +41,12 @@ namespace OHOS {
         if (memcpy_s(&message, msgLen - 1, data, msgLen - 1) != EOK) {
             return false;
         }
+
+        (message.msg_iov[0]).iov_base = revBuffer;
+        (message.msg_iov[0]).iov_len = sizeof(revBuffer);
+        message.msg_control = ctrlBuf;
+        message.msg_controllen = CMSG_SPACE(sizeof(int));
+
         int s = socket(AF_UNIX, SOCK_STREAM, 0);
         if (s == -1) {
             tloge("can't open stream socket, errno=%" PUBLIC "d\n", errno);
