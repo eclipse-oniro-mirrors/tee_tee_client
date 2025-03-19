@@ -24,6 +24,25 @@
 #include "tee_client_socket.h"
 namespace OHOS {
     #define TC_NS_SOCKET_NAME "#tc_ns_socket"
+    int InitMessage(struct msghdr *message, CaRevMsg *revBuffer, char *ctrlBuffer, const uint8_t *data, size_t size)
+    {
+        size_t msgLen = size >= sizeof(*message) ? sizeof(*message) : size;
+
+        if (memset_s(message, sizeof(*message), 0, sizeof(*message)) != EOK) {
+            return -1;
+        }
+        if (memcpy_s(message, msgLen - 1, data, msgLen - 1) != EOK) {
+            return -1;
+        }
+
+        (message->msg_iov[0]).iov_base = revBuffer;
+        (message->msg_iov[0]).iov_len = sizeof(*revBuffer);
+        message->msg_control = static_cast<void*>(ctrlBuffer);
+        message->msg_controllen = CMSG_SPACE(sizeof(int));
+
+        return 0;
+    }
+
     bool TeeClientTeeSrvIpcProcCmdFuzzTest(const uint8_t *data, size_t size)
     {
         int ret;
@@ -33,19 +52,10 @@ namespace OHOS {
         struct msghdr message;
         CaRevMsg revBuffer = { 0 };
         char ctrlBuffer[CMSG_SPACE(sizeof(int))];
-        size_t msgLen = size >= sizeof(message) ? sizeof(message) : size;
 
-        if (memset_s(&message, sizeof(message), 0, sizeof(message)) != EOK) {
+        if (InitMessage(&message, revBuffer, ctrlBuffer, data, size) != EOK) {
             return false;
         }
-        if (memcpy_s(&message, msgLen - 1, data, msgLen - 1) != EOK) {
-            return false;
-        }
-
-        (message.msg_iov[0]).iov_base = revBuffer;
-        (message.msg_iov[0]).iov_len = sizeof(revBuffer);
-        message.msg_control = static_cast<void*>(ctrlBuffer);
-        message.msg_controllen = CMSG_SPACE(sizeof(int));
 
         int s = socket(AF_UNIX, SOCK_STREAM, 0);
         if (s == -1) {
