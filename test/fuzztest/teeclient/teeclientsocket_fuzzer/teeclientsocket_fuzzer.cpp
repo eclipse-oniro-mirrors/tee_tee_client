@@ -53,7 +53,7 @@ namespace OHOS {
         CaRevMsg revBuffer = { 0 };
         char ctrlBuffer[CMSG_SPACE(sizeof(int))];
 
-        if (InitMessage(&message, revBuffer, ctrlBuffer, data, size) != EOK) {
+        if (InitMessage(&message, &revBuffer, ctrlBuffer, data, size) != EOK) {
             return false;
         }
 
