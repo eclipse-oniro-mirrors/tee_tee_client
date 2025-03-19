@@ -44,7 +44,7 @@ namespace OHOS {
 
         (message.msg_iov[0]).iov_base = revBuffer;
         (message.msg_iov[0]).iov_len = sizeof(revBuffer);
-        message.msg_control = (void*)ctrlBuffer;
+        message.msg_control = static_cast<void*>(ctrlBuffer);
         message.msg_controllen = CMSG_SPACE(sizeof(int));
 
         int s = socket(AF_UNIX, SOCK_STREAM, 0);
