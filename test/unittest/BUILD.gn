@@ -21,10 +21,9 @@ if (defined(global_parts_info) &&
 }
 if (tee_client_features_tui) {
   ohos_unittest("tuidaemontest") {
-    subsystem_name = "tee"
     part_name = "tee_client"
     test_module = "tee_client_features_tui"
-    module_out_path = subsystem_name + "/" + part_name + "/" + test_module
+    module_out_path = part_name + "/" + test_module
 
     include_dirs = [
       "../../interfaces/inner_api",
@@ -65,10 +64,9 @@ if (tee_client_features_tui) {
 }
 
 ohos_unittest("cadaemontest") {
-  subsystem_name = "tee"
   part_name = "tee_client"
   test_module = "cadaemon"
-  module_out_path = subsystem_name + "/" + part_name + "/" + test_module
+  module_out_path = part_name + "/" + test_module
 
   include_dirs = [
     "../../interfaces/inner_api",
@@ -96,10 +94,9 @@ ohos_unittest("cadaemontest") {
 }
 
 ohos_unittest("teecvendortest") {
-  subsystem_name = "tee"
   part_name = "tee_client"
   test_module = "teec_vendor"
-  module_out_path = subsystem_name + "/" + part_name + "/" + test_module
+  module_out_path = part_name + "/" + test_module
 
   include_dirs = [
     "../../interfaces/inner_api",
@@ -126,10 +123,9 @@ ohos_unittest("teecvendortest") {
 }
 
 ohos_unittest("authenticationtest") {
-  subsystem_name = "tee"
   part_name = "tee_client"
   test_module = "authentication"
-  module_out_path = subsystem_name + "/" + part_name + "/" + test_module
+  module_out_path = part_name + "/" + test_module
   defines = [ "ENABLE_FDSAN_CHECK" ]
   include_dirs = [
     "../../services/authentication/",
@@ -166,10 +162,9 @@ ohos_unittest("authenticationtest") {
 }
 
 ohos_unittest("loadsecfiletest") {
-  subsystem_name = "tee"
   part_name = "tee_client"
   test_module = "load_secfile"
-  module_out_path = subsystem_name + "/" + part_name + "/" + test_module
+  module_out_path = part_name + "/" + test_module
 
   include_dirs = [
     "../../interfaces/inner_api",
