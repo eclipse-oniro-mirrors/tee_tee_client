@@ -28,13 +28,12 @@ namespace OHOS {
     {
         size_t msgLen = size >= sizeof(*message) ? sizeof(*message) : size;
 
-        if (memset_s(message, sizeof(*message), 0, sizeof(*message)) != EOK) {
-            return -1;
-        }
         if (memcpy_s(message, msgLen - 1, data, msgLen - 1) != EOK) {
             return -1;
         }
-
+        struct iovec iov[1];
+        message->msg_iov = iov;
+        message->msg_iovlen = 1;
         (message->msg_iov[0]).iov_base = revBuffer;
         (message->msg_iov[0]).iov_len = sizeof(*revBuffer);
         message->msg_control = static_cast<void*>(ctrlBuffer);
@@ -49,7 +48,7 @@ namespace OHOS {
         int rc;
         uint32_t len;
         struct sockaddr_un remote;
-        struct msghdr message;
+        struct msghdr message = { 0 };
         CaRevMsg revBuffer = { 0 };
         char ctrlBuffer[CMSG_SPACE(sizeof(int))];
 
