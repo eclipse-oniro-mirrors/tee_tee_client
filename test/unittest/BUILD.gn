@@ -22,7 +22,7 @@ if (defined(global_parts_info) &&
 if (tee_client_features_tui) {
   ohos_unittest("tuidaemontest") {
     part_name = "tee_client"
-    test_module = "tee_client_features_tui"
+    test_module = "tee_client"
     module_out_path = part_name + "/" + test_module
 
     include_dirs = [
@@ -65,7 +65,7 @@ if (tee_client_features_tui) {
 
 ohos_unittest("cadaemontest") {
   part_name = "tee_client"
-  test_module = "cadaemon"
+  test_module = "tee_client"
   module_out_path = part_name + "/" + test_module
 
   include_dirs = [
@@ -95,7 +95,7 @@ ohos_unittest("cadaemontest") {
 
 ohos_unittest("teecvendortest") {
   part_name = "tee_client"
-  test_module = "teec_vendor"
+  test_module = "tee_client"
   module_out_path = part_name + "/" + test_module
 
   include_dirs = [
@@ -124,7 +124,7 @@ ohos_unittest("teecvendortest") {
 
 ohos_unittest("authenticationtest") {
   part_name = "tee_client"
-  test_module = "authentication"
+  test_module = "tee_client"
   module_out_path = part_name + "/" + test_module
   defines = [ "ENABLE_FDSAN_CHECK" ]
   include_dirs = [
@@ -163,7 +163,7 @@ ohos_unittest("authenticationtest") {
 
 ohos_unittest("loadsecfiletest") {
   part_name = "tee_client"
-  test_module = "load_secfile"
+  test_module = "tee_client"
   module_out_path = part_name + "/" + test_module
 
   include_dirs = [
