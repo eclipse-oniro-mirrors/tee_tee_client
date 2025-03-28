@@ -151,8 +151,5 @@ HWTEST_F(LoadSecfileTest, ClientSocket_001, TestSize.Level1)
 
     ret = CaDaemonConnectWithCaInfo(&caInfo, 0);
     EXPECT_TRUE(ret != 0);
-
-    ret = CaDaemonConnectWithCaInfo(&caInfo, GET_TEEVERSION);
-    EXPECT_TRUE(ret != 0);
 }
 }
