@@ -21,24 +21,41 @@
 #include <securec.h>
 #include "tee_log.h"
 #include "tee_client_inner.h"
-
+#include "tee_client_socket.h"
 namespace OHOS {
     #define TC_NS_SOCKET_NAME "#tc_ns_socket"
+    int InitMessage(struct msghdr *message, CaRevMsg *revBuffer, char *ctrlBuffer, const uint8_t *data, size_t size)
+    {
+        size_t msgLen = size >= sizeof(*message) ? sizeof(*message) : size;
+
+        if (memcpy_s(message, msgLen - 1, data, msgLen - 1) != EOK) {
+            return -1;
+        }
+        struct iovec iov[1];
+        message->msg_iov = iov;
+        message->msg_iovlen = 1;
+        (message->msg_iov[0]).iov_base = revBuffer;
+        (message->msg_iov[0]).iov_len = sizeof(*revBuffer);
+        message->msg_control = static_cast<void*>(ctrlBuffer);
+        message->msg_controllen = CMSG_SPACE(sizeof(int));
+
+        return 0;
+    }
+
     bool TeeClientTeeSrvIpcProcCmdFuzzTest(const uint8_t *data, size_t size)
     {
         int ret;
         int rc;
         uint32_t len;
         struct sockaddr_un remote;
-        struct msghdr message;
-        size_t msgLen = size >= sizeof(message) ? sizeof(message) : size;
+        struct msghdr message = { 0 };
+        CaRevMsg revBuffer = { 0 };
+        char ctrlBuffer[CMSG_SPACE(sizeof(int))];
 
-        if (memset_s(&message, sizeof(message), 0, sizeof(message)) != EOK) {
+        if (InitMessage(&message, &revBuffer, ctrlBuffer, data, size) != EOK) {
             return false;
         }
-        if (memcpy_s(&message, msgLen - 1, data, msgLen - 1) != EOK) {
-            return false;
-        }
+
         int s = socket(AF_UNIX, SOCK_STREAM, 0);
         if (s == -1) {
             tloge("can't open stream socket, errno=%" PUBLIC "d\n", errno);
