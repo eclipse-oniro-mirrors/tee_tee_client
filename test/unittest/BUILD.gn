@@ -196,13 +196,12 @@ ohos_unittest("loadsecfiletest") {
 
 group("unittest") {
   testonly = true
-  deps = [ ":cadaemontest" ]
-  deps += [ ":teecvendortest" ]
-  deps += [ ":authenticationtest" ]
-  deps += [ ":loadsecfiletest" ]
-
   if (component_type == "system") {
     if (tee_client_features_tui) {
+      deps = [ ":cadaemontest" ]
+      deps += [ ":teecvendortest" ]
+      deps += [ ":authenticationtest" ]
+      deps += [ ":loadsecfiletest" ]
       deps += [
         # deps file
         ":tuidaemontest",
