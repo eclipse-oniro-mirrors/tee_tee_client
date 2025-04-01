@@ -185,7 +185,7 @@ bool TUIEvent::TUIGetFoldableStatus()
     return mTUIFoldable;
 }
 
-static int TUIGetNotch(OHOS::sptr<CutoutInfo> cutoutInfo, uint32_t displayMode)
+static uint32_t TUIGetNotch(OHOS::sptr<CutoutInfo> cutoutInfo, uint32_t displayMode)
 {
     tlogi("tui get cutoutinfo--->boundingRects for notch\n");
     std::vector<OHOS::Rosen::DMRect> boundingRects = cutoutInfo->GetBoundingRects();
@@ -200,7 +200,7 @@ posX[%" PUBLIC "d], posY[%" PUBLIC "d], width[%" PUBLIC "d], height[%" PUBLIC "d
             boundingRects[i].width_, boundingRects[i].height_);
     }
     /* calc notch, here is px, double height of the hole */
-    int notch = boundingRects[0].height_ + boundingRects[0].height_;
+    uint32_t notch = boundingRects[0].height_ + boundingRects[0].height_;
     if (notch < 0 || notch > NOTCH_SIZE_MAX) {
         /* 200 is too large for notch, just use 0 */
         return 0;
@@ -521,7 +521,7 @@ void TUIDaemon::TuiRegisteDisplayListener()
     }
 
     if (mTUIDisplayListener_ == nullptr) {
-        mTUIDisplayListener_ = new TUIDisplayListener();
+        mTUIDisplayListener_ = new (std::nothrow) TUIDisplayListener();
         if (mTUIDisplayListener_ == nullptr) {
             tloge("create listener obj failed\n");
             return;
