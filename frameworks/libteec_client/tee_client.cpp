@@ -773,16 +773,16 @@ TEEC_Result TeeClient::OpenSessionSendCmd(TEEC_Context *context, TEEC_Session *s
         return nRet;
     }
 
-    CHECK_ERR_RETURN(WriteOpenData(data, context, fd, destination, connectionMethod), true, TEEC_FAIL);
+    CHECK_ERR_GOTO(WriteOpenData(data, context, fd, destination, connectionMethod), true, END);
 
     if (WriteOperation(data, operation) != true) {
-        return TEEC_FAIL;
+        goto END;
     }
 
-    CHECK_ERR_RETURN(WriteIonFd(data, operation), true, TEEC_FAIL);
+    CHECK_ERR_GOTO(WriteIonFd(data, operation), true, END);
 
     if (data.WriteUint32(optMemSize) != true) {
-        return TEEC_FAIL;
+        goto END;
     }
 
     if (optMemSize > 0) {
