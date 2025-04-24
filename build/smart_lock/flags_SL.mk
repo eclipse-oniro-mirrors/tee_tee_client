@@ -8,11 +8,22 @@
 # PURPOSE.
 # See the Mulan PSL v2 for more details.
 ROOT_DIR := ../../../../../
-TOOLCHAIN_DIR := $(ROOT_DIR)/prebuilts/gcc/gcc-20231123-aarch64-v01c01-linux-musl/aarch64-v01c01-linux-musl-gcc/bin
-CC := $(TOOLCHAIN_DIR)/aarch64-linux-musleabi-gcc
-AR := $(TOOLCHAIN_DIR)/aarch64-linux-musleabi-ar
+include $(ROOT_DIR)/out/iot_config.mk
+TOOLCHAIN_DIR := $(ROOT_DIR)/prebuilts/clang/ohos/linux-x86_64/llvm/bin
+export CROSS_COMPILE=$(TOOLCHAIN_DIR)/aarch64-linux-ohos
+ifeq ($(DEVICE_MODEL), "AGS-X20")
+export SYSROOT=$(ROOT_DIR)/out/smartlock_AGS_X20$()/hi3519dv500_smartlock_small/sysroot
+else ifeq ($(DEVICE_MODEL), "AGS-Q20")
+export SYSROOT=$(ROOT_DIR)/out/smartlock_AGS_Q20$()/hi3519dv500_smartlock_small/sysroot
+endif
 
-CFLAGS := -Wall -Werror
+CC := $(TOOLCHAIN_DIR)/aarch64-unknown-linux-ohos-clang
+AR := $(TOOLCHAIN_DIR)/llvm-ar
+
+CFLAGS  := -Wall -march=armv8-a+simd -O3 -fomit-frame-pointer -fno-exceptions -fno-asynchronous-unwind-tables -fno-unwind-tables -fstack-protector-strong
+CFLAGS  += -target aarch64-linux-ohos
+CFLAGS  += --sysroot=$(SYSROOT) -I$(SYSROOT)/usr/include
+CFLAGS  += -flto
 
 DEBUG ?= 0
 ifeq ($(DEBUG), 1)
