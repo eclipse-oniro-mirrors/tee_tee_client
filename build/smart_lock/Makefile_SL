@@ -25,10 +25,10 @@ COMMON_INCLUDES := ${CURDIR}/../../interfaces/inner_api \
 COMMON_CFLAGS := $(addprefix -I, $(COMMON_INCLUDES)) $(CFLAGS) -D_GNU_SOURCE \
 				 -DTEE_LOG_PATH_BASE=\"/data/vendor/log\" -DTEE_LOG_SUBFOLDER=\"hisi_logs/tee\" -DLIB_TEEC_VENDOR
 
-S_CFLAGS := -Wextra -fstack-protector-all -s -Wl,-z,relro,-z,now,-z,noexecstack \
+S_CFLAGS := $(CFLAGS) -Wextra -fstack-protector-all -s -Wl,-z,relro,-z,now,-z,noexecstack \
 			-fPIE -D_FORTIFY_SOURCE=2 -O2
 
-TARGET_LIB := libteec.so
+TARGET_LIB := libteec_vendor.so
 
 LIBTEEC_OUT_DIR := $(CURDIR)/out/libteec
 
@@ -42,10 +42,11 @@ TEEC_SRC_DIR := ${CURDIR}/../../
 TEEC_OBJ_DIR := $(LIBTEEC_OUT_DIR)
 
 TEEC_OBJS := $(patsubst %.c,$(TEEC_OBJ_DIR)/%.o, $(TEEC_SRCS))
-TEEC_CFLAGS := -lpthread
-TEEC_CFLAGS += -DCONFIG_AGENT_FS -DCONFIG_SMART_LOCK_PLATFORM -DCONFIG_LOG_NO_PUBLIC
+TEEC_CFLAGS := -DCONFIG_AGENT_FS -DCONFIG_SMART_LOCK_PLATFORM -DCONFIG_LOG_NO_PUBLIC
 TEEC_LIBRARY_LDFLAGS := -lhilog_shared -lsec_shared
 TEEC_LIBRARY_LDFLAGS += -L$(OUTDIR)
+TEEC_LIBRARY_LDFLAGS += -Wl,-z,max-page-size=4096
+TEEC_LIBRARY_LDFLAGS += -Wl,-z,separate-code
 
 # compile teecd
 TARGET_APP := teecd
@@ -100,7 +101,6 @@ TLOGCAT_CFLAGS += -DLOG_PATH_TEE=\"/var/log/tee/\"
 TLOGCAT_CFLAGS += -DLOG_PATH_BASE=\"/var/log/\"
 TLOGCAT_CFLAGS += -DLOG_TMPPATH_TEE=\"/var/log/tee/_tmp/\"
 TLOGCAT_CFLAGS += -DAID_SYSTEM=0
-TLOGCAT_CFLAGS += -lrt
 TLOGCAT_CFLAGS += -I$(CURDIR)/../../services/tlogcat/include
 
 TLOGCAT_LDFLAGS += -lhilog_shared -lsec_shared
@@ -171,7 +171,7 @@ $(LIBC_SEC): $(LIBC_OBJS)
 $(LIBC_OBJ_DIR)/%.o: $(LIBC_SRC_DIR)/%.c
 	$(VPREFIX)mkdir -p $(dir $@)
 	@echo " CC $<"
-	$(VPREFIX)$(CC) $(S_CFLAGS) $(LIBC_INCLUDES) $(LIBC_LDFLAGS) -c $< -o $@
+	$(VPREFIX)$(CC) $(S_CFLAGS) $(LIBC_INCLUDES) -c -fPIC $< -o $@
 
 .PHONY: all clean
 
@@ -194,7 +194,7 @@ $(LIBTEEC_OUT_DIR)/libteec.a: $(TEEC_OBJS)
 $(TEEC_OBJ_DIR)/%.o: ${TEEC_SRC_DIR}/%.c
 	$(VPREFIX)mkdir -p $(dir $@)
 	@echo "  CC		$<"
-	$(VPREFIX)$(CC) $(S_CFLAGS) $(COMMON_CFLAGS) $(TEEC_CFLAGS) -c $< -o $@
+	$(VPREFIX)$(CC) $(S_CFLAGS) $(COMMON_CFLAGS) $(TEEC_CFLAGS) $(:) -c -fPIC $< -o $@
 
 $(TARGET_APP):$(TEECD_FILE)
 
@@ -205,7 +205,7 @@ $(TEECD_FILE):$(TEECD_OBJS)
 $(TEECD_OBJ_DIR)/%.o: $(TEECD_SRC_DIR)/%.c
 	$(VPREFIX)mkdir -p $(dir $@)
 	@echo " CC $<"
-	$(VPREFIX)$(CC) $(S_CFLAGS) $(COMMON_CFLAGS) $(COMMON_INCLUDES) $(TEECD_CFLAGS) -c $< -o $@ $(TEECD_LDFLAGS)
+	$(VPREFIX)$(CC) $(S_CFLAGS) $(COMMON_CFLAGS) $(TEECD_CFLAGS) -c -fPIC $< -o $@
 
 # make tlogcat
 $(TARGET_TLOGCAT): $(TLOGCAT_FILE)
@@ -217,7 +217,7 @@ $(TLOGCAT_FILE): $(TLOGCAT_OBJS)
 $(TLOGCAT_OBJ_DIR)/%.o: $(TLOGCAT_SRC_DIR)/%.c
 		$(VPREFIX)mkdir -p $(dir $@)
 		@echo "  CC		$<"
-		$(VPREFIX)$(CC) $(S_CFLAGS) $(COMMON_CFLAGS) $(COMMON_INCLUDES) $(TLOGCAT_CFLAGS) -c $< -o $@ $(TLOGCAT_LDFLAGS)
+	$(VPREFIX)$(CC) $(S_CFLAGS) $(COMMON_CFLAGS) $(TLOGCAT_CFLAGS) -c -fPIC $< -o $@
 
 # make clean
 out_clean:
