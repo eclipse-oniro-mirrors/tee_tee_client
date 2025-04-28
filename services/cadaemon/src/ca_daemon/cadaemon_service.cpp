@@ -885,18 +885,18 @@ TEEC_Result CaDaemonService::OpenSession(TEEC_Context *context, const char *taPa
     return TEEC_SUCCESS;
 
 ERROR:
-    writeRet = reply.WriteUint32(returnOrigin);
-    CHECK_ERR_RETURN(writeRet, true, TEEC_FAIL);
-
-    writeRet = reply.WriteInt32((int32_t)ret);
-    CHECK_ERR_RETURN(writeRet, true, TEEC_FAIL);
-
     if (outSession != nullptr) {
         free(outSession);
         outSession = nullptr;
     }
 
     CloseTaFile(taFile, fd);
+
+    writeRet = reply.WriteUint32(returnOrigin);
+    CHECK_ERR_RETURN(writeRet, true, TEEC_FAIL);
+
+    writeRet = reply.WriteInt32((int32_t)ret);
+    CHECK_ERR_RETURN(writeRet, true, TEEC_FAIL);
 
     return TEEC_SUCCESS;
 }
@@ -961,6 +961,8 @@ TEEC_Result CaDaemonService::InvokeCommand(TEEC_Context *context, TEEC_Session *
     }
 
     if (AddTidData(&tidData, pid) != TEEC_SUCCESS) {
+        PutBnSession(outSession);
+        PutBnContextAndReleaseFd(pid, outContext);
         goto END;
     }
     ret = TEEC_InvokeCommandInner(outContext, outSession, commandID, operation, &returnOrigin);
@@ -1052,6 +1054,7 @@ TEEC_Result CaDaemonService::RegisterSharedMemory(TEEC_Context *context,
     if (memcpy_s(outShm, sizeof(*outShm), sharedMem, sizeof(*sharedMem))) {
         tloge("registeMem: memcpy failed when copy data to shm, errno = %" PUBLIC "d!\n", errno);
         free(outShm);
+        PutBnContextAndReleaseFd(pid, outContext);
         goto ERROR_END;
     }
 
