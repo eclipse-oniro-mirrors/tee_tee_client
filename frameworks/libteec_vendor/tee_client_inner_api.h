@@ -46,6 +46,16 @@ enum SVC_GLOBAL_CMD_ID {
     GLOBAL_CMD_ID_MAX,
 };
 
+enum ExceptionType {
+    TYPE_INITIALIZE_FAIL = 0,
+    TYPE_OPEN_SESSION_FAIL = 1,
+    TYPE_CONNECT_GET_FD_ERROR = 2,
+    TYPE_READ_APP_FILE_FAIL = 3,
+    TYPE_CLOSE_SESSION_FAIL = 4,
+    TYPE_CLOSE_SESSION_FAIL_FINALIZE = 5,
+};
+
+void LogException(int errCode, const TEEC_UUID *srvUuid, uint32_t origin, int type);
 void SetBit(uint32_t i, uint32_t byteMax, uint8_t *bitMap);
 void ClearBit(uint32_t i, uint32_t byteMax, uint8_t *bitMap);
 bool CheckBit(uint32_t i, uint32_t byteMax, const uint8_t *bitMap);
@@ -57,7 +67,7 @@ TEEC_Result TEEC_OpenSessionInner(int callingPid, const TaFileInfo *taFile, TEEC
     const void *connectionData, TEEC_Operation *operation, uint32_t *returnOrigin);
 TEEC_Result TEEC_InvokeCommandInner(TEEC_ContextInner *context, const TEEC_Session *session,
     uint32_t commandID, const TEEC_Operation *operation, uint32_t *returnOrigin);
-void TEEC_CloseSessionInner(TEEC_Session *session, const TEEC_ContextInner *context);
+int32_t TEEC_CloseSessionInner(TEEC_Session *session, const TEEC_ContextInner *context);
 void TEEC_FinalizeContextInner(TEEC_ContextInner *context);
 TEEC_Result TEEC_RegisterSharedMemoryInner(TEEC_ContextInner *context, TEEC_SharedMemoryInner *sharedMem);
 TEEC_Result TEEC_AllocateSharedMemoryInner(TEEC_ContextInner *context, TEEC_SharedMemoryInner *sharedMem);

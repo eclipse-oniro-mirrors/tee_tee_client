@@ -32,6 +32,7 @@
 #include "tee_log.h"
 #include "tee_client_socket.h"
 #include "tee_auth_system.h"
+#include "hisysevent_c.h"
 
 #define TEE_ERROR_CA_AUTH_FAIL 0xFFFFCFE5
 
@@ -70,6 +71,7 @@ bool CheckBit(uint32_t i, uint32_t byteMax, const uint8_t *bitMap)
 
     return (bitMap[i >> SHIFT] & (uint8_t)(1U << (i & MASK))) != 0;
 }
+
 void ClearBit(uint32_t i, uint32_t byteMax, uint8_t *bitMap)
 {
     if ((i >> SHIFT) >= byteMax) {
@@ -79,6 +81,60 @@ void ClearBit(uint32_t i, uint32_t byteMax, uint8_t *bitMap)
         return;
     }
     bitMap[i >> SHIFT] &= (uint8_t)(~(1U << (i & MASK)));
+}
+
+#ifdef LIB_TEEC_VENDOR
+void GetCaName(char *name, int len)
+{
+    pid_t pid = getpid();
+    int ret = TeeGetPkgName(pid, name, len);
+    if (ret != 0) {
+        tloge("get ca name failed\n");
+        name[0] = '\0';
+        return;
+    }
+}
+#endif
+
+#define MAX_EXCEPTION_LEN 512
+void LogException(int errCode, const TEEC_UUID *srvUuid, uint32_t origin, int type)
+{
+    int ret;
+    char name[MAX_PATH_LENGTH] = { 0 };
+    char reason[MAX_EXCEPTION_LEN] = { 0 };
+    char uuidstr[MAX_FILE_NAME_LEN] = { 'n', 'o', ' ', 'u', 'u', 'i', 'd', 0 };
+    GetCaName(name, MAX_PATH_LENGTH);
+#ifdef LIB_TEEC_VENDOR
+    const char *source = "LIBTEEC_TYPE";
+#else
+    const char *source = "CADAEMON_TYPE";
+#endif
+    if (srvUuid != NULL) {
+        ret = snprintf_s(uuidstr, sizeof(uuidstr), sizeof(uuidstr) - 1,
+            "%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x", srvUuid->timeLow, srvUuid->timeMid,
+            srvUuid->timeHiAndVersion, srvUuid->clockSeqAndNode[0], srvUuid->clockSeqAndNode[1],
+            srvUuid->clockSeqAndNode[2], srvUuid->clockSeqAndNode[3], srvUuid->clockSeqAndNode[4],
+            srvUuid->clockSeqAndNode[5], srvUuid->clockSeqAndNode[6], srvUuid->clockSeqAndNode[7]);
+        if (ret < 0) {
+            tloge("upload get uuid str err %d\n", ret);
+        }
+    }
+    ret = snprintf_s(reason, sizeof(reason), sizeof(reason) - 1,
+        "SOURCE %s CA %s TYPE %d ORIGIN %u ERRCODE %d ERRNO %d", source, name, type, origin, errCode, (int)errno);
+    if (ret < 0) {
+        tloge("upload build reason err %d\n", ret);
+    }
+    HiSysEventParam param2 = { .name = "VERSION", .t = HISYSEVENT_STRING, .v = { .s = "no" }, .arraySize = 0 };
+    HiSysEventParam param1 = { .name = "UUID", .t = HISYSEVENT_STRING, .v = { .s = uuidstr }, .arraySize = 0 };
+    HiSysEventParam param0 = { .name = "REASON", .t = HISYSEVENT_STRING, .v = { .s = reason }, .arraySize = 0 };
+    HiSysEventParam params[] = { param0, param1, param2 };
+    ret = OH_HiSysEvent_Write("RELIABILITY", "TA_ABNORMAL", HISYSEVENT_FAULT,
+        params, sizeof(params) / sizeof(params[0]));
+    if (ret != 0) {
+        tloge("log upload err %d: type %d code %d origin %u\n", ret, type, errCode, origin);
+    } else {
+        tloge("upload hisysevent succ: type %d code %d origin %u\n", type, errCode, origin);
+    }
 }
 
 static void ClearBitWithLock(pthread_mutex_t *mutex, uint32_t i, uint32_t byteMax, uint8_t *bitMap)
@@ -669,6 +725,9 @@ static int CaDaemonConnectWithoutCaInfo(void)
     }
 
     ret = CaDaemonConnectWithCaInfo(&caInfo, GET_FD);
+    if (ret < 0) {
+        LogException(ret, NULL, TEEC_ORIGIN_API, TYPE_CONNECT_GET_FD_ERROR);
+    }
     return ret;
 }
 #else
@@ -900,6 +959,7 @@ TEEC_Result TEEC_InitializeContext(const char *name, TEEC_Context *context)
     }
 
     tloge("initialize context: failed:0x%" PUBLIC "x\n", ret);
+    LogException(ret, NULL, TEEC_ORIGIN_API, TYPE_INITIALIZE_FAIL);
     free(contextInner);
     MutexUnlockContext(retMutexLock, &g_mutexReadContextList);
     return ret;
@@ -913,10 +973,7 @@ TEEC_Result TEEC_InitializeContext(const char *name, TEEC_Context *context)
  */
 void TEEC_FinalizeContextInner(TEEC_ContextInner *context)
 {
-    struct ListNode *ptr           = NULL;
-    struct ListNode *n             = NULL;
-    TEEC_Session *session          = NULL;
-    TEEC_SharedMemoryInner *shrdMem = NULL;
+    struct ListNode *ptr = NULL, *n = NULL;
 
     /* First, check parameters is valid or not */
     if (context == NULL) {
@@ -934,9 +991,12 @@ void TEEC_FinalizeContextInner(TEEC_ContextInner *context)
 
         LIST_FOR_EACH_SAFE(ptr, n, &context->session_list)
         {
-            session = CONTAINER_OF(ptr, TEEC_Session, head);
+            TEEC_Session *session = CONTAINER_OF(ptr, TEEC_Session, head);
             ListRemoveEntry(&session->head);
-            TEEC_CloseSessionInner(session, context);
+            int32_t ret = TEEC_CloseSessionInner(session, context);
+            if (ret != 0) {
+                LogException(ret, &session->service_id, 0, TYPE_CLOSE_SESSION_FAIL_FINALIZE);
+            }
             /* for service */
             if (context->callFromService) {
                 PutBnSession(session); /* pair with open session */
@@ -957,7 +1017,7 @@ void TEEC_FinalizeContextInner(TEEC_ContextInner *context)
 
         LIST_FOR_EACH_SAFE(ptr, n, &context->shrd_mem_list)
         {
-            shrdMem = CONTAINER_OF(ptr, TEEC_SharedMemoryInner, head);
+            TEEC_SharedMemoryInner *shrdMem = CONTAINER_OF(ptr, TEEC_SharedMemoryInner, head);
             ListRemoveEntry(&shrdMem->head);
             PutBnShrMem(shrdMem); /* pair with Initial value 1 */
         }
@@ -1142,15 +1202,18 @@ TEEC_Result TEEC_OpenSession(TEEC_Context *context, TEEC_Session *session, const
     (void)PutBnContext(contextInner);
 
 END:
+    if (ret != 0) {
+        LogException(ret, destination, retOrigin, TYPE_OPEN_SESSION_FAIL);
+    }
     if (returnOrigin != NULL) {
         *returnOrigin = retOrigin;
     }
     return ret;
 }
 
-void TEEC_CloseSessionInner(TEEC_Session *session, const TEEC_ContextInner *context)
+int32_t TEEC_CloseSessionInner(TEEC_Session *session, const TEEC_ContextInner *context)
 {
-    int32_t ret;
+    int32_t ret = 0;
     TC_NS_ClientContext cliContext;
     TC_NS_ClientLogin cliLogin = { 0, 0 };
     TEEC_Result teecRet;
@@ -1158,18 +1221,19 @@ void TEEC_CloseSessionInner(TEEC_Session *session, const TEEC_ContextInner *cont
     /* First, check parameters is valid or not */
     if ((session == NULL) || (context == NULL)) {
         tloge("close session: session or context is NULL\n");
-        return;
+        return (int32_t)TEEC_ERROR_BAD_PARAMETERS;
     }
 
     teecRet = TEEC_Encode(&cliContext, session, GLOBAL_CMD_ID_CLOSE_SESSION, &cliLogin, NULL);
     if (teecRet != TEEC_SUCCESS) {
         tloge("close session: teec encode failed(0x%" PUBLIC "x)!\n", teecRet);
-        return;
+        return (int32_t)teecRet;
     }
 
     ret = ioctl((int)context->fd, (int)TC_NS_CLIENT_IOCTL_SES_CLOSE_REQ, &cliContext);
     if (ret != 0) {
         tloge("close session failed, ret=0x%" PUBLIC "x\n", ret);
+        return (int32_t)cliContext.returns.code;
     }
     session->session_id = 0;
     session->context    = NULL;
@@ -1177,8 +1241,9 @@ void TEEC_CloseSessionInner(TEEC_Session *session, const TEEC_ContextInner *cont
         memset_s((uint8_t *)&session->service_id, sizeof(session->service_id), 0x00, sizeof(session->service_id));
     if (rc != EOK) {
         tloge("memset service id fail\n");
+        return (int32_t)rc;
     }
-    return;
+    return 0;
 }
 
 /*
@@ -1189,6 +1254,7 @@ void TEEC_CloseSessionInner(TEEC_Session *session, const TEEC_ContextInner *cont
  */
 void TEEC_CloseSession(TEEC_Session *session)
 {
+    int32_t ret;
     if ((session == NULL) || (session->context == NULL)) {
         tloge("close session: session or session->context is NULL\n");
         return;
@@ -1206,7 +1272,10 @@ void TEEC_CloseSession(TEEC_Session *session)
         return;
     }
 
-    TEEC_CloseSessionInner(session, contextInner);
+    ret = TEEC_CloseSessionInner(session, contextInner);
+    if (ret != 0) {
+        LogException(ret, &session->service_id, 0, TYPE_CLOSE_SESSION_FAIL);
+    }
     (void)PutBnContext(contextInner);
 }
 

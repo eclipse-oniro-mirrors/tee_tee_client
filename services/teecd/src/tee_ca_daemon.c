@@ -29,6 +29,7 @@
 #include "tee_ca_auth.h"
 #include "fs_work_agent.h"
 #include "tee_file.h"
+#include "hisysevent_c.h"
 /* debug switch */
 #ifdef LOG_NDEBUG
 #undef LOG_NDEBUG
@@ -41,6 +42,31 @@
 #define IOV_LEN 1
 
 static unsigned int g_version = 0;
+
+enum ExceptionType {
+    TYPE_OPEN_FD_ERROR = 0,
+};
+
+#define MAX_EXCEPTION_LEN 512
+static void LogException(int errCode, uint32_t origin, int type, uintptr_t certs)
+{
+    int ret;
+    char reason[MAX_EXCEPTION_LEN] = { 0 };
+    ret = snprintf_s(reason, sizeof(reason), sizeof(reason) - 1,
+        "SOURCE TEECD_TYPE CA %.64s TYPE %d ORIGIN %u ERRCODE %d ERRNO %d",
+        (char *)certs, type, origin, errCode, (int)errno);
+    HiSysEventParam param0 = { .name = "REASON", .t = HISYSEVENT_STRING, .v = { .s = reason }, .arraySize = 0 };
+    HiSysEventParam param1 = { .name = "UUID", .t = HISYSEVENT_STRING, .v = { .s = "no uuid" }, .arraySize = 0 };
+    HiSysEventParam param2 = { .name = "VERSION", .t = HISYSEVENT_STRING, .v = { .s = "no" }, .arraySize = 0 };
+    HiSysEventParam params[] = { param0, param1, param2 };
+    ret = OH_HiSysEvent_Write("RELIABILITY", "TA_ABNORMAL", HISYSEVENT_FAULT,
+        params, sizeof(params) / sizeof(params[0]));
+    if (ret != 0) {
+        tloge("log upload err %d: type %d code %d origin %u\n", ret, type, errCode, origin);
+    } else {
+        tloge("upload hisysevent succ: type %d code %d origin %u\n", type, errCode, origin);
+    }
+}
 
 static int InitMsg(struct msghdr *hmsg, struct iovec *iov, size_t iovLen,
                    char *ctrlBuf, size_t ctrlBufLen)
@@ -127,6 +153,7 @@ static int ProcessCaMsg(const struct ucred *cr, const CaRevMsg *caInfo, int sock
     int fd = tee_open(TC_NS_CLIENT_DEV_NAME, O_RDWR, 0);
     if (fd == -1) {
         tloge("Failed to open %" PUBLIC "s: %" PUBLIC "d\n", TC_NS_CLIENT_DEV_NAME, errno);
+        LogException((int)errno, TEEC_ORIGIN_API, TYPE_OPEN_FD_ERROR, (uintptr_t)caInfo->caAuthInfo.certs);
         return -1;
     }
 

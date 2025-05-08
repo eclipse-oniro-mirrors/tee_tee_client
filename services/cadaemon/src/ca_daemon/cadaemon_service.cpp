@@ -514,6 +514,7 @@ FREE_CONTEXT:
     if (contextInner != nullptr) {
         free(contextInner);
     }
+    LogException(ret, nullptr, TEEC_ORIGIN_API, TYPE_INITIALIZE_FAIL);
 
 END:
     if (caInfo != nullptr) {
@@ -837,7 +838,6 @@ TEEC_Result CaDaemonService::OpenSession(TEEC_Context *context, const char *taPa
     const TEEC_UUID *destination, uint32_t connectionMethod,
     TEEC_Operation *operation, uint32_t optMemSize, sptr<Ashmem> &optMem, MessageParcel &reply)
 {
-    TEEC_Result ret;
     DecodePara paraDecode;
     bool writeRet = false;
     uint32_t returnOrigin = TEEC_ORIGIN_API;
@@ -847,7 +847,7 @@ TEEC_Result CaDaemonService::OpenSession(TEEC_Context *context, const char *taPa
     pid_t pid = IPCSkeleton::GetCallingPid();
     TaFileInfo taFile = { .taPath = nullptr, .taFp = nullptr };
 
-    ret = CallGetBnContext(context, pid, &outSession, &outContext);
+    TEEC_Result ret = CallGetBnContext(context, pid, &outSession, &outContext);
     if (ret != TEEC_SUCCESS) {
         goto ERROR;
     }
@@ -891,6 +891,7 @@ ERROR:
     }
 
     CloseTaFile(taFile, fd);
+    LogException(ret, destination, returnOrigin, TYPE_OPEN_SESSION_FAIL);
 
     writeRet = reply.WriteUint32(returnOrigin);
     CHECK_ERR_RETURN(writeRet, true, TEEC_FAIL);
@@ -938,13 +939,12 @@ TEEC_Result CaDaemonService::InvokeCommand(TEEC_Context *context, TEEC_Session *
     TEEC_ContextInner *outContext = nullptr;
     TEEC_Session *outSession = nullptr;
     TidData *tidData = nullptr;
-    TEEC_Result ret = TEEC_FAIL;
     bool writeRet = false;
     uint32_t returnOrigin = TEEC_ORIGIN_API;
     DecodePara paraDecode;
     pid_t pid = IPCSkeleton::GetCallingPid();
 
-    ret = CallGetBnSession(pid, context, session, &outContext, &outSession);
+    TEEC_Result ret = CallGetBnSession(pid, context, session, &outContext, &outSession);
     if (ret != TEEC_SUCCESS) {
         tloge("get context and session failed\n");
         goto END;
@@ -1013,7 +1013,10 @@ TEEC_Result CaDaemonService::CloseSession(TEEC_Session *session, TEEC_Context *c
     if (AddTidData(&tidData, pid) != TEEC_SUCCESS) {
         return TEEC_FAIL;
     }
-    TEEC_CloseSessionInner(outSession, outContext);
+    int32_t rc = TEEC_CloseSessionInner(outSession, outContext);
+    if (rc != 0) {
+        LogException(rc, &session->service_id, 0, TYPE_CLOSE_SESSION_FAIL);
+    }
     RemoveTidFromList(tidData);
     tidData = nullptr;
 

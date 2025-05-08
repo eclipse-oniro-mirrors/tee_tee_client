@@ -65,6 +65,7 @@ ohos_shared_library("libcadaemon") {
       "openssl:libcrypto_shared",
       "safwk:system_ability_fwk",
       "samgr:samgr_proxy",
+      "hisysevent:libhisysevent",
     ]
 
     sanitize = {

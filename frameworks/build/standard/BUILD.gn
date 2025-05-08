@@ -73,6 +73,7 @@ ohos_shared_library("libteec_vendor") {
     "../../libteec_vendor/tee_client_api.c",
     "../../libteec_vendor/tee_client_app_load.c",
     "../../libteec_vendor/tee_client_socket.c",
+    "../../../services/authentication/tee_auth_common.c",
   ]
 
   include_dirs = [
@@ -88,6 +89,7 @@ ohos_shared_library("libteec_vendor") {
     "bounds_checking_function:libsec_shared",
     "c_utils:utils",
     "hilog:libhilog",
+    "hisysevent:libhisysevent",
   ]
 
   ldflags = [
