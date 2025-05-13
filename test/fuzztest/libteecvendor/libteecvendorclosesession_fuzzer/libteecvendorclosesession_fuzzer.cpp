@@ -40,12 +40,12 @@ namespace OHOS {
         TEEC_Session session = { 0 };
         TEEC_ContextInner contextInner = { 0 };
 
-        TEEC_CloseSessionInner(NULL, NULL);
-        TEEC_CloseSessionInner(&session, NULL);
+        (void)TEEC_CloseSessionInner(nullptr, nullptr);
+        (void)TEEC_CloseSessionInner(&session, nullptr);
 
         TEEC_Context context = { 0 };
         TEEC_Result result = TEEC_InitializeContext(NULL, &context);
-        TEEC_CloseSessionInner(&session, &contextInner);
+        (void)TEEC_CloseSessionInner(&session, &contextInner);
         (void)data;
         (void)size;
         (void)result;

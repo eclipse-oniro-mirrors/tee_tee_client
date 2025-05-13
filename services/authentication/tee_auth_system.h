@@ -22,6 +22,7 @@ extern "C" {
 int32_t ConstructCaAuthInfo(uint32_t tokenID, CaAuthInfo *caInfo);
 int32_t ConstructSelfAuthInfo(CaAuthInfo *caInfo);
 int32_t TEEGetNativeSACaInfo(const CaAuthInfo *caInfo, uint8_t *buf, uint32_t bufLen);
+void GetCaName(char *name, int32_t len);
 #ifdef __cplusplus
 }
 #endif

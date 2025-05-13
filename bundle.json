@@ -37,7 +37,8 @@
         "bounds_checking_function",
         "zlib",
         "openssl",
-        "bundle_framework"
+        "bundle_framework",
+        "hisysevent"
       ]
     },
     "build": {

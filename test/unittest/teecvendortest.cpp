@@ -695,13 +695,13 @@ HWTEST_F(TeecVendorTest, TEEC_CloseSessionInnerTest_001, TestSize.Level1)
     TEEC_ContextInner contextInner = { 0 };
 
 
-    TEEC_CloseSessionInner(nullptr, nullptr);
-    TEEC_CloseSessionInner(&session, nullptr);
+    (void)TEEC_CloseSessionInner(nullptr, nullptr);
+    (void)TEEC_CloseSessionInner(&session, nullptr);
 
     TEEC_Context context = { 0 };
     TEEC_Result result = TEEC_InitializeContext(nullptr, &context);
     EXPECT_TRUE(result == TEEC_SUCCESS);
-    TEEC_CloseSessionInner(&session, &contextInner);
+    (void)TEEC_CloseSessionInner(&session, &contextInner);
 }
 
 HWTEST_F(TeecVendorTest, TEEC_ReleaseSharedMemoryTest_001, TestSize.Level1)

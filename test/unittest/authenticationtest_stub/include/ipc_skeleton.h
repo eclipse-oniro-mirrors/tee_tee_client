@@ -35,6 +35,8 @@ public:
     ~MockIPCSkeleton() override = default;
     MOCK_METHOD(uint32_t, GetSelfTokenID, ());
     MOCK_METHOD(uint32_t, GetCallingUid, ());
+    MOCK_METHOD(uint32_t, GetCallingTokenID, ());
+    MOCK_METHOD(uint32_t, GetCallingPid, ());
 };
 
 class IPCSkeleton {
@@ -48,6 +50,14 @@ public:
     static uint32_t GetCallingUid()
     {
         return obj->GetCallingUid();
+    }
+    static uint32_t GetCallingPid()
+    {
+        return obj->GetCallingPid();
+    }
+    static uint32_t GetCallingTokenID()
+    {
+        return obj->GetCallingTokenID();
     }
 };
 
