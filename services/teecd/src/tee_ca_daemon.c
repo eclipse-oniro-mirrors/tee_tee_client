@@ -42,10 +42,6 @@
 
 static unsigned int g_version = 0;
 
-enum ExceptionType {
-    TYPE_OPEN_FD_ERROR = 0,
-};
-
 static int InitMsg(struct msghdr *hmsg, struct iovec *iov, size_t iovLen,
                    char *ctrlBuf, size_t ctrlBufLen)
 {

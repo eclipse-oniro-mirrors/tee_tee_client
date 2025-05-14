@@ -24,7 +24,11 @@ ohos_shared_library("libcadaemon") {
   defines = []
 
   if (component_type == "system") {
-    defines += [ "ENABLE_FDSAN_CHECK" ]
+    defines += [
+      "ENABLE_FDSAN_CHECK",
+      "CONFIG_LOG_REPORT",
+    ]
+
     sources = [
       "../../../../frameworks/libteec_vendor/load_sec_file.c",
       "../../../../frameworks/libteec_vendor/tee_client_api.c",
