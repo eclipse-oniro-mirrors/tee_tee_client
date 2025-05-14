@@ -32,7 +32,9 @@
 #include "tee_log.h"
 #include "tee_client_socket.h"
 #include "tee_auth_system.h"
+#ifdef CONFIG_LOG_REPORT
 #include "hisysevent_c.h"
+#endif
 
 #define TEE_ERROR_CA_AUTH_FAIL 0xFFFFCFE5
 
@@ -83,6 +85,7 @@ void ClearBit(uint32_t i, uint32_t byteMax, uint8_t *bitMap)
     bitMap[i >> SHIFT] &= (uint8_t)(~(1U << (i & MASK)));
 }
 
+#ifdef CONFIG_LOG_REPORT
 #ifdef LIB_TEEC_VENDOR
 void GetCaName(char *name, int len)
 {
@@ -136,6 +139,15 @@ void LogException(int errCode, const TEEC_UUID *srvUuid, uint32_t origin, int ty
         tloge("upload hisysevent succ: type %d code %d origin %u\n", type, errCode, origin);
     }
 }
+#else
+void LogException(int errCode, const TEEC_UUID *srvUuid, uint32_t origin, int type)
+{
+    (void)errCode;
+    (void)srvUuid;
+    (void)origin;
+    (void)type;
+}
+#endif
 
 static void ClearBitWithLock(pthread_mutex_t *mutex, uint32_t i, uint32_t byteMax, uint8_t *bitMap)
 {
