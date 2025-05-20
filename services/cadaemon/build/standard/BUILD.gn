@@ -91,13 +91,10 @@ if (component_type == "system") {
       output_extension = "so"
       defines = []
 
-      # ttf_calc_hash_script = rebase_path("../../../../services/cadaemon/build/standard/calc_hash.sh")
-      # hash_string = exec_script(ttf_calc_hash_script, [], "string")
+      # hash_string is md5sum of tui ttf file
       hash_string =
           "8978e05044e7089ad6a9de38c505c8148305607983487435a916d2610700a7ca"
 
-      # md5sum ttf_calc_hash_script
-      # print("get hash_string :" + hash_string + " and file path :" + ttf_calc_hash_script)
       if (hash_string != "") {
         defines += [ "FONT_HASH_VAL=\"$hash_string\"" ]
       } else {
