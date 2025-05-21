@@ -349,7 +349,13 @@ int32_t TEEGetNativeSACaInfo(const CaAuthInfo *caInfo, uint8_t *buf, uint32_t bu
 
 void GetCaName(char *name, int32_t len)
 {
+    const char *res = nullptr;
+    int clen = 0;
     CaAuthInfo info = { { 0 } };
+
+    if (name == nullptr || len < MAX_PATH_LENGTH) {
+        return;
+    }
     info.pid = IPCSkeleton::GetCallingPid();
     info.uid = static_cast<unsigned int>(IPCSkeleton::GetCallingUid());
     uint32_t tokenID = IPCSkeleton::GetCallingTokenID();
@@ -358,36 +364,37 @@ void GetCaName(char *name, int32_t len)
     if (ret != 0) {
         tloge("construct ca auth info failed %d\n", ret);
     }
-    if (tokenType == TOKEN_SHELL) {
-        ret = TeeGetPkgName(info.pid, name, len);
-        if (ret != 0) {
-            tloge("get ca name failed\n");
-            name[0] = '\0';
-        }
-        return;
-    } else if (tokenType == TOKEN_HAP) {
-        const char *res = strchr(reinterpret_cast<const char *>(info.certs), '_');
-        if (res) {
-            int clen = res - reinterpret_cast<const char *>(info.certs);
-            ret = memcpy_s(name, len, info.certs, clen);
+    switch (tokenType) {
+        case TOKEN_SHELL:
+            ret = TeeGetPkgName(info.pid, name, len);
             if (ret != 0) {
-                tloge("get ca hap name failed\n");
+                tloge("get ca name failed\n");
                 name[0] = '\0';
             }
-        } else {
-            tloge("find _ failed in certs %s\n", info.certs);
-        }
-        return;
-    } else if (tokenType == TOKEN_NATIVE) {
-        int clen = strnlen(reinterpret_cast<const char *>(info.certs), MAX_PATH_LENGTH - 1);
-        ret = memcpy_s(name, len, info.certs, clen);
-        if (ret != 0) {
-            tloge("get ca native name failed\n");
-            name[0] = '\0';
-        }
-        return;
-    } else {
-        tloge("invalid type %d\n", static_cast<int32_t>(tokenType));
-        return;
+            break;
+        case TOKEN_HAP:
+            res = strchr(reinterpret_cast<const char *>(info.certs), '_');
+            if (res != nullptr) {
+                clen = res - reinterpret_cast<const char *>(info.certs);
+                ret = memcpy_s(name, len, info.certs, clen);
+                if (ret != 0) {
+                    tloge("get ca hap name failed\n");
+                    name[0] = '\0';
+                }
+            } else {
+                tloge("find _ failed in certs %s\n", info.certs);
+            }
+            break;
+        case TOKEN_NATIVE:
+            clen = strnlen(reinterpret_cast<const char *>(info.certs), MAX_PATH_LENGTH - 1);
+            ret = memcpy_s(name, len, info.certs, clen);
+            if (ret != 0) {
+                tloge("get ca native name failed\n");
+                name[0] = '\0';
+            }
+            break;
+        default:
+            tloge("invalid type %d\n", static_cast<int32_t>(tokenType));
+            break;
     }
 }
