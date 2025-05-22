@@ -89,6 +89,9 @@ void ClearBit(uint32_t i, uint32_t byteMax, uint8_t *bitMap)
 #ifdef LIB_TEEC_VENDOR
 void GetCaName(char *name, int len)
 {
+    if (name == NULL || len < MAX_PATH_LENGTH) {
+        return;
+    }
     pid_t pid = getpid();
     int ret = TeeGetPkgName(pid, name, len);
     if (ret != 0) {
@@ -136,7 +139,7 @@ void LogException(int errCode, const TEEC_UUID *srvUuid, uint32_t origin, int ty
     if (ret != 0) {
         tloge("log upload err %d: type %d code %d origin %u\n", ret, type, errCode, origin);
     } else {
-        tloge("upload hisysevent succ: type %d code %d origin %u\n", type, errCode, origin);
+        tlogi("upload hisysevent succ: type %d code %d origin %u\n", type, errCode, origin);
     }
 }
 #else
