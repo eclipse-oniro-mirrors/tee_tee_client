@@ -27,6 +27,8 @@ public:
     virtual ~MockMidIPCSkeleton() = default;
     virtual uint32_t GetSelfTokenID() = 0;
     virtual uint32_t GetCallingUid() = 0;
+    virtual uint32_t GetCallingTokenID() = 0;
+    virtual uint32_t GetCallingPid() = 0;
 };
 
 class MockIPCSkeleton : public MockMidIPCSkeleton {

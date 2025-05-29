@@ -228,6 +228,56 @@ HWTEST_F(AuthenticationTest, ConstructNativeCaInfoFromToken_002, TestSize.Level1
     AccessTokenKit::mockKitIntfObj = nullptr;
 }
 
+HWTEST_F(AuthenticationTest, GetCaName_001, TestSize.Level1)
+{
+    char name[MAX_PATH_LENGTH] = { 0 };
+    GetCaName(nullptr, 1);
+    GetCaName(nullptr, MAX_PATH_LENGTH);
+    GetCaName(name, 1);
+
+    AccessTokenIDInner innerToken = { 0 };
+    innerToken.tokenUniqueID = 0;
+    innerToken.type = 0;
+    uint32_t tokenID = *(reinterpret_cast<uint32_t *>(&innerToken));
+    SystemAbilityManagerClient::objISaMgr = new ISystemAbilityManager();
+    SystemAbilityManagerClient::objSaMgrC = new MockSystemAbilityManagerClientMid();
+    sptr<IRemoteObject> object = new BundleMgrStub();
+    IPCSkeleton::obj = new MockIPCSkeleton();
+    EXPECT_CALL(*(IPCSkeleton::obj), GetCallingPid()).WillRepeatedly(Return(0));
+    EXPECT_CALL(*(IPCSkeleton::obj), GetCallingUid()).WillRepeatedly(Return(200000));
+    EXPECT_CALL(*(SystemAbilityManagerClient::objSaMgrC),
+        GetSystemAbilityManager()).WillRepeatedly(Return(SystemAbilityManagerClient::objISaMgr));
+    EXPECT_CALL(*(SystemAbilityManagerClient::objISaMgr),
+        GetSystemAbility(_)).WillRepeatedly(Return(object));
+    EXPECT_CALL(*(IPCSkeleton::obj), GetCallingTokenID()).WillRepeatedly(Return(tokenID));
+    EXPECT_CALL(*(SystemAbilityManagerClient::objISaMgr), CheckSystemAbility(_)).WillRepeatedly(Return(nullptr));
+
+    innerToken.type = 0;
+    GetCaName(name, MAX_PATH_LENGTH);
+    EXPECT_TRUE(name[0] == '\0');
+
+    innerToken.type = 1;
+    tokenID = *(reinterpret_cast<uint32_t *>(&innerToken));
+    EXPECT_CALL(*(IPCSkeleton::obj), GetCallingTokenID()).WillRepeatedly(Return(tokenID));
+    GetCaName(name, MAX_PATH_LENGTH);
+    EXPECT_TRUE(name[0] == '\0');
+
+    innerToken.type = 2;
+    tokenID = *(reinterpret_cast<uint32_t *>(&innerToken));
+    EXPECT_CALL(*(IPCSkeleton::obj), GetCallingTokenID()).WillRepeatedly(Return(tokenID));
+    GetCaName(name, MAX_PATH_LENGTH);
+    EXPECT_TRUE(name[0] == '\0');
+    EXPECT_TRUE(name[MAX_PATH_LENGTH - 1] == '\0');
+    delete(AccessTokenKit::mockKitIntfObj);
+    delete(SystemAbilityManagerClient::objSaMgrC);
+    delete(SystemAbilityManagerClient::objISaMgr);
+    delete(IPCSkeleton::obj);
+    AccessTokenKit::mockKitIntfObj = nullptr;
+    SystemAbilityManagerClient::objSaMgrC = nullptr;
+    SystemAbilityManagerClient::objISaMgr = nullptr;
+    IPCSkeleton::obj = nullptr;
+}
+
 HWTEST_F(AuthenticationTest, ConstructCaAuthInfo_001, TestSize.Level1)
 {
     uint32_t tokenID = 0;
