@@ -16,8 +16,8 @@ ohos_executable("teecd") {
   subsystem_name = "tee"
   module_install_dir = "bin"
   install_images = [
-    "vendor",
-    "updater_vendor",
+    "system",
+    "updater",
   ]
 
   sources = [
