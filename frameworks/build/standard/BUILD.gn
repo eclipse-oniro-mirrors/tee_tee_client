@@ -56,15 +56,11 @@ ohos_shared_library("libteec_vendor") {
   subsystem_name = "tee"
   output_extension = "so"
   install_images = [
-    "vendor",
-    "updater_vendor",
+    "system",
+    "updater",
   ]
 
-  if (target_cpu == "arm64") {
-    module_install_dir = "lib64"
-  } else {
-    module_install_dir = "lib"
-  }
+  innerapi_tags = [ "chipsetsdk" ]
 
   defines = [
     "LIB_TEEC_VENDOR",

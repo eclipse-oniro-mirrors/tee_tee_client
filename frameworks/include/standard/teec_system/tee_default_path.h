@@ -14,5 +14,6 @@
 #define TEE_DEFAULT_PATH_H
 
 #define TEE_DEFAULT_PATH "/system/bin"
+#define TEE_FEIMA_DEFAULT_PATH "/system/bin"
 
 #endif

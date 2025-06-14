@@ -74,7 +74,8 @@ static int32_t SecFileLoadWork(int tzFd, const char *filePath, enum SecFileType 
     }
 
 #ifndef TEE_LOAD_FROM_ROOTFS
-    if (strncmp(realPath, TEE_DEFAULT_PATH, strlen(TEE_DEFAULT_PATH)) != 0) {
+    if (strncmp(realPath, TEE_DEFAULT_PATH, strlen(TEE_DEFAULT_PATH)) != 0 &&
+        strncmp(realPath, TEE_FEIMA_DEFAULT_PATH, strlen(TEE_FEIMA_DEFAULT_PATH)) != 0) {
         tloge("realpath -%" PUBLIC "s- is invalid\n", realPath);
         return -1;
     }
@@ -172,6 +173,40 @@ static bool IsTaLib(const TEEC_UUID *uuid)
     return false;
 }
 
+static int32_t GetFeimaSecFileName(const struct SecAgentControlType *secAgentControl, char *fname, int32_t fnameLen)
+{
+    int32_t ret = -1;
+
+    if (IsTaLib(&(secAgentControl->LibSec.uuid))) {
+        ret = snprintf_s(fname, sizeof(fname), MAX_PATH_LEN - 1,
+                "%s/%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x%s.sec",
+                TEE_FEIMA_DEFAULT_PATH, secAgentControl->LibSec.uuid.timeLow, secAgentControl->LibSec.uuid.timeMid,
+                secAgentControl->LibSec.uuid.timeHiAndVersion, secAgentControl->LibSec.uuid.clockSeqAndNode[0],
+                secAgentControl->LibSec.uuid.clockSeqAndNode[1], secAgentControl->LibSec.uuid.clockSeqAndNode[2],
+                secAgentControl->LibSec.uuid.clockSeqAndNode[3], secAgentControl->LibSec.uuid.clockSeqAndNode[4],
+                secAgentControl->LibSec.uuid.clockSeqAndNode[5], secAgentControl->LibSec.uuid.clockSeqAndNode[6],
+                secAgentControl->LibSec.uuid.clockSeqAndNode[7], secAgentControl->LibSec.libName);
+    } else {
+        ret = snprintf_s(fname, fnameLen, MAX_PATH_LEN - 1,
+        "%s/%s.sec", TEE_FEIMA_DEFAULT_PATH, secAgentControl->LibSec.libName);
+    }
+
+    if (ret < 0) {
+        tloge("pack fname err\n");
+        memset_s(fname, fnameLen, 0, fnameLen);
+        return -1;
+    }
+
+    char realPath[PATH_MAX + 1] = { 0 };
+    if (realpath(fname, realPath) == NULL) {
+        tlogi("GetNewSecFileName err=%" PUBLIC "s, will get from old path\n", errno, fname);
+        memset_s(fname, fnameLen, 0, fnameLen);
+        return -1;
+    }
+
+    return 0;
+}
+
 static void LoadLib(struct SecAgentControlType *secAgentControl)
 {
     int32_t ret;
@@ -217,6 +252,41 @@ static void LoadLib(struct SecAgentControlType *secAgentControl)
     return;
 }
 
+static int GetTaPath(const TEEC_UUID *uuid, char *fname, unsigned int len)
+{
+    int32_t ret = -1;
+    char realPath[PATH_MAX + 1] = { 0 };
+
+    ret = snprintf_s(fname, len, MAX_PATH_LEN - 1, "%s/%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x.sec",
+        TEE_FEIMA_DEFAULT_PATH, secAgentControl->TaSec.uuid.timeLow, secAgentControl->TaSec.uuid.timeMid,
+        secAgentControl->TaSec.uuid.timeHiAndVersion, secAgentControl->TaSec.uuid.clockSeqAndNode[0],
+        secAgentControl->TaSec.uuid.clockSeqAndNode[1], secAgentControl->TaSec.uuid.clockSeqAndNode[2],
+        secAgentControl->TaSec.uuid.clockSeqAndNode[3], secAgentControl->TaSec.uuid.clockSeqAndNode[4],
+        secAgentControl->TaSec.uuid.clockSeqAndNode[5], secAgentControl->TaSec.uuid.clockSeqAndNode[6],
+        secAgentControl->TaSec.uuid.clockSeqAndNode[7]);
+    if (ret < 0) {
+        tloge("pack new path fname err");
+        return -1;
+    }
+    
+    if (realpath(fname, realPath) == NULL) {
+        tloge("realpath open file err=" PUBLIC "d, filePath=" PUBLIC "s, will use old path\n", errno, fname);
+        ret = snpritf_s(fname, len, MAX_PATH_LEN - 1, "%s/%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x.sec",
+            TEE_DEFAULT_PATH, secAgentControl->TaSec.uuid.timeLow, secAgentControl->TaSec.uuid.timeMid,
+            secAgentControl->TaSec.uuid.timeHiAndVersion, secAgentControl->TaSec.uuid.clockSeqAndNode[0],
+            secAgentControl->TaSec.uuid.clockSeqAndNode[1], secAgentControl->TaSec.uuid.clockSeqAndNode[2],
+            secAgentControl->TaSec.uuid.clockSeqAndNode[3], secAgentControl->TaSec.uuid.clockSeqAndNode[4],
+            secAgentControl->TaSec.uuid.clockSeqAndNode[5], secAgentControl->TaSec.uuid.clockSeqAndNode[6],
+            secAgentControl->TaSec.uuid.clockSeqAndNode[7]);
+        if (ret < 0) {
+            tloge("pack old path fname err");
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
 static void LoadTa(struct SecAgentControlType *secAgentControl)
 {
     int32_t ret;
@@ -227,13 +297,7 @@ static void LoadTa(struct SecAgentControlType *secAgentControl)
         return;
     }
 
-    ret = snprintf_s(fname, sizeof(fname), MAX_PATH_LEN - 1, "%s/%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x.sec",
-                     TEE_DEFAULT_PATH, secAgentControl->TaSec.uuid.timeLow, secAgentControl->TaSec.uuid.timeMid,
-                     secAgentControl->TaSec.uuid.timeHiAndVersion, secAgentControl->TaSec.uuid.clockSeqAndNode[0],
-                     secAgentControl->TaSec.uuid.clockSeqAndNode[1], secAgentControl->TaSec.uuid.clockSeqAndNode[2],
-                     secAgentControl->TaSec.uuid.clockSeqAndNode[3], secAgentControl->TaSec.uuid.clockSeqAndNode[4],
-                     secAgentControl->TaSec.uuid.clockSeqAndNode[5], secAgentControl->TaSec.uuid.clockSeqAndNode[6],
-                     secAgentControl->TaSec.uuid.clockSeqAndNode[7]);
+    ret = GetTaPath(&(secAgentControl->TaSec.uuid), fname, MAX_PATH_LEN);
     if (ret < 0) {
         tloge("pack fname err\n");
         secAgentControl->ret = -1;

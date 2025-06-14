@@ -35,10 +35,18 @@
 static const char *g_vendorCaHashFileList[] = {
     "/vendor/etc/native_packages.xml",
     "/vendor/root/res/native_packages.xml",
+    "/vendor/etc/passthrough/teeos/source/native_packages.xml",
 };
 
 static const char *g_systemCaHashFileList[] = {
     "/system/etc/native_packages.xml",
+};
+
+static const char *g_wholeCaHashFileList[] = {
+    "/vendor/etc/native_packages.xml",
+    "/system/etc/native_packages.xml",
+    "/vendor/root/res/native_packages.xml",
+    "/vendor/etc/passthrough/teeos/source/native_packages.xml",
 };
 
 static const char **GetCaHashFileList(uint8_t *num, uint8_t hash_type)
@@ -51,9 +59,12 @@ static const char **GetCaHashFileList(uint8_t *num, uint8_t hash_type)
     if (hash_type == HASH_TYPE_SYSTEM) {
         *num = sizeof(g_systemCaHashFileList) / sizeof(intptr_t);
         return g_systemCaHashFileList;
-    } else {
+    } else if (hash_type == HASH_TYPE_VENDOR) {
         *num = sizeof(g_vendorCaHashFileList) / sizeof(intptr_t);
         return g_vendorCaHashFileList;
+    } else {
+        *num = sizeof(g_wholeCaHashFileList) / sizeof(intptr_t);
+        return g_wholeCaHashFileList;
     }
 }
 
@@ -277,7 +288,6 @@ int TcuAuthentication(uint8_t hash_type)
             if (!IsFileExist(hashFileList[index])) {
                 continue;
             }
-
             int setRet = TeeSetNativeCaHash(hashFileList[index]);
             if (setRet != 0) {
                 tloge("hashfile read failed, index is %" PUBLIC "d\n", index);

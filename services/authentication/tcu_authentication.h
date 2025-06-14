@@ -18,6 +18,7 @@
 enum {
     HASH_TYPE_VENDOR  = 0,
     HASH_TYPE_SYSTEM,
+    HASH_TYPE_WHOLE,
 };
 
 #ifdef __cplusplus
