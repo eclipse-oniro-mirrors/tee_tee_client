@@ -212,7 +212,7 @@ int main(void)
     pthread_t secfileLoadAgentThread = (pthread_t)-1;
 
     /* Trans the xml file to tzdriver: */
-    (void)TcuAuthentication(HASH_TYPE_VENDOR);
+    (void)TcuAuthentication(HASH_TYPE_WHOLE);
 
     int ret = ProcessAgentInit();
     if (ret) {

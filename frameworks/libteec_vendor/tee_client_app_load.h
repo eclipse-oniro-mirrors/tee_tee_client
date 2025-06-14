@@ -23,7 +23,7 @@
 extern "C" {
 #endif
 
-#define MAX_FILE_PATH_LEN 20
+#define MAX_FILE_PATH_LEN 40
 #define MAX_FILE_NAME_LEN 40
 #define MAX_FILE_EXT_LEN  6
 

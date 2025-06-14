@@ -15,5 +15,6 @@
 
 #define TEE_DEFAULT_PATH "/vendor/bin"
 #define TEE_DEFAULT_PATH_ROOTFS "/tmprootfs/vendor/bin"
+#define TEE_FEIMA_DEFAULT_PATH "/vendor/etc/passthrough/teeos/ta"
 
 #endif
