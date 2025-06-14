@@ -259,12 +259,12 @@ static int GetTaPath(const TEEC_UUID *uuid, char *fname, unsigned int len)
     char realPath[PATH_MAX + 1] = { 0 };
 
     ret = snprintf_s(fname, len, MAX_PATH_LEN - 1, "%s/%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x.sec",
-        TEE_FEIMA_DEFAULT_PATH, secAgentControl->TaSec.uuid.timeLow, secAgentControl->TaSec.uuid.timeMid,
-        secAgentControl->TaSec.uuid.timeHiAndVersion, secAgentControl->TaSec.uuid.clockSeqAndNode[0],
-        secAgentControl->TaSec.uuid.clockSeqAndNode[1], secAgentControl->TaSec.uuid.clockSeqAndNode[2],
-        secAgentControl->TaSec.uuid.clockSeqAndNode[3], secAgentControl->TaSec.uuid.clockSeqAndNode[4],
-        secAgentControl->TaSec.uuid.clockSeqAndNode[5], secAgentControl->TaSec.uuid.clockSeqAndNode[6],
-        secAgentControl->TaSec.uuid.clockSeqAndNode[7]);
+        TEE_FEIMA_DEFAULT_PATH, uuid->timeLow, uuid->timeMid,
+        uuid->timeHiAndVersion, uuid->clockSeqAndNode[0],
+        uuid->clockSeqAndNode[1], uuid->clockSeqAndNode[2],
+        uuid->clockSeqAndNode[3], uuid->clockSeqAndNode[4],
+        uuid->clockSeqAndNode[5], uuid->clockSeqAndNode[6],
+        uuid->clockSeqAndNode[7]);
     if (ret < 0) {
         tloge("pack new path fname err");
         return -1;
@@ -273,12 +273,12 @@ static int GetTaPath(const TEEC_UUID *uuid, char *fname, unsigned int len)
     if (realpath(fname, realPath) == NULL) {
         tloge("realpath open file err=" PUBLIC "d, filePath=" PUBLIC "s, will use old path\n", errno, fname);
         ret = snpritf_s(fname, len, MAX_PATH_LEN - 1, "%s/%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x.sec",
-            TEE_DEFAULT_PATH, secAgentControl->TaSec.uuid.timeLow, secAgentControl->TaSec.uuid.timeMid,
-            secAgentControl->TaSec.uuid.timeHiAndVersion, secAgentControl->TaSec.uuid.clockSeqAndNode[0],
-            secAgentControl->TaSec.uuid.clockSeqAndNode[1], secAgentControl->TaSec.uuid.clockSeqAndNode[2],
-            secAgentControl->TaSec.uuid.clockSeqAndNode[3], secAgentControl->TaSec.uuid.clockSeqAndNode[4],
-            secAgentControl->TaSec.uuid.clockSeqAndNode[5], secAgentControl->TaSec.uuid.clockSeqAndNode[6],
-            secAgentControl->TaSec.uuid.clockSeqAndNode[7]);
+            TEE_DEFAULT_PATH, uuid->timeLow, uuid->timeMid,
+            uuid->timeHiAndVersion, uuid->clockSeqAndNode[0],
+            uuid->clockSeqAndNode[1], uuid->clockSeqAndNode[2],
+            uuid->clockSeqAndNode[3], uuid->clockSeqAndNode[4],
+            uuid->clockSeqAndNode[5], uuid->clockSeqAndNode[6],
+            uuid->clockSeqAndNode[7]);
         if (ret < 0) {
             tloge("pack old path fname err");
             return -1;
