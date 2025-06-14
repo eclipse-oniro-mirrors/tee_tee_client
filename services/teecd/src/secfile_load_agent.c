@@ -178,7 +178,7 @@ static int32_t GetFeimaSecFileName(const struct SecAgentControlType *secAgentCon
     int32_t ret = -1;
 
     if (IsTaLib(&(secAgentControl->LibSec.uuid))) {
-        ret = snprintf_s(fname, sizeof(fname), MAX_PATH_LEN - 1,
+        ret = snprintf_s(fname, fnameLen, MAX_PATH_LEN - 1,
                 "%s/%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x%s.sec",
                 TEE_FEIMA_DEFAULT_PATH, secAgentControl->LibSec.uuid.timeLow, secAgentControl->LibSec.uuid.timeMid,
                 secAgentControl->LibSec.uuid.timeHiAndVersion, secAgentControl->LibSec.uuid.clockSeqAndNode[0],
@@ -199,7 +199,7 @@ static int32_t GetFeimaSecFileName(const struct SecAgentControlType *secAgentCon
 
     char realPath[PATH_MAX + 1] = { 0 };
     if (realpath(fname, realPath) == NULL) {
-        tlogi("GetNewSecFileName err=%" PUBLIC "s, filePath=%" PUBLIC "s, will get from old path\n", errno, fname);
+        tlogi("GetNewSecFileName err=%" PUBLIC "d, filePath=%" PUBLIC "s, will get from old path\n", errno, fname);
         memset_s(fname, fnameLen, 0, fnameLen);
         return -1;
     }

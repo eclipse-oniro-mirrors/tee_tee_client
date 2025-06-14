@@ -185,7 +185,7 @@ void LoadDynamicDrvDir(const char *drvPath, uint32_t drvPathLen)
         if (LoadOneDynamicDir(fd, DYNAMIC_DRV_FEIMA_DIR, LOAD_DYNAMIC_DRV)) {
 #endif
             LoadOneDynamicDir(fd, DYNAMIC_DRV_DIR, LOAD_DYNAMIC_DRV);
-#ifdef DYNAMIC_DRV_FEIMA_DIR    
+#ifdef DYNAMIC_DRV_FEIMA_DIR
         }
 #endif
     } else {
