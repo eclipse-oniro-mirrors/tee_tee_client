@@ -188,7 +188,7 @@ static int32_t GetFeimaSecFileName(const struct SecAgentControlType *secAgentCon
                 secAgentControl->LibSec.uuid.clockSeqAndNode[7], secAgentControl->LibSec.libName);
     } else {
         ret = snprintf_s(fname, fnameLen, MAX_PATH_LEN - 1,
-        "%s/%s.sec", TEE_FEIMA_DEFAULT_PATH, secAgentControl->LibSec.libName);
+            "%s/%s.sec", TEE_FEIMA_DEFAULT_PATH, secAgentControl->LibSec.libName);
     }
 
     if (ret < 0) {
