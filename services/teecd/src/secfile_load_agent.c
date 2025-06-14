@@ -199,7 +199,7 @@ static int32_t GetFeimaSecFileName(const struct SecAgentControlType *secAgentCon
 
     char realPath[PATH_MAX + 1] = { 0 };
     if (realpath(fname, realPath) == NULL) {
-        tlogi("GetNewSecFileName err=%" PUBLIC "s, will get from old path\n", errno, fname);
+        tlogi("GetNewSecFileName err=%" PUBLIC "s, filePath=%" PUBLIC "s, will get from old path\n", errno, fname);
         memset_s(fname, fnameLen, 0, fnameLen);
         return -1;
     }

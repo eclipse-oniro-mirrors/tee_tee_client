@@ -182,7 +182,7 @@ void LoadDynamicDrvDir(const char *drvPath, uint32_t drvPathLen)
     int32_t fd = GetSecLoadAgentFd();
     if (drvPathLen == 0 || drvPath == NULL) {
 #ifdef DYNAMIC_DRV_FEIMA_DIR
-        if (LoadOneDynamicDir(fd, DYNAMIC_DRV_DIR, DYNAMIC_DRV_FEIMA_DIR)) {
+        if (LoadOneDynamicDir(fd, DYNAMIC_DRV_FEIMA_DIR, LOAD_DYNAMIC_DRV)) {
 #endif
             LoadOneDynamicDir(fd, DYNAMIC_DRV_DIR, LOAD_DYNAMIC_DRV);
 #ifdef DYNAMIC_DRV_FEIMA_DIR    
@@ -209,11 +209,12 @@ void LoadDynamicSrvDir(void)
 #ifdef DYNAMIC_SRV_DIR
     int32_t fd = GetSecLoadAgentFd();
 #ifdef DYNAMIC_SRV_FEIMA_DIR
-    if (LoadOneDynamicDir(fd, DYNAMIC_SRV_DIR, DYNAMIC_SRV_FEIMA_DIR)) {
+    if (LoadOneDynamicDir(fd, DYNAMIC_SRV_FEIMA_DIR, LOAD_SERVICE)) {
 #endif
         (void)LoadOneDynamicDir(fd, DYNAMIC_SRV_DIR, LOAD_SERVICE);
 #ifdef DYNAMIC_SRV_FEIMA_DIR
     }
+#endif
 #endif
 }
 #endif
