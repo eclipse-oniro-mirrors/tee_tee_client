@@ -9,9 +9,15 @@
 # See the Mulan PSL v2 for more details.
 ROOT_DIR := ../../../../../
 TOOLCHAIN_ROOT := $(ROOT_DIR)/tools/open_source/gcc-toolchains/aarch64/
+ifeq ($(wildcard $(TOOLCHAIN_ROOT)/gcc-arm-10.2-2020.11-x86_64-aarch64-none-linux-gnu/bin),)
 TOOLCHAIN_DIR := $(TOOLCHAIN_ROOT)/gcc-linaro-7.5.0-2019.12-x86_64_aarch64-linux-gnu/bin
 CC := $(TOOLCHAIN_DIR)/aarch64-linux-gnu-gcc
 AR := $(TOOLCHAIN_DIR)/aarch64-linux-gnu-ar
+else
+TOOLCHAIN_DIR := $(TOOLCHAIN_ROOT)/gcc-arm-10.2-2020.11-x86_64-aarch64-none-linux-gnu/bin
+CC := $(TOOLCHAIN_DIR)/aarch64-none-linux-gnu-gcc
+AR := $(TOOLCHAIN_DIR)/aarch64-none-linux-gnu-ar
+endif
 
 CFLAGS := -Wall -Werror
 

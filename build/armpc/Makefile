@@ -51,6 +51,10 @@ TEEC_CFLAGS  := -lpthread
 TEEC_CFLAGS  += -DCONFIG_ARMPC_PLATFORM -DCONFIG_AGENT_FS -DCONFIG_LOG_NO_PUBLIC
 TEEC_LIBRARY := $(LIBTEEC_OUT_DIR)/$(LIB_MAJ_MIN_P)
 TEEC_LIBRARY_LDFLAGS := $(CURDIR)/out/libsecurec/libsecurec.aarch64.a
+ifneq ($(wildcard $(TOOLCHAIN_ROOT)/gcc-arm-10.2-2020.11-x86_64-aarch64-none-linux-gnu/bin),)
+TEEC_LIBRARY_LDFLAGS += -Wl,-z,max-page-size=0x1000
+TEEC_LIBRARY_LDFLAGS += -Wl,-z,separate-code
+endif
 
 # compile teecd
 TARGET_APP := teecd
