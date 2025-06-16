@@ -32,7 +32,6 @@
 #define LOG_TAG "teec_app_load"
 
 #define MAX_PATH_LEN 256
-const char *g_imagePath = TEE_DEFAULT_PATH;
 
 static int32_t TEEC_ReadApp(const TaFileInfo *taFile, const char *loadFile, bool defaultPath,
                             TC_NS_ClientContext *cliContext);
@@ -52,16 +51,13 @@ int32_t TEEC_GetApp(const TaFileInfo *taFile, const TEEC_UUID *srvUuid, TC_NS_Cl
     if (condition) {
         ret = TEEC_ReadApp(taFile, (const char *)taFile->taPath, false, cliContext);
         if (ret < 0) {
-#ifdef LIB_TEEC_VENDOR
-            tloge("teec load app erro, ta path is not NULL\n");
-#else
+            tlogi("ta path is not NULL, ta file will be readed by driver\n");
             ret = 0;
-#endif
         }
     } else {
         char fileName[MAX_FILE_NAME_LEN]                                        = { 0 };
         char tempName[MAX_FILE_PATH_LEN + MAX_FILE_NAME_LEN + MAX_FILE_EXT_LEN] = { 0 };
-        const char *filePath = g_imagePath;
+        const char *filePath = TEE_FEIMA_DEFAULT_PATH;
         ret = snprintf_s(fileName, sizeof(fileName), sizeof(fileName) - 1,
                          "%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x", srvUuid->timeLow, srvUuid->timeMid,
                          srvUuid->timeHiAndVersion, srvUuid->clockSeqAndNode[0], srvUuid->clockSeqAndNode[1],
@@ -73,17 +69,22 @@ int32_t TEEC_GetApp(const TaFileInfo *taFile, const TEEC_UUID *srvUuid, TC_NS_Cl
         }
 
         size_t filePathLen = strnlen(filePath, MAX_FILE_PATH_LEN);
-        filePathLen        = filePathLen + strnlen(fileName, MAX_FILE_NAME_LEN);
-        filePathLen        = filePathLen + MAX_FILE_EXT_LEN;
-        int32_t len        = snprintf_s(tempName, sizeof(tempName), filePathLen, "%s/%s.sec", filePath, fileName);
-        if (len < 0) {
+        filePathLen        = filePathLen + strnlen(fileName, MAX_FILE_NAME_LEN) + MAX_FILE_EXT_LEN;
+        if (snprintf_s(tempName, sizeof(tempName), filePathLen, "%s/%s.sec", filePath, fileName) < 0) {
             tloge("file path too long\n");
             return -1;
         }
 
-        ret = TEEC_ReadApp(taFile, (const char *)tempName, true, cliContext);
-        if (ret < 0) {
-            tloge("teec load app erro\n");
+        if (TEEC_ReadApp(taFile, (const char *)tempName, true, cliContext) < 0) {
+            tlogi("teec load app from feima path failed, try to load from old path\n");
+            memset_s(tempName, sizeof(tempName), 0, sizeof(tempName));
+            if (snprintf_s(tempName, sizeof(tempName), filePathLen, "%s/%s.sec", TEE_DEFAULT_PATH, fileName) < 0) {
+                return -1;
+            }
+            ret = TEEC_ReadApp(taFile, (const char *)tempName, true, cliContext);
+            if (ret < 0) {
+                tloge("teec load app erro\n");
+            }
         }
     }
 

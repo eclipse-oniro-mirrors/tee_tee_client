@@ -97,15 +97,15 @@ END:
     return ret;
 }
 
-static void LoadOneDynamicDir(int32_t fd, const char *dynDir, uint32_t loadType)
+static int32_t LoadOneDynamicDir(int32_t fd, const char *dynDir, uint32_t loadType)
 {
-    int32_t ret;
+    int32_t ret = -1;
     struct dirent *dirFile = NULL;
 
     DIR *dir = OpenDynamicDir(dynDir);
     if (dir == NULL) {
-        tlogd("dynamic dir not exist\n");
-        return;
+        tlogi("dynamic dir not exist dyndir=%" PUBLIC"s\n", dynDir);
+        return ret;
     }
     while ((dirFile = readdir(dir)) != NULL) {
         if (dirFile->d_type != DT_REG) {
@@ -118,14 +118,16 @@ static void LoadOneDynamicDir(int32_t fd, const char *dynDir, uint32_t loadType)
             continue;
         }
     }
+
     (void)closedir(dir);
+    return ret;
 }
 
 void LoadDynamicCryptoDir(void)
 {
 #ifdef DYNAMIC_CRYPTO_DRV_DIR
     int32_t fd = GetSecLoadAgentFd();
-    LoadOneDynamicDir(fd, DYNAMIC_CRYPTO_DRV_DIR, LOAD_DYNAMIC_DRV);
+    (void)LoadOneDynamicDir(fd, DYNAMIC_CRYPTO_DRV_DIR, LOAD_DYNAMIC_DRV);
 #endif
 }
 
@@ -179,7 +181,13 @@ void LoadDynamicDrvDir(const char *drvPath, uint32_t drvPathLen)
 #ifdef DYNAMIC_DRV_DIR
     int32_t fd = GetSecLoadAgentFd();
     if (drvPathLen == 0 || drvPath == NULL) {
-        LoadOneDynamicDir(fd, DYNAMIC_DRV_DIR, LOAD_DYNAMIC_DRV);
+#ifdef DYNAMIC_DRV_FEIMA_DIR
+        if (LoadOneDynamicDir(fd, DYNAMIC_DRV_FEIMA_DIR, LOAD_DYNAMIC_DRV)) {
+#endif
+            LoadOneDynamicDir(fd, DYNAMIC_DRV_DIR, LOAD_DYNAMIC_DRV);
+#ifdef DYNAMIC_DRV_FEIMA_DIR
+        }
+#endif
     } else {
         char trustDrvPath[PATH_MAX] = {0};
         if (CheckPath(drvPath, drvPathLen, trustDrvPath) != 0) {
@@ -191,7 +199,7 @@ void LoadDynamicDrvDir(const char *drvPath, uint32_t drvPathLen)
             return;
         }
 
-        LoadOneDynamicDir(fd, drvPath, LOAD_DYNAMIC_DRV);
+        (void)LoadOneDynamicDir(fd, drvPath, LOAD_DYNAMIC_DRV);
     }
 #endif
 }
@@ -200,7 +208,13 @@ void LoadDynamicSrvDir(void)
 {
 #ifdef DYNAMIC_SRV_DIR
     int32_t fd = GetSecLoadAgentFd();
-    LoadOneDynamicDir(fd, DYNAMIC_SRV_DIR, LOAD_SERVICE);
+#ifdef DYNAMIC_SRV_FEIMA_DIR
+    if (LoadOneDynamicDir(fd, DYNAMIC_SRV_FEIMA_DIR, LOAD_SERVICE)) {
+#endif
+        (void)LoadOneDynamicDir(fd, DYNAMIC_SRV_DIR, LOAD_SERVICE);
+#ifdef DYNAMIC_SRV_FEIMA_DIR
+    }
+#endif
 #endif
 }
 #endif
