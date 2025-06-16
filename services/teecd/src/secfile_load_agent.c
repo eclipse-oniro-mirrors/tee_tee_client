@@ -272,7 +272,7 @@ static int GetTaPath(const TEEC_UUID *uuid, char *fname, unsigned int len)
     
     if (realpath(fname, realPath) == NULL) {
         tloge("realpath open file err=" PUBLIC "d, filePath=" PUBLIC "s, will use old path\n", errno, fname);
-        ret = snpritf_s(fname, len, MAX_PATH_LEN - 1, "%s/%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x.sec",
+        ret = snprintf_s(fname, len, MAX_PATH_LEN - 1, "%s/%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x.sec",
             TEE_DEFAULT_PATH, uuid->timeLow, uuid->timeMid,
             uuid->timeHiAndVersion, uuid->clockSeqAndNode[0],
             uuid->clockSeqAndNode[1], uuid->clockSeqAndNode[2],
