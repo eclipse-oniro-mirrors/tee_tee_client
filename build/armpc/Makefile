@@ -22,10 +22,16 @@ COMMON_INCLUDES := ${CURDIR}/../../interfaces/inner_api \
 
 
 COMMON_CFLAGS  := $(addprefix -I, $(COMMON_INCLUDES)) $(CFLAGS) -D_GNU_SOURCE \
+<<<<<<< HEAD
 	 -DTEE_LOG_PATH_BASE=\"/data/vendor/log\" -DTEE_LOG_SUBFOLDER=\"hisi_logs/tee\" \
 	 -DDYNAMIC_SRV_FEIMA_DIR =\"/vendor/etc/passthrough/teeos/dynamic_srv\" \
 	 -DDYNAMIC_DRV_FEIMA_DIR =\"/vendor/etc/passthrough/teeos/dynamic_drv\" \
 	 -DLIB_TEEC_VENDOR
+=======
+	 -DTEE_LOG_PATH_BASE=\"/data/vendor/log\" -DTEE_LOG_SUBFOLDER=\"hisi_logs/tee\" -DLIB_TEEC_VENDOR \
+     -DDYNAMIC_SRV_FEIMA_DIR =\"/vendor/etc/passthrough/teeos/dynamic_srv\" \
+     -DDYNAMIC_DRV_FEIMA_DIR =\"/vendor/etc/passthrough/teeos/dynamic_drv\"
+>>>>>>> 688cc9dc9718e50012c7e1f56170b8648eb03f50
 
 S_CFLAGS := -Wextra -fstack-protector-all -s -Wl,-z,relro,-z,now,-z,noexecstack \
             -fPIE -D_FORTIFY_SOURCE=2 -O2
