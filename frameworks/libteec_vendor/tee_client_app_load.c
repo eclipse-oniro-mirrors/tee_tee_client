@@ -75,16 +75,17 @@ int32_t TEEC_GetApp(const TaFileInfo *taFile, const TEEC_UUID *srvUuid, TC_NS_Cl
             return -1;
         }
 
-        if (TEEC_ReadApp(taFile, (const char *)tempName, true, cliContext) < 0) {
+        if (TEEC_ReadApp(taFile, (const char *)tempName, true, cliContext) != 0) {
             tlogi("teec load app from feima path failed, try to load from old path\n");
             memset_s(tempName, sizeof(tempName), 0, sizeof(tempName));
             if (snprintf_s(tempName, sizeof(tempName), filePathLen, "%s/%s.sec", TEE_DEFAULT_PATH, fileName) < 0) {
                 return -1;
             }
-            ret = TEEC_ReadApp(taFile, (const char *)tempName, true, cliContext);
-            if (ret < 0) {
+
+            if (TEEC_ReadApp(taFile, (const char *)tempName, true, cliContext) < 0) {
                 tloge("teec load app erro\n");
             }
+            ret = 0;
         }
     }
 
@@ -226,6 +227,7 @@ static int32_t TEEC_ReadApp(const TaFileInfo *taFile, const char *loadFile, bool
                             TC_NS_ClientContext *cliContext)
 {
     int32_t ret                     = 0;
+    int32_t retBuildInTa            = 1;
     FILE *fp                        = NULL;
     FILE *fpTmp                     = NULL;
     char realLoadFile[PATH_MAX + 1] = { 0 };
@@ -244,7 +246,7 @@ static int32_t TEEC_ReadApp(const TaFileInfo *taFile, const char *loadFile, bool
 
         /* maybe it's a built-in TA */
         tlogd("maybe it's a built-in TA or file is not in default path\n");
-        return ret;
+        return retBuildInTa;
     }
 
     /* open image file */
