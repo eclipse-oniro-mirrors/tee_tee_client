@@ -86,7 +86,7 @@ int32_t TEEC_GetApp(const TaFileInfo *taFile, const TEEC_UUID *srvUuid, TC_NS_Cl
                 tloge("teec load app erro\n");
                 return -1;
             }
-            // TA file is not in the default path and feima default path, maybe it's a build-in TA
+            /* TA file is not in the default path and feima default path, maybe it's a build-in TA */
             ret = 0;
         }
     }
