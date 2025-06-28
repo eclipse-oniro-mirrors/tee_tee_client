@@ -278,7 +278,7 @@ namespace OHOS {
         uint8_t *temp = const_cast<uint8_t *>(data);
         if (size > sizeof(int)) {
             tzFd = *reinterpret_cast<int*>(temp);
-            ret = LoadSecFile(tzFd, fp, tzFd, NULL);
+            ret = LoadSecFile(tzFd, fp, LOAD_TA, NULL);
         }
     }
 
