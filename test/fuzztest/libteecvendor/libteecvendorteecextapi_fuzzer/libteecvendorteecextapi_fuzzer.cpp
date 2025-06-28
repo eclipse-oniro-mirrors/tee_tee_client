@@ -15,9 +15,14 @@
 #include <cstddef>
 #include <cstdint>
 #include <malloc.h>
+#include <string>
 #include "tee_client_api.h"
+#include "tee_client_ext_api.h"
+#include "tee_client_inner_api.h"
 #include "tee_client_constants.h"
 #include "tee_client_type.h"
+#include "tee_client_app_load.h"
+#include "load_sec_file.h"
 
 namespace OHOS {
     bool LibteecVendorExtRegisterAgentFuzzTest(const uint8_t *data, size_t size)
@@ -27,10 +32,10 @@ namespace OHOS {
             uint8_t *temp = const_cast<uint8_t *>(data);
             uint32_t agentId = *reinterpret_cast<uint32_t *>(temp);
             temp += sizeof(agentId);
-            int devFd = *reinterpret_cast<int *>(temp);
+            int *devFd = reinterpret_cast<int *>(temp);
             temp += sizeof(int);
 
-            uinit8_t *buffer;
+            uint8_t *buffer;
             TEEC_Result ret = TEEC_EXT_RegisterAgent(agentId, devFd, (void **)&buffer);
             if (ret != TEEC_SUCCESS) {
                 return result;
@@ -41,25 +46,24 @@ namespace OHOS {
 
     void TEEC_EXT_RegisterAgentTest_001(const uint8_t *data, size_t size)
     {
+        (void)data;
+        (void)size;
         int devFd = 0;
         char *buf = nullptr;
 
         TEEC_Result ret = TEEC_EXT_RegisterAgent(0, nullptr, (void **)nullptr);
-        EXPECT_TRUE(ret == TEEC_ERROR_GENERIC);
 
         ret = TEEC_EXT_RegisterAgent(0, &devFd, (void **)nullptr);
-        EXPECT_TRUE(ret == TEEC_ERROR_GENERIC);
 
         ret = TEEC_EXT_RegisterAgent(0, &devFd, (void **)&buf);
-        EXPECT_TRUE(ret == TEEC_ERROR_GENERIC);
     }
 
     bool LibteecVendorExtWaitEventFuzzTest(const uint8_t *data, size_t size)
     {
-        boot result = false;
-        if (size > sizeof(uinit32_t) + sizeof(int)) {
+        bool result = false;
+        if (size > sizeof(uint32_t) + sizeof(int)) {
             uint8_t *temp = const_cast<uint8_t *>(data);
-            uint32_t agentId = *reinterpret_cast<uinit32_t*>(temp);
+            uint32_t agentId = *reinterpret_cast<uint32_t*>(temp);
             temp += sizeof(agentId);
             int devFd = *reinterpret_cast<int *>(temp);
             temp += sizeof(int);
@@ -89,7 +93,7 @@ namespace OHOS {
             int devFd = *reinterpret_cast<int *>(temp);
             temp += sizeof(int);
             devFd = devFd > 0 ? 0x7fffffff : devFd;
-            uinit8_t *buffer;
+            uint8_t *buffer;
             TEEC_Result ret = TEEC_EXT_UnregisterAgent(agentId, devFd, (void **)&buffer);
             if (ret != TEEC_SUCCESS) {
                 return result;
@@ -153,18 +157,18 @@ namespace OHOS {
         bool result = false;
         if (size > sizeof(int) + sizeof(FILE)) {
             uint8_t *temp = const_cast<uint8_t *>(data);
-            int devFd = *reinterpret_cast<int *>(temp);
+            int tzFd = *reinterpret_cast<int *>(temp);
             temp += sizeof(int);
-            FILE *fp = reinterpret_cast<int *>(temp);
+            FILE *fp = reinterpret_cast<FILE *>(temp);
             temp += sizeof(FILE);
             char *path = reinterpret_cast<char *>(temp);
 
-            result = TEEC_SendSecfileInner(path, devFd, fp);
+            result = TEEC_SendSecfileInner(path, tzFd, fp);
         }
         return result;
     }
 
-    void TEEC_SendSecfileInnerTest_001()
+    void TEEC_SendSecfileInnerTest_001(const uint8_t *data, size_t size)
     {
         (void)data;
         (void)size;
@@ -181,7 +185,7 @@ namespace OHOS {
             uint8_t *temp = const_cast<uint8_t *>(data);
             int devFd = *reinterpret_cast<int *>(temp);
             temp += sizeof(int);
-            uint32_t agentId = reinterpret_cast<uint32_t *>(temp);
+            uint32_t agentId = *reinterpret_cast<uint32_t *>(temp);
 
             result = TEEC_EXT_SendEventResponse(agentId, devFd);
         }
@@ -200,7 +204,7 @@ namespace OHOS {
         bool result = false;
         if (size > sizeof(int) + sizeof(FILE)) {
             uint8_t *temp = const_cast<uint8_t *>(data);
-            int devFd = *reinterpret_cast<int *>(temp);
+            int tzFd = *reinterpret_cast<int *>(temp);
             temp += sizeof(int);
             FILE *fp = reinterpret_cast<FILE *>(temp);
             temp += sizeof(FILE);
@@ -220,8 +224,8 @@ namespace OHOS {
 
         ret = TEEC_GetApp(nullptr, nullptr, nullptr);
 
-        std::string str("./ClientAppLoad_002.sec");
-        taFile.taPath = reinterpret_cast<const uinit8_t*>(str.c_str());
+        std::string str("./ClientAppLoad_002.txt");
+        taFile.taPath = reinterpret_cast<const uint8_t*>(str.c_str());
         ret = TEEC_GetApp(&taFile, &srvUuid, &cliContext);
 
         FILE *fp = fopen("./ClientAppLoad_001.sec", "w+");
@@ -237,12 +241,12 @@ namespace OHOS {
         int ret = 0;
         FILE *fp = fopen("./ClientAppLoad_002.txt", "w+");
 
-        ret = TEEC_LoadSecFile(nullptr, -1, nullptr);
+        ret = TEEC_LoadSecfile(nullptr, -1, nullptr);
     
         std::string str("./ClientAppLoad_002.txt");
-        ret = TEEC_LoadSecFile(str.c_str(), 0, fp);
+        ret = TEEC_LoadSecfile(str.c_str(), 0, fp);
 
-        ret = TEEC_LoadSecFile(str.c_str(), 0, nullptr);
+        ret = TEEC_LoadSecfile(str.c_str(), 0, nullptr);
 
         uint8_t *temp = const_cast<uint8_t*>(data);
         ret = TEEC_LoadSecfile(reinterpret_cast<char *>(temp), 0, fp);
@@ -256,7 +260,7 @@ namespace OHOS {
         int ret = 0;
 
         FILE *fp = fopen("./LoadSecfile_002.txt", "w+");
-        ret = LoadSecFile(tzFd, nullptr, LOAD_TA, nullptr);
+        ret = LoadSecFile(tzFd, fp, LOAD_TA, nullptr);
         (void)fclose(fp);
 
         fp = fopen("./LoadSecfile_002.txt", "w+");
@@ -271,7 +275,7 @@ namespace OHOS {
         ret = LoadSecFile(tzFd, fp, LOAD_TA, nullptr);
         (void)fclose(fp);
 
-        uint8_t *temp = const_cast<uint8_t *>(temp);
+        uint8_t *temp = const_cast<uint8_t *>(data);
         if (size > sizeof(int)) {
             tzFd = *reinterpret_cast<int*>(temp);
             ret = LoadSecFile(tzFd, fp, tzFd, NULL);
@@ -284,7 +288,7 @@ namespace OHOS {
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
     /* Run your code on data */
-    OHOS::LibteecVendorRequestCancellationFuzzTest(data, size);
+    OHOS::LibteecVendorExtRegisterAgentFuzzTest(data, size);
     OHOS::TEEC_EXT_RegisterAgentTest_001(data, size);
     OHOS::LibteecVendorExtWaitEventFuzzTest(data, size);
     OHOS::TEEC_EXT_WaitEventTest_001(data, size);
