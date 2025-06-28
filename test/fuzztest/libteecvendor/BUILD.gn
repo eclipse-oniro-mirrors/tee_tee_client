@@ -23,5 +23,6 @@ group("libteec_vendor_fuzztest") {
     "libteecvendorregistersharedmemory_fuzzer:LibteecVendorRegisterSharedMemoryFuzzTest",
     "libteecvendorreleasesharedmemory_fuzzer:LibteecVendorReleaseSharedMemoryFuzzTest",
     "libteecvendorrequestcancellation_fuzzer:LibteecVendorRequestCancellationFuzzTest",
+    "libteecvendorteecextapi_fuzzer:LibteecVendorTeecExtApiFuzzTest",
   ]
 }
