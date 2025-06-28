@@ -36,5 +36,8 @@ ohos_fuzztest("TeeClientRequestCancellationFuzzTest") {
     "../../../../frameworks/build/standard:libteec",
     "../../../../frameworks/build/standard:libteec_vendor",
   ]
+<<<<<<< HEAD
   external_deps = [ "hilog:libhilog" ]
+=======
+>>>>>>> 3b4adf3ab0e3cdaa2143f009672ce83193562cee
 }

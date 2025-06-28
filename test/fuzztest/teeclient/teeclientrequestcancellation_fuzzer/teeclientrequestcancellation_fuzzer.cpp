@@ -16,7 +16,10 @@
 #include <cstdint>
 #include <string>
 #include "tee_client_api.h"
+<<<<<<< HEAD
 #include "tee_client_ext_api.h"
+=======
+>>>>>>> 3b4adf3ab0e3cdaa2143f009672ce83193562cee
 #include "tee_client_inner_api.h"
 #include "tee_client_constants.h"
 #include "tee_client_type.h"

@@ -22,9 +22,14 @@
 #include "if_system_ability_manager.h"
 #include "ipc_skeleton.h"
 #include "ipc_types.h"
+<<<<<<< HEAD
 #include "iremote_proxy.h"
 #include "iremote_stub.h"
 #include "iservice_registry.h"
+=======
+#include "iservice_registry.h"
+#include "string_ex.h"
+>>>>>>> 3b4adf3ab0e3cdaa2143f009672ce83193562cee
 #include "system_ability_definition.h"
 #include "tee_log.h"
 #include "tee_client_ext_api.h"
@@ -97,7 +102,11 @@ namespace OHOS {
                 TEEC_CloseSession(&session);
             }
 
+<<<<<<< HEAD
             connectionMethod = TEEC_LOGIN_IDENTIFY;
+=======
+            connectionMethod = TEEEC_LOGIN_IDENTIFY;
+>>>>>>> 3b4adf3ab0e3cdaa2143f009672ce83193562cee
             ret = TEEC_OpenSession(&context, &session, &uuid, connectionMethod,
                 nullptr, &operation, &returnOrigin);
             if (ret == TEEC_SUCCESS) {
@@ -107,6 +116,7 @@ namespace OHOS {
         return result;
     }
 
+<<<<<<< HEAD
     void TeeClientOpenSessionFuzzTest_101(TEEC_Context *context, TEEC_Session *session, const TEEC_UUID *destination,
         uint32_t connectionMethod, const void *connectionData, TEEC_Operation *operation, uint32_t *returnOrigin)
     {
@@ -132,6 +142,33 @@ namespace OHOS {
         ret = TEEC_OpenSession(context, session, destination, connectionMethod,
             connectionData, operation, returnOrigin);
         if (ret == TEEC_SUCCESS) {
+=======
+    void TeeClinetOpenSessionFuzzTest_101(TEEC_Context *context, TEEC_Session *session, const TEEC_UUID *destination,
+        uint32_t connectionMethod, const void *connectionData, TEEC_Operation *operation, uint32_t *returnOrigin)
+    {
+        operation.started = 1;
+        operation.paramTypes = TEEC_PARAM_TYPES(TEEC_NONE, TEEC_NONE, TEEC_NONE, TEEC_NONE);
+
+        ret = TEEC_OpenSession(context, session, destination, connectionMethod,
+            connectionData, operation, returnOrigin);
+        if (ret == TEEC_SUCCESS)
+            TEEC_CloseSession(session);
+        }
+
+        operation.paramTypes = TEEC_PARAM_TYPES(TEEC_MEMREF_PARTIAL_OUTPUT, TEEC_MEMREF_PARTIAL_OUTPUT,
+            TEEC_MEMREF_PARTIAL_OUTPUT, TEEC_MEMREF_PARTIAL_OUTPUT);
+        ret = TEEC_OpenSession(context, session, destination, connectionMethod,
+            connectionData, operation, returnOrigin);
+        if (ret == TEEC_SUCCESS)
+            TEEC_CloseSession(session);
+        }
+
+        operation.paramTypes = TEEC_PARAM_TYPES(TEEC_MEMREF_PARTIAL_OUTPUT, TEEC_MEMREF_PARTIAL_OUTPUT,
+            TEEC_NONE, TEEC_NONE);
+        ret = TEEC_OpenSession(context, session, destination, connectionMethod,
+            connectionData, operation, returnOrigin);
+        if (ret == TEEC_SUCCESS)
+>>>>>>> 3b4adf3ab0e3cdaa2143f009672ce83193562cee
             TEEC_CloseSession(session);
         }
     }
