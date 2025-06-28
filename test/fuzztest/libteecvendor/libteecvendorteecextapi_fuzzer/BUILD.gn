@@ -32,7 +32,7 @@ ohos_fuzztest("LibteecVendorTeecExtApiFuzzTest") {
     "-Wno-unused-variable",
     "-fno-omit-frame-pointer",
   ]
-  sources = [ "libteecvendorrequestcancellation_fuzzer.cpp" ]
+  sources = [ "libteecvendorteecextapi_fuzzer.cpp" ]
 
   deps = [ "../../../../frameworks/build/standard:libteec_vendor" ]
 
