@@ -22,7 +22,7 @@ ohos_fuzztest("TeeClientOpenSessionFuzzTest") {
     "../../../../services/cadaemon/src/ca_daemon",
     "../../../../services/authentication",
     "../../../../frameworks/include",
-    "../../../../frameworks/include/standerd",
+    "../../../../frameworks/include/standard",
     "../../../../frameworks/libteec_vendor",
   ]
   cflags = [

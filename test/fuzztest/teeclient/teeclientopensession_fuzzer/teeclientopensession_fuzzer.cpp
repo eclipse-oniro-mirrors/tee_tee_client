@@ -173,7 +173,7 @@ namespace OHOS {
                 TEEC_CloseSession(&session);
             }
 
-            connectionMethod = TEEEC_LOGIN_IDENTIFY;
+            connectionMethod = TEEC_LOGIN_IDENTIFY;
             ret = TEEC_OpenSession(&context, &session, &uuid, connectionMethod,
                 nullptr, &operation, &returnOrigin);
             if (ret == TEEC_SUCCESS) {
