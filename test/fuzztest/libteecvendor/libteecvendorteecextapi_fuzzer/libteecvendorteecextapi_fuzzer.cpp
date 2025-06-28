@@ -10,7 +10,7 @@
  * See the Mulan PSL v2 for more details.
  */
 
-#include "libteecvendorrequestcancellation_fuzzer.h"
+#include "libteecvendorteecextapi_fuzzer.h"
 
 #include <cstddef>
 #include <cstdint>
