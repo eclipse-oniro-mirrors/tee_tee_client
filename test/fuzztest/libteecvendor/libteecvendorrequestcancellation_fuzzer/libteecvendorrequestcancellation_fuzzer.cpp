@@ -15,14 +15,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <malloc.h>
-#include <string>
 #include "tee_client_api.h"
-#include "tee_client_ext_api.h"
-#include "tee_client_inner_api.h"
 #include "tee_client_constants.h"
 #include "tee_client_type.h"
-#include "tee_client_app_load.h"
-#include "load_sec_file.h"
 
 namespace OHOS {
     bool LibteecVendorRequestCancellationFuzzTest(const uint8_t *data, size_t size)
