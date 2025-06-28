@@ -17,7 +17,13 @@ module_output_path = "tee_client/tee_client"
 ohos_fuzztest("TeeClientRequestCancellationFuzzTest") {
   module_out_path = module_output_path
   fuzz_config_file = "../teeclientrequestcancellation_fuzzer"
-  include_dirs = [ "../../../../interfaces/inner_api" ]
+  include_dirs = [
+    "../../../../interfaces/inner_api",
+    "../../../../frameworks/libteec_vendor",
+    "../../../../services/authentication",
+    "../../../../frameworks/include",
+    "../../../../frameworks/include/standard",
+  ]
   cflags = [
     "-g",
     "-O0",
@@ -26,5 +32,8 @@ ohos_fuzztest("TeeClientRequestCancellationFuzzTest") {
   ]
   sources = [ "teeclientrequestcancellation_fuzzer.cpp" ]
 
-  deps = [ "../../../../frameworks/build/standard:libteec" ]
+  deps = [
+    "../../../../frameworks/build/standard:libteec",
+    "../../../../frameworks/build/standard:libteec_vendor",
+  ]
 }

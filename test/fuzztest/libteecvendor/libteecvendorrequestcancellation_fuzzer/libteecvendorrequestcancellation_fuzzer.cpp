@@ -15,9 +15,14 @@
 #include <cstddef>
 #include <cstdint>
 #include <malloc.h>
+#include <string>
 #include "tee_client_api.h"
+#include "tee_client_ext_api.h"
+#include "tee_client_inner_api.h"
 #include "tee_client_constants.h"
 #include "tee_client_type.h"
+#include "tee_client_app_load.h"
+#include "load_sec_file.h"
 
 namespace OHOS {
     bool LibteecVendorRequestCancellationFuzzTest(const uint8_t *data, size_t size)
@@ -65,6 +70,31 @@ namespace OHOS {
         }
         return result;
     }
+    void TEEC_RequestCancellationTest_001(const uint8_t *data, size_t size)
+    {
+        (void)data;
+        (void)size;
+        TEEC_Operation operation = { 0 };
+
+        TEEC_RequestCancellation(nullptr);
+
+        operation.session = nullptr;
+        TEEC_RequestCancellation(&operation);
+
+        TEEC_Session session = { 0 };
+        operation.session = &session;
+        session.context = nullptr;
+        TEEC_RequestCancellation(&operation);
+
+        TEEC_Context context = { 0 };
+        TEEC_Result result = TEEC_InitializeContext(nullptr, &context);
+        operation.started = 1;
+        operation.paramTypes = TEEC_PARAM_TYPES(TEEC_NONE, TEEC_NONE, TEEC_NONE, TEEC_NONE);
+        TEEC_UUID uuid = { 0xabe89147, 0xcd61, 0xf43f, { 0x71, 0xc4, 0x1a, 0x31, 0x7e, 0x40, 0x53, 0x12 } };
+        result = TEEC_OpenSession(&context, &session, &uuid, TEEC_LOGIN_IDENTIFY, nullptr, &operation, nullptr);
+
+        TEEC_RequestCancellation(&operation);
+    }
 }
 
 /* Fuzzer entry point */
@@ -72,5 +102,6 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
     /* Run your code on data */
     OHOS::LibteecVendorRequestCancellationFuzzTest(data, size);
+    OHOS::TEEC_RequestCancellationTest_001(data, size);
     return 0;
 }
