@@ -118,7 +118,7 @@ namespace OHOS {
             uint8_t *temp = const_cast<uint8_t *>(data);
             TEEC_Session session = *reinterpret_cast<TEEC_Session *>(temp);
             temp += sizeof(TEEC_Session);
-            char *path= *reinterpret_cast<int *>(temp);
+            char *path = reinterpret_cast<char *>(temp);
 
             TEEC_SendSecfile(path, &session);
         }
@@ -130,7 +130,7 @@ namespace OHOS {
         (void)size;
         TEEC_Result ret = TEEC_SendSecfile(nullptr, nullptr);
 
-        char path[] = "/data/app/el2/100/base/com.huawei.hmos.skytone/files/abe89147-cd61-f43f-71c4-1a317e405312.sec";
+        char path[] = "/data/app/el2/100/base/files/abe89147-cd61-f43f-71c4-1a317e405312.sec";
         ret = TEEC_SendSecfile(path, nullptr);
 
         TEEC_Session session = { 0 };
@@ -170,7 +170,7 @@ namespace OHOS {
         (void)size;
         TEEC_Result result = TEEC_SendSecfileInner(nullptr, 0, nullptr);
 
-        char path[] = "/data/app/el2/100/base/com.huawei.hmos.skytone/files/abe89147-cd61-f43f-71c4-1a317e405312.sec";
+        char path[] = "/data/app/el2/100/base/files/abe89147-cd61-f43f-71c4-1a317e405312.sec";
         result = TEEC_SendSecfileInner(path, 0, nullptr);
     }
 
@@ -226,11 +226,10 @@ namespace OHOS {
 
         FILE *fp = fopen("./ClientAppLoad_001.sec", "w+");
         ret = TEEC_GetApp(&taFile, &srvUuid, &cliContext);
-        fclose(fp);
+        (void)fclose(fp);
 
         taFile.taPath = data;
         ret = TEEC_GetApp(&taFile, &srvUuid, &cliContext);
-
     }
 
     void LibteecVendorLoadSecfileFuzzTest_001(const uint8_t *data, size_t size)
@@ -247,7 +246,7 @@ namespace OHOS {
 
         uint8_t *temp = const_cast<uint8_t*>(data);
         ret = TEEC_LoadSecfile(reinterpret_cast<char *>(temp), 0, fp);
-        fclose(fp);
+        (void)fclose(fp);
     }
 
     #define MAX_BUFFER_LEN (8 * 1024 * 1024)
@@ -258,19 +257,19 @@ namespace OHOS {
 
         FILE *fp = fopen("./LoadSecfile_002.txt", "w+");
         ret = LoadSecFile(tzFd, nullptr, LOAD_TA, nullptr);
-        fclose(fp);
+        (void)fclose(fp);
 
         fp = fopen("./LoadSecfile_002.txt", "w+");
         (void)fseek(fp, MAX_BUFFER_LEN + 1, SEEK_SET);
         char chr = 0;
-        fwrite(&chr, 1, sizeof(chr), fp);
+        (void)fwrite(&chr, 1, sizeof(chr), fp);
         ret = LoadSecFile(tzFd, fp, LOAD_TA, nullptr);
-        fclose(fp);
+        (void)fclose(fp);
 
         fp = fopen("./LoadSecfile_002.txt", "w+");
-        fprintf(fp, "%s", "LoadSecfile_002");
+        (void)fprintf(fp, "%s", "LoadSecfile_002");
         ret = LoadSecFile(tzFd, fp, LOAD_TA, nullptr);
-        fclose(fp);
+        (void)fclose(fp);
 
         uint8_t *temp = const_cast<uint8_t *>(temp);
         if (size > sizeof(int)) {
