@@ -17,7 +17,14 @@ module_output_path = "tee_client/tee_client"
 ohos_fuzztest("TeeClientOpenSessionFuzzTest") {
   module_out_path = module_output_path
   fuzz_config_file = "../teeclientopensession_fuzzer"
-  include_dirs = [ "../../../../interfaces/inner_api" ]
+  include_dirs = [
+    "../../../../interfaces/inner_api",
+    "../../../../services/cadaemon/src/ca_daemon",
+    "../../../../services/authentication",
+    "../../../../frameworks/include",
+    "../../../../frameworks/include/standard",
+    "../../../../frameworks/libteec_vendor",
+  ]
   cflags = [
     "-g",
     "-O0",
@@ -27,4 +34,12 @@ ohos_fuzztest("TeeClientOpenSessionFuzzTest") {
   sources = [ "teeclientopensession_fuzzer.cpp" ]
 
   deps = [ "../../../../frameworks/build/standard:libteec" ]
+
+  external_deps = [
+    "c_utils:utils",
+    "hilog:libhilog",
+    "ipc:ipc_single",
+    "safwk:system_ability_fwk",
+    "samgr:samgr_proxy",
+  ]
 }

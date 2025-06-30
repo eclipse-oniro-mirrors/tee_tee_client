@@ -91,7 +91,7 @@ HWTEST_F(LoadSecfileTest, LoadSecfile_002, TestSize.Level1)
     EXPECT_TRUE(ret != 0);
 
     fp = fopen("./LoadSecfile_002.txt", "w+");
-    fprintf(fp, "%s", "LoadSecfile_002");
+    (void)fprintf(fp, "%s", "LoadSecfile_002");
     ret = LoadSecFile(tzFd, fp, LOAD_TA, nullptr);
     fclose(fp);
     EXPECT_TRUE(ret != 0);
