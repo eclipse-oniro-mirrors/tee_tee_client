@@ -123,7 +123,7 @@ static int RecvFileDescriptor(int cmd, int socketFd)
 
     rc = InitRecvMsg(&hmsg, iov, IOV_LEN, ctrlBuf, CMSG_SPACE(sizeof(int)));
     if (rc != EOK) {
-        tloge("init msg failed!/n");
+        tloge("init msg failed!\n");
         return -1;
     }
 
