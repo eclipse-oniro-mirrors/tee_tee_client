@@ -112,7 +112,7 @@ namespace OHOS {
 
         ret = TEEC_EXT_UnregisterAgent(0, 0, (void**)&buf);
 
-        char buf2[4] = { 0 };
+        uint32_t buf2[4] = { 0 };
         ret = TEEC_EXT_UnregisterAgent(0, -1, (void**)&buf2);
     }
 
