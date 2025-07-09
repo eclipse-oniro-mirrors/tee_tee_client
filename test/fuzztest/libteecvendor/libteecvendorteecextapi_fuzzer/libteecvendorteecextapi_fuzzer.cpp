@@ -112,8 +112,7 @@ namespace OHOS {
 
         ret = TEEC_EXT_UnregisterAgent(0, 0, (void**)&buf);
 
-        char buf2[4] = { 0 };
-        ret = TEEC_EXT_UnregisterAgent(0, -1, (void**)&buf2);
+        ret = TEEC_EXT_UnregisterAgent(0, -1, (void**)&buf);
     }
 
     void LibteecVendorSendSecfileFuzzTest(const uint8_t *data, size_t size)

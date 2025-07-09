@@ -60,7 +60,7 @@ ohos_shared_library("libteec_vendor") {
     "updater",
   ]
 
-  innerapi_tags = [ "chipsetsdk" ]
+  innerapi_tags = [ "chipsetsdk_sp" ]
 
   defines = [
     "LIB_TEEC_VENDOR",
