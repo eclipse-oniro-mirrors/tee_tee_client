@@ -35,6 +35,8 @@ enum class ServiceRunningState {
 
 using DaemonProcdata = struct {
     int callingPid;
+    int callingUid;
+    uint32_t callingTokenid;
     uint32_t opsCnt;
     int32_t cxtFd[MAX_CXTCNT_ONECA];
     struct ListNode procdataHead;
@@ -93,10 +95,10 @@ private:
     bool registerToService_ = false;
     std::mutex mProcDataLock;
     ServiceRunningState state_ = ServiceRunningState::STATE_NOT_START;
-    TEEC_Result SetContextToProcData(int32_t pid, TEEC_ContextInner *outContext);
-    DaemonProcdata *CallGetProcDataPtr(int pid);
-    bool IsValidContext(const TEEC_Context *context, int pid);
-    bool IsValidContextWithoutLock(const TEEC_Context *context, int pid);
+    TEEC_Result SetContextToProcData(int pid, int uid, uint32_t tokenid, TEEC_ContextInner *outContext);
+    DaemonProcdata *CallGetProcDataPtr(int pid, int uid, uint32_t tokenid);
+    bool IsValidContext(const TEEC_Context *context, int pid, int uid, uint32_t tokenid);
+    bool IsValidContextWithoutLock(const TEEC_Context *context, int pid, int uid, uint32_t tokenid);
     void PutBnContextAndReleaseFd(int32_t pid, TEEC_ContextInner *outContext);
     void ReleaseContext(int32_t pid, TEEC_ContextInner **contextInner);
     TEEC_Result CallFinalizeContext(int32_t pid, const TEEC_Context *contextPtr);
