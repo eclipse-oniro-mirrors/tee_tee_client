@@ -488,13 +488,12 @@ TEEC_Result CaDaemonService::InitializeContext(const char *name, MessageParcel &
         goto RELEASE_CONTEXT;
     }
 
-    bool writeRet = reply.WriteInt32((int32_t)ret);
-    if (!writeRet) {
+    if (!reply.WriteInt32((int32_t)ret)) {
         ret = TEEC_FAIL;
         goto RELEASE_CONTEXT;
     }
-    writeRet = reply.WriteInt32(contextInner->fd);
-    if (!writeRet) {
+
+    if (!reply.WriteInt32((int32_t)ret)) {
         ret = TEEC_FAIL;
         goto RELEASE_CONTEXT;
     }
