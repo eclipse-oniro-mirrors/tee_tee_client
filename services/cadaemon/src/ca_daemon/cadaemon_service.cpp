@@ -461,6 +461,7 @@ void CaDaemonService::ReleaseContext(int pid, TEEC_ContextInner **contextInner)
 
 TEEC_Result CaDaemonService::InitializeContext(const char *name, MessageParcel &reply)
 {
+    TEEC_Result ret = TEEC_FAIL;
     int callingPid = IPCSkeleton::GetCallingPid();
     int callingUid = IPCSkeleton::GetCallingUid();
     uint32_t callingTokenid = IPCSkeleton::GetCallingTokenID();
