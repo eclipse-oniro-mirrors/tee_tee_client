@@ -478,7 +478,7 @@ TEEC_Result CaDaemonService::InitializeContext(const char *name, MessageParcel &
         goto FREE_CONTEXT;
     }
 
-    TEEC_Result ret = TEEC_InitializeContextInner(contextInner, caInfo);
+    ret = TEEC_InitializeContextInner(contextInner, caInfo);
     if (ret != TEEC_SUCCESS) {
         goto FREE_CONTEXT;
     }
