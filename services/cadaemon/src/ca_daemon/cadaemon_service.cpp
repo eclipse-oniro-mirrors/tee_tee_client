@@ -328,10 +328,10 @@ bool CaDaemonService::IsValidContextWithoutLock(const TEEC_Context *context, int
     return false;
 }
 
-bool CaDaemonService::IsValidContext(const TEEC_Context *context, int pid, int uid, uint32_t tockenid)
+bool CaDaemonService::IsValidContext(const TEEC_Context *context, int pid, int uid, uint32_t tokenid)
 {
     lock_guard<mutex> autoLock(mProcDataLock);
-    return IsValidContextWithoutLock(context, pid, uid, tockenid);
+    return IsValidContextWithoutLock(context, pid, uid, tokenid);
 }
 
 DaemonProcdata *CaDaemonService::CallGetProcDataPtr(int pid, int uid, uint32_t tokenid)
