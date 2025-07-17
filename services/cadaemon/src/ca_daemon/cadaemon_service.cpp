@@ -424,7 +424,7 @@ void CaDaemonService::PutBnContextAndReleaseFd(int pid, TEEC_ContextInner *outCo
 
 static TEEC_Result InitCaAuthInfo(CaAuthInfo *caInfo, int pid, int uid, uint32_t tokenid)
 {
-    caInfo->pid = pid
+    caInfo->pid = pid;
     caInfo->uid = (unsigned int)uid;
     static bool sendXmlSuccFlag = false;
     /* Trans the system xml file to tzdriver */
