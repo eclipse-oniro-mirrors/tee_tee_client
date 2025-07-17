@@ -311,12 +311,12 @@ bool CaDaemonService::IsValidContextWithoutLock(const TEEC_Context *context, int
 
     DaemonProcdata *outProcData = GetProcdataByPid(pid);
     if (outProcData == nullptr) {
-        tloge("pid %"PUBLIC"d donnot have proc data in cadaemon\n", pid);
+        tloge("pid %" PUBLIC "d donnot have proc data in cadaemon\n", pid);
         return false;
     }
 
     if (outProcData->callingUid != uid || outProcData->callingTokenid != tokenid) {
-        tloge("procdata with pid %"PUBLIC"d have mismatch uid or tokenid\n", pid);
+        tloge("procdata with pid %" PUBLIC "d have mismatch uid or tokenid\n", pid);
         return false;
     }
 
@@ -334,12 +334,12 @@ bool CaDaemonService::IsValidContext(const TEEC_Context *context, int pid, int u
     return IsValidContextWithoutLock(context, pid, uid, tockenid);
 }
 
-DaemonProcdata *CaDaemonService::CallGetProcDataPtr(int pid, int uid, uin32_t tokenid)
+DaemonProcdata *CaDaemonService::CallGetProcDataPtr(int pid, int uid, uint32_t tokenid)
 {
     DaemonProcdata *outProcData = GetProcdataByPid(pid);
     if (outProcData != nullptr) {
         if (outProcData->callingUid != uid || outProcData->callingTokenid != tokenid) {
-            tloge("procdata with pid %"PUBLIC"d have ismatch uid or tokenid\n", pid);
+            tloge("procdata with pid %" PUBLIC "d have ismatch uid or tokenid\n", pid);
             return nullptr;
         }
     } else {
