@@ -494,7 +494,7 @@ TEEC_Result CaDaemonService::InitializeContext(const char *name, MessageParcel &
         goto RELEASE_CONTEXT;
     }
 
-    if (!reply.WriteInt32((int32_t)ret)) {
+    if (!reply.WriteInt32(contextInner->fd)) {
         ret = TEEC_FAIL;
         goto RELEASE_CONTEXT;
     }
