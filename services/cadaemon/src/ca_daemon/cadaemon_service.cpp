@@ -984,7 +984,11 @@ TEEC_Result CaDaemonService::CloseSession(TEEC_Session *session, TEEC_Context *c
     };
     tlogi("cadaemon service process close session, caller pid: %" PUBLIC "d\n", identity.pid);
     TidData *tidData = nullptr;
+<<<<<<< HEAD
     if ((session == nullptr) || (!IsValidContext(context, identity))) {
+=======
+    if ((session == nullptr) || (!IsValidContext(context, pid, uid, tokenid))) {
+>>>>>>> 5c220906b55a70832235e9d8e06057f9be098cd3
         tloge("closeSession: invalid context!\n");
         return TEEC_FAIL;
     }
@@ -1025,8 +1029,13 @@ TEEC_Result CaDaemonService::RegisterSharedMemory(TEEC_Context *context,
     TEEC_ContextInner *outContext = nullptr;
     CallerIdentity identity = {
         IPCSkeleton::GetCallingPid(), IPCSkeleton::GetCallingUid(), IPCSkeleton::GetCallingTokenID() };
+<<<<<<< HEAD
     tlogi("cadaemon service process register shared memory, caller pid: %" PUBLIC "d\n", identity.pid);
     if ((sharedMem == nullptr) || (!IsValidContext(context, identity))) {
+=======
+    tlogi("cadaemon service process register shared mem, caller pid: %" PUBLIC "d\n", identity.pid);
+    if ((context == nullptr) || (sharedMem == nullptr)) {
+>>>>>>> 5c220906b55a70832235e9d8e06057f9be098cd3
         tloge("registeMem: invalid context or sharedMem\n");
         goto ERROR_END;
     }
