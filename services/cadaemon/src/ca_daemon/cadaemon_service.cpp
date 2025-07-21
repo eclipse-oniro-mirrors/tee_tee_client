@@ -340,7 +340,7 @@ DaemonProcdata *CaDaemonService::CallGetProcDataPtr(const CallerIdentity &identi
     if (outProcData != nullptr) {
         if (outProcData->callerIdentity.uid != identity.uid ||
             outProcData->callerIdentity.tokenid != identity.tokenid) {
-            tloge("procdata with pid %" PUBLIC "d have ismatch uid or tokenid\n", identity.pid);
+            tloge("procdata with pid %" PUBLIC "d have mismatch uid or tokenid\n", identity.pid);
             return nullptr;
         }
     } else {
