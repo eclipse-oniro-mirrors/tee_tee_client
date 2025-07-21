@@ -501,11 +501,11 @@ TEEC_Result CaDaemonService::InitializeContext(const char *name, MessageParcel &
         goto RELEASE_CONTEXT;
     }
 
-    PutBnContextAndReleaseFd(caInfo->pid, contextInner); /* pair with ops_cnt++ when add to list */
+    PutBnContextAndReleaseFd(identity.pid, contextInner); /* pair with ops_cnt++ when add to list */
     goto END;
 
 RELEASE_CONTEXT:
-    ReleaseContext(caInfo->pid, &contextInner);
+    ReleaseContext(identity.pid, &contextInner);
 
 FREE_CONTEXT:
     if (contextInner != nullptr) {
