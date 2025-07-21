@@ -838,7 +838,6 @@ TEEC_Result CaDaemonService::OpenSession(TEEC_Context *context, const char *taPa
     TEEC_Operation *operation, uint32_t optMemSize, sptr<Ashmem> &optMem, MessageParcel &reply)
 {
     DecodePara paraDecode;
-    bool writeRet = false;
     uint32_t returnOrigin = TEEC_ORIGIN_API;
     TEEC_Session *outSession = nullptr;
     TEEC_ContextInner *outContext = nullptr;
@@ -939,7 +938,7 @@ TEEC_Result CaDaemonService::InvokeCommand(TEEC_Context *context, TEEC_Session *
         IPCSkeleton::GetCallingPid(), IPCSkeleton::GetCallingUid(), IPCSkeleton::GetCallingTokenID()
     };
     tlogi("cadaemon service process invoke command, caller pid: %" PUBLIC "d\n", identity.pid);
-    TEEC_Result ret = CallGetBnSession(identity.pid, context, session, &outContext, &outSession);
+    TEEC_Result ret = CallGetBnSession(identity, context, session, &outContext, &outSession);
     if (ret != TEEC_SUCCESS) {
         tloge("get context and session failed\n");
         goto END;
@@ -1023,6 +1022,7 @@ TEEC_Result CaDaemonService::RegisterSharedMemory(TEEC_Context *context,
     TEEC_Result ret = TEEC_FAIL;
     TEEC_SharedMemoryInner *outShm = nullptr;
     TEEC_ContextInner *outContext = nullptr;
+    bool writeRet = false;
     CallerIdentity identity = {
         IPCSkeleton::GetCallingPid(), IPCSkeleton::GetCallingUid(), IPCSkeleton::GetCallingTokenID() };
     tlogi("cadaemon service process register shared memory, caller pid: %" PUBLIC "d\n", identity.pid);
