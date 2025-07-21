@@ -536,7 +536,7 @@ TEEC_Result CaDaemonService::FinalizeContext(TEEC_Context *context)
         return TEEC_FAIL;
     }
 
-    return CallFinalizeContext(pid, context);
+    return CallFinalizeContext(identity.pid, context);
 }
 
 TEEC_Result CaDaemonService::CallFinalizeContext(int pid, const TEEC_Context *contextPtr)
@@ -558,7 +558,7 @@ TEEC_Result CaDaemonService::CallGetBnContext(const TEEC_Context *inContext,
 {
     TEEC_ContextInner *tempContext = nullptr;
 
-    if (!IsValidCOntext(inContext, identity)) {
+    if (!IsValidContext(inContext, identity)) {
         tloge("getBnContext: invalid context!\n");
         return TEEC_FAIL;
     }
