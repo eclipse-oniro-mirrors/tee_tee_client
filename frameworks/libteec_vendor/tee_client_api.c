@@ -131,7 +131,7 @@ void LogException(int errCode, const TEEC_UUID *srvUuid, uint32_t origin, int ty
         tloge("upload build reason err %d\n", ret);
     }
     HiSysEventParam param2 = { .name = "VERSION", .t = HISYSEVENT_STRING, .v = { .s = "no" }, .arraySize = 0 };
-    HiSysEventParam param1 = { .name = "UUID", .t = HISYSEVENT_STRING, .v = { .s = uuidstr }, .arraySize = 0 };
+    HiSysEventParam param1 = { .name = "TA_UUID", .t = HISYSEVENT_STRING, .v = { .s = uuidstr }, .arraySize = 0 };
     HiSysEventParam param0 = { .name = "REASON", .t = HISYSEVENT_STRING, .v = { .s = reason }, .arraySize = 0 };
     HiSysEventParam params[] = { param0, param1, param2 };
     ret = OH_HiSysEvent_Write("RELIABILITY", "TA_ABNORMAL", HISYSEVENT_FAULT,
