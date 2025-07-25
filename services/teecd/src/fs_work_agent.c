@@ -751,7 +751,6 @@ static int32_t CopyFromOldFile(const char *name, const char *path, size_t pathLe
         return 0;
     }
 
-    tlogd("try copy bk file from main partition to backup partition\n");
     if (strncmp(path, oldNameBuff, strlen(oldNameBuff) + 1) == 0) {
         tlogd("name of bk file is the same as main file, needn't copy\n");
         return 0;
@@ -760,7 +759,7 @@ static int32_t CopyFromOldFile(const char *name, const char *path, size_t pathLe
     if (CreateDir(path, pathLen) != 0) {
         return -1;
     }
-
+    tlogw("try copy bk file from main partition to backup partition, %" PUBLIC "s\n", name);
     ret = CopyFile((char *)oldNameBuff, path);
     if (ret != 0) {
         tloge("copy file failed: %" PUBLIC "d\n", errno);
@@ -1228,7 +1227,8 @@ static int32_t CopyFile(const char *fromPath, const char *toPath)
         tee_close(&fromFd);
         return ret;
     }
-
+    
+    tlogw("Copy file size: %" PUBLIC "u bytes\n", (uint32_t)fromStat.st_size);
     int32_t toFd = tee_open(realToPath, O_WRONLY | O_TRUNC | O_CREAT, fromStat.st_mode);
     if (toFd == -1) {
         tloge("stat file failed: %" PUBLIC "d\n", errno);
@@ -1265,6 +1265,8 @@ static void CopyWork(struct SecStorageType *transControl)
     int32_t joinRet1 = JoinFileName((char *)(transControl->args.cp.buffer), fromIsBackup, fromPath, sizeof(fromPath));
     int32_t joinRet2 = JoinFileName((char *)(transControl->args.cp.buffer) + transControl->args.cp.fromPathLen,
         toIsBackup, toPath, sizeof(toPath));
+    tlogw("sec storage: copy, oldpath=%" PUBLIC "s, newpath = %" PUBLIC "s\n",(char *)(transControl->args.cp.buffer),
+        (char *)(transControl->args.cp.buffer) + transControl->args.cp.fromPathLen);
     if (joinRet1 == 0 && joinRet2 == 0) {
 #ifdef CONFIG_BACKUP_PARTITION
         if (IsFileExist(toPath) == 0) {
