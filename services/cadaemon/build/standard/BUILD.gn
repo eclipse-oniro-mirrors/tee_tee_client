@@ -129,6 +129,7 @@ if (component_type == "system") {
         "power_manager:powermgr_client",
         "safwk:system_ability_fwk",
         "samgr:samgr_proxy",
+        "init:libbegetutil"
       ]
 
       if (component_type == "system") {

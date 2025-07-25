@@ -32,6 +32,7 @@
 #include "system_ability_definition.h"
 #include "iservice_registry.h"
 #include "tee_file.h"
+#include  "parameters.h"
 #ifdef SCENE_BOARD_ENABLE
 #include "display_manager_lite.h"
 #include "display_lite.h"
@@ -49,6 +50,7 @@ using namespace std;
 using namespace OHOS::PowerMgr;
 using namespace OHOS::Rosen;
 using namespace OHOS::Telephony;
+using namespace OHOS::system;
 
 TUIEvent *TUIEvent::tuiInstance = nullptr;
 
@@ -329,7 +331,7 @@ void TUIEvent::TUIGetFoldable()
     #else
         mTUIPanelInfo.foldState = static_cast<uint32_t>(OHOS::Rosen::DisplayManager::GetInstance().GetFoldStatus());
     #endif
-        if (mTUIPanelInfo.foldState >= FOLD_STATE_HALF_FOLDED) {
+        if (mTUIPanelInfo.foldState > FOLD_STATE_HALF_FOLDED) {
             mTUIPanelInfo.foldState = FOLD_STATE_UNKNOWN; /* default state */
         }
     } else {
@@ -337,7 +339,12 @@ void TUIEvent::TUIGetFoldable()
     }
 
     mTUIPanelInfo.displayMode = TUIGetDisplayMode(mTUIPanelInfo.foldState);
-    if (mTUIPanelInfo.foldState == FOLD_STATE_EXPANDED) {
+
+    std::string buildProduct = OHOS::system::GetParameter("const.build.product", "0");
+    if (buildProduct == "DEL") {
+        mTUIPanelInfo.displayMode = TUI_NEED_ROTATE;
+    }
+    if (mTUIPanelInfo.foldState == FOLD_STATE_EXPANDED || mTUIPanelInfo.foldState == FOLD_STATE_HALF_FOLDED) {
         mTUIPanelInfo.foldState += TUI_NEED_ROTATE;
     }
 
