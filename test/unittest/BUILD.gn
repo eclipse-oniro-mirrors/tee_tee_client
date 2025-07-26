@@ -60,6 +60,7 @@ if (tee_client_features_tui) {
       "samgr:samgr_proxy",
       "window_manager:libdm",
       "hisysevent:libhisysevent",
+      "init:libbegetutil"
     ]
   }
 }
