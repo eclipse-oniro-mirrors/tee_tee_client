@@ -38,7 +38,8 @@
         "zlib",
         "openssl",
         "bundle_framework",
-        "hisysevent"
+        "hisysevent",
+        "init"
       ]
     },
     "build": {
