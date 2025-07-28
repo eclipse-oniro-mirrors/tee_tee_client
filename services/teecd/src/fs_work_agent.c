@@ -1265,7 +1265,7 @@ static void CopyWork(struct SecStorageType *transControl)
     int32_t joinRet1 = JoinFileName((char *)(transControl->args.cp.buffer), fromIsBackup, fromPath, sizeof(fromPath));
     int32_t joinRet2 = JoinFileName((char *)(transControl->args.cp.buffer) + transControl->args.cp.fromPathLen,
         toIsBackup, toPath, sizeof(toPath));
-    tlogw("sec storage: copy, oldpath=%" PUBLIC "s, newpath = %" PUBLIC "s\n",(char *)(transControl->args.cp.buffer),
+    tlogw("sec storage: copy, oldpath=%" PUBLIC "s, newpath=%" PUBLIC "s\n", (char *)(transControl->args.cp.buffer),
         (char *)(transControl->args.cp.buffer) + transControl->args.cp.fromPathLen);
     if (joinRet1 == 0 && joinRet2 == 0) {
 #ifdef CONFIG_BACKUP_PARTITION
