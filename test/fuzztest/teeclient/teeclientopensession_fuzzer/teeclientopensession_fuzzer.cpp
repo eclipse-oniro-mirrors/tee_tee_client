@@ -63,6 +63,7 @@ namespace OHOS {
     bool TeeClientOpenSessionFuzzTest(const uint8_t *data, size_t size)
     {
         bool result = false;
+        TEEC_Result ret = TEEC_GetTEEVersion();
         if (size > sizeof(TEEC_Context) + sizeof(TEEC_Session) + sizeof(TEEC_UUID) + sizeof(uint32_t) +
             sizeof(TEEC_Operation) + sizeof(uint32_t) + sizeof(TEEC_Parameter) + sizeof(TEEC_SharedMemory)) {
             uint8_t *temp = const_cast<uint8_t *>(data);
@@ -103,6 +104,9 @@ namespace OHOS {
             if (ret == TEEC_SUCCESS) {
                 TEEC_CloseSession(&session);
             }
+
+            ret = TEEC_SendSecfile("/vendor/bin/test.sec", &session);
+            ret = TEEC_SendSecfile(data, &session);
         }
         return result;
     }
