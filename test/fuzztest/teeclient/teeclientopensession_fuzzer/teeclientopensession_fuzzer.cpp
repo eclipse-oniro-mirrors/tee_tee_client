@@ -78,7 +78,7 @@ namespace OHOS {
             temp += sizeof(TEEC_Operation);
             uint32_t returnOrigin = *reinterpret_cast<uint32_t *>(temp);
             temp += sizeof(uint32_t);
-
+            (void)TEEC_GetTEEVersion();
             TEEC_Parameter param = *reinterpret_cast<TEEC_Parameter *>(temp);
             temp += sizeof(TEEC_Parameter);
             TEEC_SharedMemory memory = *reinterpret_cast<TEEC_SharedMemory *>(temp);
@@ -103,6 +103,8 @@ namespace OHOS {
             if (ret == TEEC_SUCCESS) {
                 TEEC_CloseSession(&session);
             }
+
+            ret = TEEC_SendSecfile("/vendor/bin/test.sec", &session);
         }
         return result;
     }
