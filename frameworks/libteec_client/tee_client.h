@@ -96,7 +96,7 @@ public:
 private:
     TeeClient() : mTeecService(nullptr), mDeathNotifier(nullptr), mNotify(nullptr)
     {
-        tloge("Init TeeClient\n");
+        tlogi("Init TeeClient\n");
     }
 
     ~TeeClient()

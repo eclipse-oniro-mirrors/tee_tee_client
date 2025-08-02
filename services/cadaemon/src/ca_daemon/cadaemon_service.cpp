@@ -404,7 +404,7 @@ void CaDaemonService::PutBnContextAndReleaseFd(int pid, TEEC_ContextInner *outCo
         return;
     }
 
-    tloge("clear context success\n");
+    tlogi("clear context success\n");
 
     outProcData = GetProcdataByPid(pid);
     if (outProcData == nullptr) {
@@ -415,7 +415,7 @@ void CaDaemonService::PutBnContextAndReleaseFd(int pid, TEEC_ContextInner *outCo
     RemoveContextFromProcData(outProcData, contextFd);
 
     if (CheckProcDataFdEmpty(outProcData)) {
-        tloge("ProcData is empty\n");
+        tlogi("ProcData is empty\n");
         ListRemoveEntry(&outProcData->procdataHead);
         free(outProcData);
     } else {
@@ -1209,7 +1209,7 @@ int32_t CaDaemonService::SetCallBack(const sptr<IRemoteObject> &notify)
 
     /* register CA dead notify */
     pid_t pid = IPCSkeleton::GetCallingPid();
-    tloge("SetCallBack, ca pid=%" PUBLIC "d", pid);
+    tlogi("SetCallBack, ca pid=%" PUBLIC "d", pid);
 
     int32_t ret = AddClient(pid, notify);
     if (ret != 0) {

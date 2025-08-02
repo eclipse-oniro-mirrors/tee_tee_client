@@ -364,7 +364,7 @@ int32_t CaDaemonStub::OpenSessionRecvProc(MessageParcel &data, MessageParcel &re
     retTmp = GetChar(data, tempChar, &taPath);
     CHECK_ERR_RETURN(retTmp, true, ERR_UNKNOWN_OBJECT);
     if (taPath != nullptr) {
-        tloge("recieve taPath is not nullptr\n");
+        tlogi("recieve taPath is not nullptr\n");
         context.ta_path = reinterpret_cast<uint8_t *>(const_cast<char *>(taPath));
     }
 

@@ -557,7 +557,7 @@ bool TeeClient::FormatSession(TEEC_Session *session, MessageParcel &reply)
         tloge("read session failed\n");
         return false;
     }
-    tloge("reieve sessRet_id = %" PUBLIC "d\n", sessRet->session_id);
+    tlogi("reieve sessRet_id = %" PUBLIC "d\n", sessRet->session_id);
 
     session->session_id = sessRet->session_id;
     session->service_id = sessRet->service_id;
