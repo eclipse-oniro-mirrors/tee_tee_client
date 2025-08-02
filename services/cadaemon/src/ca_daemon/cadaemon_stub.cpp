@@ -377,7 +377,7 @@ int32_t CaDaemonStub::OpenSessionRecvProc(MessageParcel &data, MessageParcel &re
     TEEC_Operation operation;
     bool opFlag = false;
     retTmp = GetOperationFromData(data, &operation, opFlag);
-    CHECK_ERR_RETURN(retTmp, true, ERR_UNKNOWN_OBJECT);
+    CHECK_ERR_GOTO(retTmp, true, END);
 
     uint32_t optMemSize;
     sptr<Ashmem> optMem;
