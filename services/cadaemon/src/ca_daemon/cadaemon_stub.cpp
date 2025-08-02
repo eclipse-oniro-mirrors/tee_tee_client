@@ -376,8 +376,10 @@ int32_t CaDaemonStub::OpenSessionRecvProc(MessageParcel &data, MessageParcel &re
 
     TEEC_Operation operation;
     bool opFlag = false;
+    /* from now on, default return value is ERR_UNKNOWN_OBJECT */
+    result = ERR_UNKNOWN_OBJECT;
     retTmp = GetOperationFromData(data, &operation, opFlag);
-    CHECK_ERR_RETURN(retTmp, true, ERR_UNKNOWN_OBJECT);
+    CHECK_ERR_GOTO(retTmp, true, END2);
 
     uint32_t optMemSize;
     sptr<Ashmem> optMem;
@@ -396,6 +398,7 @@ int32_t CaDaemonStub::OpenSessionRecvProc(MessageParcel &data, MessageParcel &re
 END:
     ClearAsmMem(optMem);
     CloseDupIonFd(&operation);
+END2:
     if (fd >= 0) {
         close(fd);
     }
