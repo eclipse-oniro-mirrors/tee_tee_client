@@ -103,7 +103,7 @@ static int RecvFileDescriptor(int cmd, int socketFd)
     struct iovec iov[IOV_LEN];
     struct cmsghdr *controlMsg = NULL;
     char ctrlBuf[CMSG_SPACE(sizeof(int))];
-    char data[IOV_LEN] = '0';
+    char data[IOV_LEN] = { '0' };
     int version  = 0;
     ssize_t res;
     errno_t rc;
