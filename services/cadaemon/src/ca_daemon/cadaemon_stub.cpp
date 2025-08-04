@@ -244,7 +244,8 @@ static bool GetOperationFromData(MessageParcel &data, TEEC_Operation *operation,
         return false;
     }
 
-    /* the member ion_share_fd of operation, has been setted -1 by caller */
+    /* First, set ion fd invalid, easy to judge if a dup fd can be closed */
+    SetInvalidIonFd(&operation);
     /* clear the pointer from ca to avoid access to invalid address */
     operation->session = nullptr;
     for (uint32_t paramCnt = 0; paramCnt < TEEC_PARAM_NUM; paramCnt++) {
@@ -257,6 +258,7 @@ static bool GetOperationFromData(MessageParcel &data, TEEC_Operation *operation,
             operation->params[paramCnt].ionref.ion_share_fd = data.ReadFileDescriptor();
             if (operation->params[paramCnt].ionref.ion_share_fd < 0) {
                 tloge("read ion fd from parcel failed\n");
+                CloseDupIonFd(&operation);
                 return false;
             }
         }
@@ -375,12 +377,11 @@ int32_t CaDaemonStub::OpenSessionRecvProc(MessageParcel &data, MessageParcel &re
     CHECK_ERR_RETURN(result, ERR_NONE, ERR_UNKNOWN_OBJECT);
 
     TEEC_Operation operation;
-    SetInvalidIonFd(&operation);
     bool opFlag = false;
     /* from now on, default return value is ERR_UNKNOWN_OBJECT */
     result = ERR_UNKNOWN_OBJECT;
     retTmp = GetOperationFromData(data, &operation, opFlag);
-    CHECK_ERR_GOTO(retTmp, true, END);
+    CHECK_ERR_GOTO(retTmp, true, END_CLEAR_FD);
 
     retTmp = GetOptMemFromData(data, optMem, optMemSize);
     if (!retTmp) {
@@ -396,6 +397,7 @@ int32_t CaDaemonStub::OpenSessionRecvProc(MessageParcel &data, MessageParcel &re
 
 END:
     ClearAsmMem(optMem);
+END_CLEAR_FD:
     CloseDupIonFd(&operation);
     if (fd >= 0) {
         close(fd);
@@ -447,7 +449,6 @@ int32_t CaDaemonStub::InvokeCommandRecvProc(MessageParcel &data, MessageParcel &
     CHECK_ERR_RETURN(retTmp, true, ERR_UNKNOWN_OBJECT);
 
     TEEC_Operation operation;
-    SetInvalidIonFd(&operation);
     bool opFlag = false;
     retTmp = GetOperationFromData(data, &operation, opFlag);
     CHECK_ERR_RETURN(retTmp, true, ERR_UNKNOWN_OBJECT);
