@@ -447,7 +447,7 @@ int32_t CaDaemonStub::InvokeCommandRecvProc(MessageParcel &data, MessageParcel &
     CHECK_ERR_RETURN(retTmp, true, ERR_UNKNOWN_OBJECT);
 
     TEEC_Operation operation;
-    SetInvalidIonFd(operation);
+    SetInvalidIonFd(&operation);
     bool opFlag = false;
     retTmp = GetOperationFromData(data, &operation, opFlag);
     CHECK_ERR_RETURN(retTmp, true, ERR_UNKNOWN_OBJECT);
