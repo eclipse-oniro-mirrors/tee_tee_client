@@ -723,7 +723,7 @@ static int32_t IsFileExist(const char *name)
     }
     if (stat(name, &statbuf) != 0) {
         if (errno == ENOENT) { /* file not exist */
-            tloge("file stat failed\n");
+            tlogw("file stat failed\n");
             return 0;
         }
         return 1;
@@ -881,7 +881,7 @@ static int CheckOpenWorkValid(struct SecStorageType *transControl, bool isBackup
 
         if (IsFileExist(nameBuff) == 0) {
             /* open a nonexist file, return fail */
-            tloge("file is not exist, open failed\n");
+            tlogw("file is not exist, open failed\n");
             ret = ENOENT;
         }
     }
