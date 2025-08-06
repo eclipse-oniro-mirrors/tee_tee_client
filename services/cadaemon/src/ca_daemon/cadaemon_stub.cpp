@@ -245,7 +245,7 @@ static bool GetOperationFromData(MessageParcel &data, TEEC_Operation *operation,
     }
 
     /* First, set ion fd invalid, easy to judge if a dup fd can be closed */
-    SetInvalidIonFd(&operation);
+    SetInvalidIonFd(operation);
     /* clear the pointer from ca to avoid access to invalid address */
     operation->session = nullptr;
     for (uint32_t paramCnt = 0; paramCnt < TEEC_PARAM_NUM; paramCnt++) {
@@ -258,7 +258,7 @@ static bool GetOperationFromData(MessageParcel &data, TEEC_Operation *operation,
             operation->params[paramCnt].ionref.ion_share_fd = data.ReadFileDescriptor();
             if (operation->params[paramCnt].ionref.ion_share_fd < 0) {
                 tloge("read ion fd from parcel failed\n");
-                CloseDupIonFd(&operation);
+                CloseDupIonFd(operation);
                 return false;
             }
         }
