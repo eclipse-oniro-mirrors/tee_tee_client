@@ -368,6 +368,8 @@ int32_t CaDaemonStub::OpenSessionRecvProc(MessageParcel &data, MessageParcel &re
         context.ta_path = reinterpret_cast<uint8_t *>(const_cast<char *>(taPath));
     }
 
+    uint32_t optMemSize;
+    sptr<Ashmem> optMem = nullptr;
     int32_t fd = -1;
     TEEC_UUID *uuid = nullptr;
     uint32_t connMethod;
@@ -376,11 +378,11 @@ int32_t CaDaemonStub::OpenSessionRecvProc(MessageParcel &data, MessageParcel &re
 
     TEEC_Operation operation;
     bool opFlag = false;
+    /* from now on, default return value is ERR_UNKNOWN_OBJECT */
+    result = ERR_UNKNOWN_OBJECT;
     retTmp = GetOperationFromData(data, &operation, opFlag);
-    CHECK_ERR_RETURN(retTmp, true, ERR_UNKNOWN_OBJECT);
+    CHECK_ERR_GOTO(retTmp, true, END_CLEAR_FD);
 
-    uint32_t optMemSize;
-    sptr<Ashmem> optMem;
     retTmp = GetOptMemFromData(data, optMem, optMemSize);
     if (!retTmp) {
         result = ERR_UNKNOWN_OBJECT;
@@ -396,6 +398,7 @@ int32_t CaDaemonStub::OpenSessionRecvProc(MessageParcel &data, MessageParcel &re
 END:
     ClearAsmMem(optMem);
     CloseDupIonFd(&operation);
+END_CLEAR_FD:
     if (fd >= 0) {
         close(fd);
     }

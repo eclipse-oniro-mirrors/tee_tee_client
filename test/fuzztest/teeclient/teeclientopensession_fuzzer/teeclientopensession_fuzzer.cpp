@@ -198,6 +198,8 @@ namespace OHOS {
         MessageParcel reply;
         operation.started = 1;
         uint32_t origin;
+        (void)TEEC_GetTEEVersion();
+
         RecOpenReply(TEEC_ORIGIN_API, TEEC_SUCCESS, &session, &operation, reply);
         TEEC_Result ret = TEEC_InitializeContext("CaDaemonTest_003", &context);
         context.ta_path = (uint8_t *)"/vendor/bin/1234.sec";
@@ -224,6 +226,8 @@ namespace OHOS {
                 TEEC_PARAM_TYPES(data[0], TEEC_NONE, TEEC_NONE, TEEC_NONE);
             ret = TEEC_OpenSession(&context, &session, &g_testUuid, TEEC_LOGIN_IDENTIFY, nullptr, &operation, &origin);
         }
+
+        ret = TEEC_SendSecfile("/vendor/bin/test.sec", &session);
 
         TEEC_FinalizeContext(&context);
         TEEC_CloseSession(&session);
