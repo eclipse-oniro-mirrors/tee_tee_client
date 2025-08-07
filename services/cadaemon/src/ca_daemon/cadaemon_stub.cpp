@@ -397,8 +397,8 @@ int32_t CaDaemonStub::OpenSessionRecvProc(MessageParcel &data, MessageParcel &re
 
 END:
     ClearAsmMem(optMem);
-END_CLEAR_FD:
     CloseDupIonFd(&operation);
+END_CLEAR_FD:
     if (fd >= 0) {
         close(fd);
     }
