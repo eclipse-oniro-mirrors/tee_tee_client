@@ -37,9 +37,14 @@
 #endif
 
 #define TEE_ERROR_CA_AUTH_FAIL 0xFFFFCFE5
+#define TEE_ERROR_RETRY_OPEN_SESSION 0xFFFF920E
+#ifdef CONFIG_CA_CALLER_AUTH_RETRY
+#define TEE_ERROR_CA_CALLER_ACCESS_DENIED 0xFFFF9117
+#endif
 
+#define RETRY_TIMEOUT_LEN         (2 * 1000 * 1000) /* in microseconds */
+#define RETRY_INTERVAL            (10 * 1000) /* in microseconds */
 #define AGENT_BUFF_SIZE           0x1000
-#define CA_AUTH_RETRY_TIMES       30
 #define H_OFFSET                  32
 
 #ifdef LOG_TAG
@@ -471,11 +476,6 @@ static void ReleaseSharedMemory(TEEC_SharedMemoryInner *sharedMem)
         free(sharedMem->buffer);
     } else {
         if ((sharedMem->buffer != ZERO_SIZE_PTR) && (sharedMem->size != 0)) {
-            int32_t ret = ioctl(sharedMem->context->fd, (int)TC_NS_CLIENT_IOCTL_UNMAP_SHARED_MEM, sharedMem->buffer);
-            if (ret) {
-                tlogd("Release SharedMemory ioctl failed, maybe not support\n");
-            }
-
             if (munmap(sharedMem->buffer, sharedMem->size) != 0) {
                 tloge("Release SharedMemory failed, munmap error\n");
             }
@@ -1058,17 +1058,40 @@ void TEEC_FinalizeContext(TEEC_Context *context)
     context->fd = -1;
 }
 
+static bool CheckOpensessionRetryStatus(unsigned int returnCode)
+{
+    switch (returnCode) {
+        case TEE_ERROR_CA_AUTH_FAIL:
+            tlogi("open session retry for ca auth\n");
+            return true;
+        case TEE_ERROR_RETRY_OPEN_SESSION:
+            tlogi("open session retry for race condition with close sesssion\n");
+            return true;
+#ifdef CONFIG_CA_CALLER_AUTH_RETRY
+        case TEE_ERROR_CA_CALLER_ACCESS_DENIED:
+            tlogi("open session retry for ta caller auth\n");
+            return true;
+#endif
+        default:
+            return false;
+    }
+}
+
 static TEEC_Result TEEC_DoOpenSession(int fd, TC_NS_ClientContext *cliContext, const TEEC_UUID *destination,
                                       TEEC_ContextInner *context, TEEC_Session *session)
 {
     int32_t ret;
     TEEC_Result teecRet;
-    int i = CA_AUTH_RETRY_TIMES;
-    do {
+
+    for (int i = 0; i < RETRY_TIMEOUT_LEN / RETRY_INTERVAL; ++i) {
         cliContext->returns.code   = 0;
         cliContext->returns.origin = TEEC_ORIGIN_API;
         ret = ioctl(fd, (int)TC_NS_CLIENT_IOCTL_SES_OPEN_REQ, cliContext);
-    } while (((TEEC_Result)cliContext->returns.code == TEE_ERROR_CA_AUTH_FAIL) && i--);
+        if (!CheckOpensessionRetryStatus(cliContext->returns.code)) {
+            break;
+        }
+        usleep(RETRY_INTERVAL);
+    }
 
     if (ret < 0) {
         tloge("open session failed, ioctl errno = %" PUBLIC "d\n", ret);
