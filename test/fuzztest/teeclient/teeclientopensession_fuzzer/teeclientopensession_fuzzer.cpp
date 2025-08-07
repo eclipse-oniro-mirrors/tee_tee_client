@@ -78,11 +78,16 @@ namespace OHOS {
             temp += sizeof(TEEC_Operation);
             uint32_t returnOrigin = *reinterpret_cast<uint32_t *>(temp);
             temp += sizeof(uint32_t);
-            (void)TEEC_GetTEEVersion();
+
             TEEC_Parameter param = *reinterpret_cast<TEEC_Parameter *>(temp);
             temp += sizeof(TEEC_Parameter);
             TEEC_SharedMemory memory = *reinterpret_cast<TEEC_SharedMemory *>(temp);
             temp += sizeof(TEEC_SharedMemory);
+            char pathStr[MAX_TA_PATH_LEN + 1] = { 0 };
+            if (memcpy_s(pathStr, MAX_TA_PATH_LEN,
+                (const char*)data, size > MAX_TA_PATH_LEN ? MAX_TA_PATH_LEN : size) == EOK) {
+                context.ta_path = (uint8_t *)pathStr;
+            }
             memory.context = &context;
             param.memref.parent = &memory;
             operation.params[0] = param;
@@ -103,8 +108,6 @@ namespace OHOS {
             if (ret == TEEC_SUCCESS) {
                 TEEC_CloseSession(&session);
             }
-
-            ret = TEEC_SendSecfile("/vendor/bin/test.sec", &session);
         }
         return result;
     }
@@ -161,6 +164,11 @@ namespace OHOS {
             temp += sizeof(TEEC_Parameter);
             TEEC_SharedMemory memory = *reinterpret_cast<TEEC_SharedMemory *>(temp);
             temp += sizeof(TEEC_SharedMemory);
+            char pathStr[MAX_TA_PATH_LEN + 1] = { 0 };
+            if (memcpy_s(pathStr, MAX_TA_PATH_LEN,
+                (const char*)data, size > MAX_TA_PATH_LEN ? MAX_TA_PATH_LEN : size) == EOK) {
+                context.ta_path = (uint8_t *)pathStr;
+            }
             memory.context = &context;
             param.memref.parent = &memory;
             operation.params[0] = param;
@@ -199,10 +207,14 @@ namespace OHOS {
         operation.started = 1;
         uint32_t origin;
         (void)TEEC_GetTEEVersion();
-
         RecOpenReply(TEEC_ORIGIN_API, TEEC_SUCCESS, &session, &operation, reply);
         TEEC_Result ret = TEEC_InitializeContext("CaDaemonTest_003", &context);
-        context.ta_path = (uint8_t *)"/vendor/bin/1234.sec";
+
+        char pathStr[MAX_TA_PATH_LEN + 1] = { 0 };
+        if (memcpy_s(pathStr, MAX_TA_PATH_LEN,
+            (const char*)data, size > MAX_TA_PATH_LEN ? MAX_TA_PATH_LEN : size) == EOK) {
+            context.ta_path = (uint8_t *)pathStr;
+        }
 
         operation.paramTypes =
             TEEC_PARAM_TYPES(TEEC_MEMREF_PARTIAL_OUTPUT, TEEC_MEMREF_PARTIAL_INPUT, TEEC_NONE, TEEC_NONE);
@@ -220,14 +232,11 @@ namespace OHOS {
         operation.params[1].memref.size = 1;
         ret = TEEC_OpenSession(&context, &session, &g_testUuid, TEEC_LOGIN_IDENTIFY, nullptr, &operation, &origin);
 
-        if (size > 0) {
-            context.ta_path = (uint8_t*)data;
-            operation.paramTypes =
+        operation.paramTypes =
                 TEEC_PARAM_TYPES(data[0], TEEC_NONE, TEEC_NONE, TEEC_NONE);
-            ret = TEEC_OpenSession(&context, &session, &g_testUuid, TEEC_LOGIN_IDENTIFY, nullptr, &operation, &origin);
-        }
+        ret = TEEC_OpenSession(&context, &session, &g_testUuid, TEEC_LOGIN_IDENTIFY, nullptr, &operation, &origin);
 
-        ret = TEEC_SendSecfile("/vendor/bin/test.sec", &session);
+        ret = TEEC_SendSecfile(pathStr, &session);
 
         TEEC_FinalizeContext(&context);
         TEEC_CloseSession(&session);
