@@ -37,9 +37,9 @@
 #endif
 
 #define TEE_ERROR_CA_AUTH_FAIL 0xFFFFCFE5
-#define TEE_ERROR_RETRY_OPEN_SESSION 0xFFF920E
+#define TEE_ERROR_RETRY_OPEN_SESSION 0xFFFF920E
 #ifdef CONFIG_CA_CALLER_AUTH_RETRY
-#define TEE_ERROR_CA_CALLER_ACCESS_DENINED 0xFFF9117
+#define TEE_ERROR_CA_CALLER_ACCESS_DENIED 0xFFF9117
 #endif
 
 #define RETRY_TIMEOUT_LEN         (2 * 1000 * 1000) /* in microseconds */
@@ -1062,18 +1062,18 @@ static bool CheckOpensessionRetryStatus(unsigned int returnCode)
 {
     switch (returnCode) {
         case TEE_ERROR_CA_AUTH_FAIL:
-        tlogi("open session retry for ca auth\n");
-        return true;
-    case TEE_ERROR_RETRY_OPEN_SESSION:
-        tlogi("open session retry for race condition with close sesssion\n");
-        return true;
+            tlogi("open session retry for ca auth\n");
+            return true;
+        case TEE_ERROR_RETRY_OPEN_SESSION:
+            tlogi("open session retry for race condition with close sesssion\n");
+            return true;
 #ifdef CONFIG_CA_CALLER_AUTH_RETRY
-    case TEE_ERROR_CA_CALLER_ACCESS_DENIED:
-        tlogi("open session retry for ta caller auth\n");
-        return true;
+        case TEE_ERROR_CA_CALLER_ACCESS_DENIED:
+            tlogi("open session retry for ta caller auth\n");
+            return true;
 #endif
-    default:
-        return false;
+        default:
+            return false;
     }
 }
 
@@ -1087,7 +1087,7 @@ static TEEC_Result TEEC_DoOpenSession(int fd, TC_NS_ClientContext *cliContext, c
         cliContext->returns.code   = 0;
         cliContext->returns.origin = TEEC_ORIGIN_API;
         ret = ioctl(fd, (int)TC_NS_CLIENT_IOCTL_SES_OPEN_REQ, cliContext);
-        if (!CheckOpenSessionRetryStatus(cliContext->returns.code)) {
+        if (!CheckOpensessionRetryStatus(cliContext->returns.code)) {
             break;
         }
         usleep(RETRY_INTERVAL);
