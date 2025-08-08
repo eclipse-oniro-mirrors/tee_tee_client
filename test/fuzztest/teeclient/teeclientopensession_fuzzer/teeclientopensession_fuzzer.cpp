@@ -14,7 +14,7 @@
 
 #include <cstddef>
 #include <cstdint>
-#include "string.h"
+#include <string.h>
 #include "tee_client_api.h"
 #include "message_parcel.h"
 #include "tee_client_constants.h"
