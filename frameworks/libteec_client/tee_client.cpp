@@ -1221,7 +1221,7 @@ int32_t TeeClient::GetFileFd(const char *filePath)
         return -1;
     }
 
-    if (!((strlen(filePath) < MAX_TA_PATH_LEN) && strstr(filePath, ".sec"))) {
+    if (!((strnlen(filePath, MAX_TA_PATH_LEN) < MAX_TA_PATH_LEN) && strstr(filePath, ".sec"))) {
         tloge("ta_path format is wrong\n");
         return -1;
     }
