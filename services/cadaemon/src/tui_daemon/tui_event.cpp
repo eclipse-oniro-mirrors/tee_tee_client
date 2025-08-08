@@ -344,6 +344,20 @@ void TUIEvent::TUIGetFoldable()
     if (buildProduct == "DEL") {
         mTUIPanelInfo.displayMode = TUI_NEED_ROTATE;
     }
+
+    if (buildProduct == "VDE") {
+        if (mTUIPanelInfo.foldState == FOLD_STATE_EXPANDED || mTUIPanelInfo.foldState == FOLD_STATE_HALF_FOLDED) {
+            mTUIPanelInfo.foldState = FOLD_STATE_UNKNOWN;
+        }
+    }
+
+    std::string foldScreenType = OHOS::system::GetParameter("const.window.foldscreen.type", "0");
+    // trifold phone
+    if (foldScreenType == "6,1,0,0") {
+        mTUIPanelInfo.foldState += TUI_NEED_ROTATE;
+        mTUIPanelInfo.displayMode = TUI_NEED_ROTATE;
+    }
+
     if (mTUIPanelInfo.foldState == FOLD_STATE_EXPANDED || mTUIPanelInfo.foldState == FOLD_STATE_HALF_FOLDED) {
         mTUIPanelInfo.foldState += TUI_NEED_ROTATE;
     }
