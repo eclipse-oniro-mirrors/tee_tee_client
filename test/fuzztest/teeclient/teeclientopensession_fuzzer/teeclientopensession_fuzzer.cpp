@@ -14,6 +14,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "string.h"
 #include "tee_client_api.h"
 #include "message_parcel.h"
 #include "tee_client_constants.h"
@@ -85,7 +86,7 @@ namespace OHOS {
             temp += sizeof(TEEC_SharedMemory);
             char pathStr[MAX_TA_PATH_LEN + 1] = { 0 };
             if (memcpy_s(pathStr, MAX_TA_PATH_LEN,
-                (const char*)data, size > MAX_TA_PATH_LEN ? MAX_TA_PATH_LEN : size) == EOK) {
+                (const char*)data, size > MAX_TA_PATH_LEN ? MAX_TA_PATH_LEN : size) == 0) {
                 context.ta_path = (uint8_t *)pathStr;
             }
             memory.context = &context;
@@ -166,7 +167,7 @@ namespace OHOS {
             temp += sizeof(TEEC_SharedMemory);
             char pathStr[MAX_TA_PATH_LEN + 1] = { 0 };
             if (memcpy_s(pathStr, MAX_TA_PATH_LEN,
-                (const char*)data, size > MAX_TA_PATH_LEN ? MAX_TA_PATH_LEN : size) == EOK) {
+                (const char*)data, size > MAX_TA_PATH_LEN ? MAX_TA_PATH_LEN : size) == 0) {
                 context.ta_path = (uint8_t *)pathStr;
             }
             memory.context = &context;
@@ -212,7 +213,7 @@ namespace OHOS {
 
         char pathStr[MAX_TA_PATH_LEN + 1] = { 0 };
         if (memcpy_s(pathStr, MAX_TA_PATH_LEN,
-            (const char*)data, size > MAX_TA_PATH_LEN ? MAX_TA_PATH_LEN : size) == EOK) {
+            (const char*)data, size > MAX_TA_PATH_LEN ? MAX_TA_PATH_LEN : size) == 0) {
             context.ta_path = (uint8_t *)pathStr;
         }
 
