@@ -14,7 +14,7 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <string.h>
+#include <securec.h>
 #include "tee_client_api.h"
 #include "message_parcel.h"
 #include "tee_client_constants.h"
@@ -85,7 +85,8 @@ namespace OHOS {
             TEEC_SharedMemory memory = *reinterpret_cast<TEEC_SharedMemory *>(temp);
             temp += sizeof(TEEC_SharedMemory);
             char pathStr[MAX_TA_PATH_LEN + 1] = { 0 };
-            if (memcpy(pathStr, (const char*)data, size > MAX_TA_PATH_LEN ? MAX_TA_PATH_LEN : size) == 0) {
+            if (memcpy_s(pathStr, MAX_TA_PATH_LEN,
+                (const char*)data, size > MAX_TA_PATH_LEN ? MAX_TA_PATH_LEN : size) == 0) {
                 context.ta_path = (uint8_t *)pathStr;
             }
             memory.context = &context;
@@ -165,7 +166,8 @@ namespace OHOS {
             TEEC_SharedMemory memory = *reinterpret_cast<TEEC_SharedMemory *>(temp);
             temp += sizeof(TEEC_SharedMemory);
             char pathStr[MAX_TA_PATH_LEN + 1] = { 0 };
-            if (memcpy(pathStr, (const char*)data, size > MAX_TA_PATH_LEN ? MAX_TA_PATH_LEN : size) == 0) {
+            if (memcpy_s(pathStr, MAX_TA_PATH_LEN,
+                (const char*)data, size > MAX_TA_PATH_LEN ? MAX_TA_PATH_LEN : size) == 0) {
                 context.ta_path = (uint8_t *)pathStr;
             }
             memory.context = &context;
@@ -210,7 +212,8 @@ namespace OHOS {
         TEEC_Result ret = TEEC_InitializeContext("CaDaemonTest_003", &context);
 
         char pathStr[MAX_TA_PATH_LEN + 1] = { 0 };
-        if (memcpy(pathStr, (const char*)data, size > MAX_TA_PATH_LEN ? MAX_TA_PATH_LEN : size) == 0) {
+        if (memcpy_s(pathStr, MAX_TA_PATH_LEN,
+            (const char*)data, size > MAX_TA_PATH_LEN ? MAX_TA_PATH_LEN : size) == 0) {
             context.ta_path = (uint8_t *)pathStr;
         }
 
