@@ -275,11 +275,17 @@ bool CaDaemonService::IsValidContextWithoutLock(const TEEC_Context *context, con
     DaemonProcdata *outProcData = GetProcdataByPid(identity.pid);
 
     bool tmpCheckStatus = (outProcData == nullptr || context == nullptr);
-    if (tmpCheckStatus) {
+    if (context == nullptr || context->fd < 0) {
+        tloge("invalid input context\n");
+        return false;
+    }
+    if (outProcData == nullptr) {
+        tloge("pid %{public}d donnot have proc data in cadaemon\n", identity.pid);
         return false;
     }
 
-    if (context->fd < 0) {
+    if (outProcData->callerIdentity.uid != identity.uid || outProcData->callerIdentity.tokenid != identity.tokenid) {
+        tloge("procdata with pid %{public}d have mismatch uid or tokenid\n", identity.pid);
         return false;
     }
 
@@ -301,6 +307,10 @@ DaemonProcdata *CaDaemonService::CallGetProcDataPtr(const CallerIdentity &identi
 {
     DaemonProcdata *outProcData = GetProcdataByPid(identity.pid);
     if (outProcData != nullptr) {
+        if (outProcData->callerIdentity.uid != identity.uid ||
+            outProcData->callerIdentity.tokenid != identity.tokenid) {
+            tloge("procdata with pid[%{PUBLIC}d] have mismatch uid or tokenid\n", identity.pid);
+        }
         if (CheckProcDataFdFull(outProcData)) {
             tloge("pid[%{public}d] can not get more context, please finalize some of them\n", pid);
             return nullptr;
@@ -435,7 +445,7 @@ TEEC_Result CaDaemonService::InitializeContext(const char *name, MessageParcel &
     (void)memset_s(caInfo, sizeof(*caInfo), 0, sizeof(*caInfo));
     CallerIdentity identity = {
         IPCSkeleton::GetCallingPid(), IPCSkeleton::GetCallingUid(), IPCSkeleton::GetCallingTokenID() };
-
+    tlogi("cadaemon service process initialize context, caller pid: %{PUBLIC}d\n", identity.pid);
     if (InitCaAuthInfo(caInfo, identity) != TEEC_SUCCESS) {
         goto FREE_CONTEXT;
     }
@@ -799,7 +809,7 @@ TEEC_Result CaDaemonService::OpenSession(TEEC_Context *context, const char *taPa
     CallerIdentity identity = {
         IPCSkeleton::GetCallingPid(), IPCSkeleton::GetCallingUid(), IPCSkeleton::GetCallingTokenID() };
     TaFileInfo taFile = { .taPath = nullptr, .taFp = nullptr };
-
+    tlogi("cadaemon service process open session, caller pid: %{PUBLIC}d\n", identity.pid);
     ret = CallGetBnContext(context, identity, &outSession, &outContext);
     if (ret != TEEC_SUCCESS) {
         goto ERROR;
@@ -890,7 +900,7 @@ TEEC_Result CaDaemonService::InvokeCommand(TEEC_Context *context, TEEC_Session *
     CallerIdentity identity = {
         IPCSkeleton::GetCallingPid(), IPCSkeleton::GetCallingUid(), IPCSkeleton::GetCallingTokenID()
     };
-
+    tlogi("cadaemon service process invoke command, caller pid: %{PUBLIC}d\n", identity.pid);
     ret = CallGetBnSession(identity, context, session, &outContext, &outSession);
     if (ret != TEEC_SUCCESS) {
         tloge("get context and session failed\n");
@@ -931,6 +941,7 @@ TEEC_Result CaDaemonService::CloseSession(TEEC_Session *session, TEEC_Context *c
     CallerIdentity identity = {
         IPCSkeleton::GetCallingPid(), IPCSkeleton::GetCallingUid(), IPCSkeleton::GetCallingTokenID()
     };
+    tlogi("cadaemon service process close session, caller pid: %{PUBLIC}d\n", identity.pid);
     TidData *tidData = nullptr;
     if ((session == nullptr) || (!IsValidContext(context, identity))) {
         tloge("closeSession: invalid context!\n");
@@ -972,6 +983,7 @@ TEEC_Result CaDaemonService::RegisterSharedMemory(TEEC_Context *context,
 
     CallerIdentity identity = {
         IPCSkeleton::GetCallingPid(), IPCSkeleton::GetCallingUid(), IPCSkeleton::GetCallingTokenID() };
+    tlogi("cadaemon service process register shared memory, caller pid: %{PUBLIC}d\n", identity.pid);
     if ((context == nullptr) || (!IsValidContext(context, identity))) {
         tloge("registeMem: invalid context or sharedMem\n");
         goto ERROR_END;
@@ -1051,7 +1063,7 @@ TEEC_Result CaDaemonService::AllocateSharedMemory(TEEC_Context *context,
     TEEC_SharedMemoryInner *outShm = nullptr;
     CallerIdentity identity = {
         IPCSkeleton::GetCallingPid(), IPCSkeleton::GetCallingUid(), IPCSkeleton::GetCallingTokenID() };
-
+    tlogi("cadaemon service process alloc shared memory, caller pid: %{PUBLIC}d\n", identity.pid);
     if ((sharedMem == nullptr) || (!IsValidContext(context, identity))) {
         tloge("allocateShamem: invalid context or sharedMem\n");
         goto ERROR;
@@ -1106,7 +1118,7 @@ TEEC_Result CaDaemonService::ReleaseSharedMemory(TEEC_Context *context,
 {
     CallerIdentity identity = {
         IPCSkeleton::GetCallingPid(), IPCSkeleton::GetCallingUid(), IPCSkeleton::GetCallingTokenID() };
-
+    tlogi("cadaemon service process release shared memory, caller pid: %{PUBLIC}d\n", identity.pid);
     if ((sharedMem == nullptr) || (!IsValidContext(context, identity))) {
         tloge("releaseShamem: invalid context or sharedMem\n");
         return TEEC_ERROR_BAD_PARAMETERS;
