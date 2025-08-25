@@ -274,7 +274,6 @@ bool CaDaemonService::IsValidContextWithoutLock(const TEEC_Context *context, con
     int i;
     DaemonProcdata *outProcData = GetProcdataByPid(identity.pid);
 
-    bool tmpCheckStatus = (outProcData == nullptr || context == nullptr);
     if (context == nullptr || context->fd < 0) {
         tloge("invalid input context\n");
         return false;
