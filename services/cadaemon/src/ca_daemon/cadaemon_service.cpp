@@ -311,7 +311,7 @@ DaemonProcdata *CaDaemonService::CallGetProcDataPtr(const CallerIdentity &identi
             tloge("procdata with pid[%{PUBLIC}d] have mismatch uid or tokenid\n", identity.pid);
         }
         if (CheckProcDataFdFull(outProcData)) {
-            tloge("pid[%{public}d] can not get more context, please finalize some of them\n", pid);
+            tloge("pid[%{public}d] can not get more context, please finalize some of them\n", identity.pid);
             return nullptr;
         }
     } else {
@@ -409,7 +409,7 @@ static TEEC_Result InitCaAuthInfo(CaAuthInfo *caInfo, const CallerIdentity &iden
 
     caInfo->pid = identity.pid;
     caInfo->uid = (unsigned int)(identity.uid);
-    uint32_t callingTokenID = identity.tockenid;
+    uint32_t callingTokenID = identity.tokenid;
     TEEC_Result ret = (TEEC_Result)ConstructCaAuthInfo(callingTokenID, caInfo);
     if (ret != 0) {
         tloge("construct ca auth info failed, ret %d\n", ret);
@@ -435,6 +435,9 @@ void CaDaemonService::ReleaseContext(int32_t pid, TEEC_ContextInner **contextInn
 TEEC_Result CaDaemonService::InitializeContext(const char *name, MessageParcel &reply)
 {
     TEEC_Result ret = TEEC_FAIL;
+    CallerIdentity identity = {
+        IPCSkeleton::GetCallingPid(), IPCSkeleton::GetCallingUid(), IPCSkeleton::GetCallingTokenID() };
+    tlogi("cadaemon service process initialize context, caller pid: %{PUBLIC}d\n", identity.pid);
     TEEC_ContextInner *contextInner = (TEEC_ContextInner *)malloc(sizeof(*contextInner));
     CaAuthInfo *caInfo = (CaAuthInfo *)malloc(sizeof(*caInfo));
     if (contextInner == nullptr || caInfo == nullptr) {
@@ -443,9 +446,6 @@ TEEC_Result CaDaemonService::InitializeContext(const char *name, MessageParcel &
     }
     (void)memset_s(contextInner, sizeof(*contextInner), 0, sizeof(*contextInner));
     (void)memset_s(caInfo, sizeof(*caInfo), 0, sizeof(*caInfo));
-    CallerIdentity identity = {
-        IPCSkeleton::GetCallingPid(), IPCSkeleton::GetCallingUid(), IPCSkeleton::GetCallingTokenID() };
-    tlogi("cadaemon service process initialize context, caller pid: %{PUBLIC}d\n", identity.pid);
     if (InitCaAuthInfo(caInfo, identity) != TEEC_SUCCESS) {
         goto FREE_CONTEXT;
     }
@@ -810,7 +810,7 @@ TEEC_Result CaDaemonService::OpenSession(TEEC_Context *context, const char *taPa
         IPCSkeleton::GetCallingPid(), IPCSkeleton::GetCallingUid(), IPCSkeleton::GetCallingTokenID() };
     TaFileInfo taFile = { .taPath = nullptr, .taFp = nullptr };
     tlogi("cadaemon service process open session, caller pid: %{PUBLIC}d\n", identity.pid);
-    ret = CallGetBnContext(context, identity, &outSession, &outContext);
+    TEEC_Result ret = CallGetBnContext(context, identity, &outSession, &outContext);
     if (ret != TEEC_SUCCESS) {
         goto ERROR;
     }
