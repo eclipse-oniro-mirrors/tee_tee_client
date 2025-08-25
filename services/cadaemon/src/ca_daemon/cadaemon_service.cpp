@@ -407,6 +407,8 @@ static TEEC_Result InitCaAuthInfo(CaAuthInfo *caInfo, const CallerIdentity &iden
         }
     }
 
+    caInfo->pid = identity.pid;
+    caInfo->uid = (unsigned int)(identity.uid);
     uint32_t callingTokenID = identity.tockenid;
     TEEC_Result ret = (TEEC_Result)ConstructCaAuthInfo(callingTokenID, caInfo);
     if (ret != 0) {
@@ -432,7 +434,6 @@ void CaDaemonService::ReleaseContext(int32_t pid, TEEC_ContextInner **contextInn
 
 TEEC_Result CaDaemonService::InitializeContext(const char *name, MessageParcel &reply)
 {
-    bool writeRet = false;
     TEEC_Result ret = TEEC_FAIL;
     TEEC_ContextInner *contextInner = (TEEC_ContextInner *)malloc(sizeof(*contextInner));
     CaAuthInfo *caInfo = (CaAuthInfo *)malloc(sizeof(*caInfo));
@@ -900,7 +901,7 @@ TEEC_Result CaDaemonService::InvokeCommand(TEEC_Context *context, TEEC_Session *
         IPCSkeleton::GetCallingPid(), IPCSkeleton::GetCallingUid(), IPCSkeleton::GetCallingTokenID()
     };
     tlogi("cadaemon service process invoke command, caller pid: %{PUBLIC}d\n", identity.pid);
-    ret = CallGetBnSession(identity, context, session, &outContext, &outSession);
+    TEEC_Result ret = CallGetBnSession(identity, context, session, &outContext, &outSession);
     if (ret != TEEC_SUCCESS) {
         tloge("get context and session failed\n");
         goto END;
@@ -917,6 +918,8 @@ TEEC_Result CaDaemonService::InvokeCommand(TEEC_Context *context, TEEC_Session *
     }
 
     if (AddTidData(&tidData, identity.pid) != TEEC_SUCCESS) {
+        PutBnSession(outSession);
+        PutBnContextAndReleaseFd(identity.pid, outContext);
         goto END;
     }
     ret = TEEC_InvokeCommandInner(outContext, outSession, commandID, operation, &returnOrigin);
