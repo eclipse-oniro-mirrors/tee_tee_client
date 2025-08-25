@@ -33,8 +33,14 @@ enum class ServiceRunningState {
     STATE_RUNNING
 };
 
+using CallerIdentity = struct {
+    int pid;
+    int uid;
+    uint32_t tokenid;
+};
+
 using DaemonProcdata = struct {
-    int callingPid;
+    CallerIdentity callerIdentity;
     uint32_t opsCnt;
     int32_t cxtFd[MAX_CXTCNT_ONECA];
     struct ListNode procdataHead;
@@ -93,16 +99,16 @@ private:
     bool registerToService_ = false;
     std::mutex mProcDataLock;
     ServiceRunningState state_ = ServiceRunningState::STATE_NOT_START;
-    TEEC_Result SetContextToProcData(int32_t pid, TEEC_ContextInner *outContext);
-    DaemonProcdata *CallGetProcDataPtr(int pid);
-    bool IsValidContext(const TEEC_Context *context, int pid);
-    bool IsValidContextWithoutLock(const TEEC_Context *context, int pid);
+    TEEC_Result SetContextToProcData(const CallerIdentity &identity, TEEC_ContextInner *outContext);
+    DaemonProcdata *CallGetProcDataPtr(const CallerIdentity &identity);
+    bool IsValidContext(const TEEC_Context *context, const CallerIdentity &identity);
+    bool IsValidContextWithoutLock(const TEEC_Context *context, const CallerIdentity &identity);
     void PutBnContextAndReleaseFd(int32_t pid, TEEC_ContextInner *outContext);
     void ReleaseContext(int32_t pid, TEEC_ContextInner **contextInner);
     TEEC_Result CallFinalizeContext(int32_t pid, const TEEC_Context *contextPtr);
-    TEEC_Result CallGetBnContext(const TEEC_Context *inContext, int pid,
+    TEEC_Result CallGetBnContext(const TEEC_Context *inContext, const CallerIdentity &identity,
         TEEC_Session **outSession, TEEC_ContextInner **outContext);
-    TEEC_Result CallGetBnSession(int pid, const TEEC_Context *inContext,
+    TEEC_Result CallGetBnSession(const CallerIdentity &identity, const TEEC_Context *inContext,
     const TEEC_Session *inSession, TEEC_ContextInner **outContext, TEEC_Session **outSession);
     TEEC_Result TeecOptDecodeTempMem(TEEC_Parameter *param, uint8_t **data, size_t *dataSize);
     TEEC_Result GetTeecOptMem(TEEC_Operation *operation, size_t optMemSize,
