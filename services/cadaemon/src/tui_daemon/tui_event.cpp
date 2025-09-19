@@ -60,6 +60,7 @@ static const uint32_t TUI_POLL_CANCEL = 7;
 static const uint32_t TUI_POLL_NOTCH  = 24;
 static const uint32_t TUI_POLL_FOLD   = 26;
 static const uint32_t TUI_NEED_ROTATE = 256;
+static const uint32_t TUI_NEED_ROTATE_180 = 258;
 
 static const uint8_t TTF_HASH_SIZE   = 32;
 static const uint8_t TTF_STRING_SIZE = 64;
@@ -349,10 +350,15 @@ void TUIEvent::TUIGetFoldable()
         if (mTUIPanelInfo.foldState == FOLD_STATE_EXPANDED || mTUIPanelInfo.foldState == FOLD_STATE_HALF_FOLDED) {
             mTUIPanelInfo.foldState = FOLD_STATE_UNKNOWN;
         }
+
+        if (mTUIPanelInfo.foldState == FOLD_STATE_FOLDED) {
+            mTUIPanelInfo.foldState += TUI_NEED_ROTATE;
+            mTUIPanelInfo.displayMode = TUI_NEED_ROTATE_180;
+        }
     }
 
     std::string foldScreenType = OHOS::system::GetParameter("const.window.foldscreen.type", "0");
-    // trifold phone
+    /* trifold phone */
     if (foldScreenType == "6,1,0,0") {
         mTUIPanelInfo.foldState += TUI_NEED_ROTATE;
         mTUIPanelInfo.displayMode = TUI_NEED_ROTATE;
