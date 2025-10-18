@@ -66,8 +66,13 @@ namespace OHOS {
         bool result = false;
         if (size > sizeof(TEEC_Context) + sizeof(TEEC_Session) + sizeof(TEEC_UUID) + sizeof(uint32_t) +
             sizeof(TEEC_Operation) + sizeof(uint32_t) + sizeof(TEEC_Parameter) + sizeof(TEEC_SharedMemory)) {
+            char pathStr[MAX_TA_PATH_LEN + 1] = { 0 };
             uint8_t *temp = const_cast<uint8_t *>(data);
             TEEC_Context context = *reinterpret_cast<TEEC_Context *>(temp);
+            if (memcpy_s(pathStr, MAX_TA_PATH_LEN,
+                (const char*)data, size > MAX_TA_PATH_LEN ? MAX_TA_PATH_LEN : size) == 0) {
+                context.ta_path = (uint8_t *)pathStr;
+            }
             temp += sizeof(TEEC_Context);
             TEEC_Session session = *reinterpret_cast<TEEC_Session *>(temp);
             temp += sizeof(TEEC_Session);
@@ -84,11 +89,7 @@ namespace OHOS {
             temp += sizeof(TEEC_Parameter);
             TEEC_SharedMemory memory = *reinterpret_cast<TEEC_SharedMemory *>(temp);
             temp += sizeof(TEEC_SharedMemory);
-            char pathStr[MAX_TA_PATH_LEN + 1] = { 0 };
-            if (memcpy_s(pathStr, MAX_TA_PATH_LEN,
-                (const char*)data, size > MAX_TA_PATH_LEN ? MAX_TA_PATH_LEN : size) == 0) {
-                context.ta_path = (uint8_t *)pathStr;
-            }
+
             memory.context = &context;
             param.memref.parent = &memory;
             operation.params[0] = param;
@@ -147,8 +148,13 @@ namespace OHOS {
         bool result = false;
         if (size > sizeof(TEEC_Context) + sizeof(TEEC_Session) + sizeof(TEEC_UUID) + sizeof(uint32_t) +
             sizeof(TEEC_Operation) + sizeof(uint32_t) + sizeof(TEEC_Parameter) + sizeof(TEEC_SharedMemory)) {
-            uint8_t *temp = const_cast<uint8_t *>(data);
+            char pathStr[MAX_TA_PATH_LEN + 1] = { 0 };
             TEEC_Context context = *reinterpret_cast<TEEC_Context *>(temp);
+            uint8_t *temp = const_cast<uint8_t *>(data);
+            if (memcpy_s(pathStr, MAX_TA_PATH_LEN,
+                (const char*)data, size > MAX_TA_PATH_LEN ? MAX_TA_PATH_LEN : size) == 0) {
+                context.ta_path = (uint8_t *)pathStr;
+            }
             temp += sizeof(TEEC_Context);
             TEEC_Session session = *reinterpret_cast<TEEC_Session *>(temp);
             temp += sizeof(TEEC_Session);
@@ -165,11 +171,7 @@ namespace OHOS {
             temp += sizeof(TEEC_Parameter);
             TEEC_SharedMemory memory = *reinterpret_cast<TEEC_SharedMemory *>(temp);
             temp += sizeof(TEEC_SharedMemory);
-            char pathStr[MAX_TA_PATH_LEN + 1] = { 0 };
-            if (memcpy_s(pathStr, MAX_TA_PATH_LEN,
-                (const char*)data, size > MAX_TA_PATH_LEN ? MAX_TA_PATH_LEN : size) == 0) {
-                context.ta_path = (uint8_t *)pathStr;
-            }
+
             memory.context = &context;
             param.memref.parent = &memory;
             operation.params[0] = param;
