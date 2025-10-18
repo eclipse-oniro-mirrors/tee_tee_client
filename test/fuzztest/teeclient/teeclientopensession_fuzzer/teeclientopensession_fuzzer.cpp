@@ -149,8 +149,8 @@ namespace OHOS {
         if (size > sizeof(TEEC_Context) + sizeof(TEEC_Session) + sizeof(TEEC_UUID) + sizeof(uint32_t) +
             sizeof(TEEC_Operation) + sizeof(uint32_t) + sizeof(TEEC_Parameter) + sizeof(TEEC_SharedMemory)) {
             char pathStr[MAX_TA_PATH_LEN + 1] = { 0 };
-            TEEC_Context context = *reinterpret_cast<TEEC_Context *>(temp);
             uint8_t *temp = const_cast<uint8_t *>(data);
+            TEEC_Context context = *reinterpret_cast<TEEC_Context *>(temp);
             if (memcpy_s(pathStr, MAX_TA_PATH_LEN,
                 (const char*)data, size > MAX_TA_PATH_LEN ? MAX_TA_PATH_LEN : size) == 0) {
                 context.ta_path = (uint8_t *)pathStr;
