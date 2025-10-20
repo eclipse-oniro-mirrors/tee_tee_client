@@ -205,7 +205,7 @@ namespace OHOS {
         RecOpenReply(TEEC_ORIGIN_API, TEEC_SUCCESS, &session, &operation, reply);
         TEEC_Result ret = TEEC_InitializeContext("CaDaemonTest_003", &context);
 
-        char pathStr[MAX_TA_PATH_LEN + 1] = { 0 };	
+        char pathStr[MAX_TA_PATH_LEN + 1] = { 0 };
         if (memcpy_s(pathStr, MAX_TA_PATH_LEN,
             (const char*)data, size > MAX_TA_PATH_LEN ? MAX_TA_PATH_LEN : size) == 0) {
             context.ta_path = (uint8_t *)pathStr;
@@ -230,7 +230,7 @@ namespace OHOS {
                 TEEC_PARAM_TYPES(data[0], TEEC_NONE, TEEC_NONE, TEEC_NONE);
         ret = TEEC_OpenSession(&context, &session, &g_testUuid, TEEC_LOGIN_IDENTIFY, nullptr, &operation, &origin);
 
-        ret = TEEC_SendSecfile(context.ta_path, &session);
+        ret = TEEC_SendSecfile(pathStr, &session);
 
         TEEC_FinalizeContext(&context);
         TEEC_CloseSession(&session);
