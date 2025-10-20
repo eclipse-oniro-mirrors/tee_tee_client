@@ -66,7 +66,6 @@ namespace OHOS {
         bool result = false;
         if (size > sizeof(TEEC_Context) + sizeof(TEEC_Session) + sizeof(TEEC_UUID) + sizeof(uint32_t) +
             sizeof(TEEC_Operation) + sizeof(uint32_t) + sizeof(TEEC_Parameter) + sizeof(TEEC_SharedMemory)) {
-            char pathStr[MAX_TA_PATH_LEN + 1] = { 0 };
             uint8_t *temp = const_cast<uint8_t *>(data);
             TEEC_Context context = *reinterpret_cast<TEEC_Context *>(temp);
             context.ta_path = "TeeClientOpenSessionFuzzTest";
@@ -145,7 +144,6 @@ namespace OHOS {
         bool result = false;
         if (size > sizeof(TEEC_Context) + sizeof(TEEC_Session) + sizeof(TEEC_UUID) + sizeof(uint32_t) +
             sizeof(TEEC_Operation) + sizeof(uint32_t) + sizeof(TEEC_Parameter) + sizeof(TEEC_SharedMemory)) {
-            char pathStr[MAX_TA_PATH_LEN + 1] = { 0 };
             uint8_t *temp = const_cast<uint8_t *>(data);
             TEEC_Context context = *reinterpret_cast<TEEC_Context *>(temp);
             context.ta_path = "TeeClientOpenSessionFuzzTest_1";
@@ -207,7 +205,11 @@ namespace OHOS {
         RecOpenReply(TEEC_ORIGIN_API, TEEC_SUCCESS, &session, &operation, reply);
         TEEC_Result ret = TEEC_InitializeContext("CaDaemonTest_003", &context);
 
-        context.ta_path = "TeeClientOpenSessionFuzzTest_2";
+        char pathStr[MAX_TA_PATH_LEN + 1] = { 0 };	
+        if (memcpy_s(pathStr, MAX_TA_PATH_LEN,
+            (const char*)data, size > MAX_TA_PATH_LEN ? MAX_TA_PATH_LEN : size) == 0) {
+            context.ta_path = (uint8_t *)pathStr;
+        }
         operation.paramTypes =
             TEEC_PARAM_TYPES(TEEC_MEMREF_PARTIAL_OUTPUT, TEEC_MEMREF_PARTIAL_INPUT, TEEC_NONE, TEEC_NONE);
         operation.params[0].memref.parent = &sharedMem;
@@ -228,7 +230,7 @@ namespace OHOS {
                 TEEC_PARAM_TYPES(data[0], TEEC_NONE, TEEC_NONE, TEEC_NONE);
         ret = TEEC_OpenSession(&context, &session, &g_testUuid, TEEC_LOGIN_IDENTIFY, nullptr, &operation, &origin);
 
-        ret = TEEC_SendSecfile(pathStr, &session);
+        ret = TEEC_SendSecfile(context.ta_path, &session);
 
         TEEC_FinalizeContext(&context);
         TEEC_CloseSession(&session);
