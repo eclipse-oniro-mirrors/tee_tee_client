@@ -68,7 +68,8 @@ namespace OHOS {
             sizeof(TEEC_Operation) + sizeof(uint32_t) + sizeof(TEEC_Parameter) + sizeof(TEEC_SharedMemory)) {
             uint8_t *temp = const_cast<uint8_t *>(data);
             TEEC_Context context = *reinterpret_cast<TEEC_Context *>(temp);
-            context.ta_path = "TeeClientOpenSessionFuzzTest";
+            char path[] = "TeeClientOpenSessionFuzzTest";
+            context.ta_path = (uint8_t *)path;
             temp += sizeof(TEEC_Context);
             TEEC_Session session = *reinterpret_cast<TEEC_Session *>(temp);
             temp += sizeof(TEEC_Session);
@@ -146,7 +147,8 @@ namespace OHOS {
             sizeof(TEEC_Operation) + sizeof(uint32_t) + sizeof(TEEC_Parameter) + sizeof(TEEC_SharedMemory)) {
             uint8_t *temp = const_cast<uint8_t *>(data);
             TEEC_Context context = *reinterpret_cast<TEEC_Context *>(temp);
-            context.ta_path = "TeeClientOpenSessionFuzzTest_1";
+            char path[] = "TeeClientOpenSessionFuzzTest";
+            context.ta_path = (uint8_t *)path;
             temp += sizeof(TEEC_Context);
             TEEC_Session session = *reinterpret_cast<TEEC_Session *>(temp);
             temp += sizeof(TEEC_Session);
