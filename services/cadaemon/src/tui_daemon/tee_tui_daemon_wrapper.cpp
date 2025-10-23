@@ -36,6 +36,7 @@ static const int32_t EVENT_PARAMS_LEN = 16;
 static const int32_t PARAMS_INPUT_LEN = 10;
 static const uint32_t SLEEP_TIME = 1;
 static const int32_t RETRY_TIMES = 20;
+static const uint32_t WAIT_BEFORE_DLCLOSE = 2;
 static FILE *g_mTuiFp = nullptr;
 
 enum {
@@ -137,6 +138,7 @@ static void TuiDaemonClean(void)
 
     g_tuiDaemonFunc = nullptr;
     g_tuiIsFoldableFunc = nullptr;
+    sleep(WAIT_BEFORE_DLCLOSE);
     (void)dlclose(g_dlHandle);
     g_dlHandle = nullptr;
 }
