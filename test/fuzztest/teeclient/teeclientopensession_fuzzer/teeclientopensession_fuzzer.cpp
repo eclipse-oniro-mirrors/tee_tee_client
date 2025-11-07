@@ -86,9 +86,13 @@ namespace OHOS {
             temp += sizeof(TEEC_Parameter);
 
             TEEC_Parameter param = { { 0 } };
+            /* 0 is the fisrt paramter */
             operation.params[0] = param;
+            /* 1 is the secound paramter */
             operation.params[1] = param;
+            /* 2 is the third paramter */
             operation.params[2] = tmpParam;
+            /* 3 is the fourth paramter */
             operation.params[3] = tmpParam;
             operation.session = &session;
 
@@ -162,9 +166,13 @@ namespace OHOS {
             temp += sizeof(TEEC_Parameter);
 
             TEEC_Parameter param = { { 0 } };
+            /* 0 is the fisrt paramter */
             operation.params[0] = param;
+            /* 1 is the secound paramter */
             operation.params[1] = param;
+            /* 2 is the third paramter */
             operation.params[2] = tmpParam;
+            /* 3 is the fourth paramter */
             operation.params[3] = tmpParam;
             operation.session = &session;
             TEEC_Result ret = TEEC_OpenSession(&context, &session, &uuid, connectionMethod,
