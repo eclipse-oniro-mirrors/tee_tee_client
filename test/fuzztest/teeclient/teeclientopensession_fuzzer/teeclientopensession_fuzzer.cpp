@@ -84,11 +84,8 @@ namespace OHOS {
 
             TEEC_Parameter tmpParam = *reinterpret_cast<TEEC_Parameter *>(temp);
             temp += sizeof(TEEC_Parameter);
-            TEEC_SharedMemory memory = *reinterpret_cast<TEEC_SharedMemory *>(temp);
-            temp += sizeof(TEEC_SharedMemory);
 
             TEEC_Parameter param = { { 0 } };
-            tmpParam.memref.parent = &memory;
             operation.params[0] = param;
             operation.params[1] = param;
             operation.params[2] = tmpParam;
@@ -163,11 +160,8 @@ namespace OHOS {
 
             TEEC_Parameter tmpParam = *reinterpret_cast<TEEC_Parameter *>(temp);
             temp += sizeof(TEEC_Parameter);
-            TEEC_SharedMemory memory = *reinterpret_cast<TEEC_SharedMemory *>(temp);
-            temp += sizeof(TEEC_SharedMemory);
 
             TEEC_Parameter param = { { 0 } };
-            tmpParam.memref.parent = &memory;
             operation.params[0] = param;
             operation.params[1] = param;
             operation.params[2] = tmpParam;
