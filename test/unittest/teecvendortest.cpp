@@ -809,7 +809,7 @@ HWTEST_F(TeecVendorTest, SocketConnectTest_001, TestSize.Level1)
     len = static_cast<uint32_t>((strlen(remote.sun_path) + sizeof(remote.sun_family)));
     remote.sun_path[0] = 0;
 
-    rc = connect(s, (struct sockaddr *)&remote, len);
+    rc = connect(s, static_cast<struct sockaddr *>(&remote), len);
     if (rc == -1) {
         printf("connect() failed, errno=%d\n", errno);
         close(s);
