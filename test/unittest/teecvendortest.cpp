@@ -33,6 +33,8 @@
 #include "tee_client_api.h"
 #include "tee_client_inner_api.h"
 #include "tee_client_app_load.h"
+#include <sys/socket.h>
+#include <sys/un.h>
 
 using namespace testing::ext;
 using namespace OHOS;
@@ -780,5 +782,62 @@ HWTEST_F(TeecVendorTest, TEEC_InvokeCommandInnerTest_001, TestSize.Level1)
     operation.started = 0;
     ret = TEEC_InvokeCommandInner(&context, &session, 0, &operation, nullptr);
     EXPECT_TRUE(ret == TEEC_ERROR_NOT_IMPLEMENTED);
+}
+
+#define TC_NS_SOCKET_NAME "#tc_ns_socket"
+HWTEST_F(TeecVendorTest, SocketConnectTest_001, TestSize.Level1)
+{
+    int rc;
+    uint32_t len;
+    struct sockaddr_un remote;
+
+    int s = socket(AF_UNIX, SOCK_STREAM, 0);
+    if (s == -1) {
+        printf("can't open stream socket errno=%d\n", errno);
+    }
+    EXPECT_FALSE(s == -1);
+
+    printf("Trying to connect...\n");
+    remote.sun_family = AF_UNIX;
+    rc = strncpy_s(remote.sun_path, sizeof(remote.sun_path), TC_NS_SOCKET_NAME, sizeof(TC_NS_SOCKET_NAME));
+    if (rc != EOK) {
+        printf("strncpy_s failed, rc=%d, errno=%d\n", rc, errno);
+        close(s);
+    }
+    EXPECT_TRUE(rc == EOK);
+
+    len = static_cast<uint32_t>((strlen(remote.sun_path) + sizeof(remote.sun_family)));
+    remote.sun_path[0] = 0;
+
+    rc = connect(s, static_cast<struct sockaddr *>(&remote), len);
+    if (rc == -1) {
+        printf("connect() failed, errno=%d\n", errno);
+        close(s);
+    }
+    EXPECT_FALSE(rc == -1);
+}
+
+HWTEST_F(TeecVendorTest, FileExists_001, TestSize.Level1)
+{
+    string system_ca_hash_file = "/system/etc/native_packages.xml";
+    FILE *fp = fopen(system_ca_hash_file.c_str(), "r");
+    EXPECT_FALSE(fp == nullptr);
+    fclose(fp);
+}
+
+HWTEST_F(TeecVendorTest, FileExists_002, TestSize.Level1)
+{
+    string system_ca_hash_file = "/vendor/etc/passthrough/teeos/source/native_packages.xml";
+    FILE *fp = fopen(system_ca_hash_file.c_str(), "r");
+    EXPECT_FALSE(fp == nullptr);
+    fclose(fp);
+}
+
+HWTEST_F(TeecVendorTest, FileExists_003, TestSize.Level1)
+{
+    string system_ca_hash_file = "/system/etc/ta_ctrl.ctrl";
+    FILE *fp = fopen(system_ca_hash_file.c_str(), "r");
+    EXPECT_FALSE(fp == nullptr);
+    fclose(fp);
 }
 }
