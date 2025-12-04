@@ -33,6 +33,8 @@
 #include "tee_client_api.h"
 #include "tee_client_inner_api.h"
 #include "tee_client_app_load.h"
+#include <sys/socket.h>
+#include <sys/un.h>
 
 using namespace testing::ext;
 using namespace OHOS;
