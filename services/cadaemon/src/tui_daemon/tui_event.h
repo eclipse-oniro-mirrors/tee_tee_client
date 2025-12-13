@@ -57,6 +57,17 @@ enum TUIStates {
     TUI_STATE_MAX
 };
 
+enum TUIDeviceType {
+    TUI_DEVICE_PHONE,
+    TUI_DEVICE_TV,
+    TUI_DEVICE_TABLET,
+    TUI_DEVICE_GLASSES,
+    TUI_DEVICE_WEARABLE,
+    TUI_DEVICE_2IN1,
+    TUI_DEVICE_INVALID,
+    TUI_DEVICE_MAX
+};
+
 typedef struct {
     uint32_t eventType; /* Tui event type */
     uint32_t value;   /* return value, is keycode if tui event is getKeycode */
@@ -67,6 +78,9 @@ typedef struct {
     uint32_t displayMode; /* one state of folded state */
     uint32_t phyWidth;     /* real width of the mobile : px */
     uint32_t phyHeight;    /* real height of the mobile : px */
+    float xdpi;
+    float ydpi;
+    enum TUIDeviceType deviceType;
 } TuiParameter;
 
 class TUIEvent {

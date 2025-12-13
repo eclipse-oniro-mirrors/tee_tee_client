@@ -266,6 +266,23 @@ static bool IsDisplaySAReady()
     return true;
 }
 
+static enum TUIDeviceType TuiGetDeviceType() {
+    std::string deviceType = OHOS::system::GetParameter("const.product.devicetype", "0");
+    if (deviceType == "phone")
+        return TUI_DEVICE_PHONE;
+    if (deviceType == "tv")
+        return TUI_DEVICE_TV;
+    if (deviceType == "tablet")
+        return TUI_DEVICE_TABLET;
+    if (deviceType == "glassed")
+        return TUI_DEVICE_GLASSES;
+    if (deviceType == "wearable")
+        return TUI_DEVICE_WEARABLE;
+    if (deviceType == "2in1")
+        return TUI_DEVICE_2IN1;
+    return TUI_DEVICE_INVALID;
+}
+
 bool TUIEvent::TUIGetPannelInfo()
 {
     if (!IsDisplaySAReady()) {
@@ -296,6 +313,9 @@ bool TUIEvent::TUIGetPannelInfo()
 
     mTUIPanelInfo.width = display->GetWidth();
     mTUIPanelInfo.height = display->GetHeight();
+    mTUIPanelInfo.xdpi = displayInfo->GetXDpi();
+    mTUIPanelInfo.ydpi = displayInfo->GetYDpi();
+    mTUIPanelInfo.deviceType = TuiGetDeviceType();
 
     if (displayInfo->GetXDpi() != 0 && displayInfo->GetYDpi() != 0) {
         mTUIPanelInfo.phyWidth = mTUIPanelInfo.width * INCH_CM_FACTOR / displayInfo->GetXDpi();
@@ -354,6 +374,16 @@ void TUIEvent::TUIGetFoldable()
         if (mTUIPanelInfo.foldState == FOLD_STATE_FOLDED) {
             mTUIPanelInfo.foldState += TUI_NEED_ROTATE;
             mTUIPanelInfo.displayMode = TUI_NEED_ROTATE_180;
+        }
+    }
+
+    if (buildProduct == "HOP") {
+        if (mTUIPanelInfo.foldState == FOLD_STATE_EXPANDED || mTUIPanelInfo.foldState == FOLD_STATE_HALF_FOLDED) {
+            mTUIPanelInfo.displayMode = TUI_NEED_ROTATE;
+        }
+ 
+        if (mTUIPanelInfo.foldState == FOLD_STATE_FOLDED) {
+            mTUIPanelInfo.foldState = FOLD_STATE_UNKNOWN;
         }
     }
 
