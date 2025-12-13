@@ -337,28 +337,8 @@ bool TUIEvent::TUIGetPannelInfo()
     return true;
 }
 
-void TUIEvent::TUIGetFoldable()
+static void TUIAdaptProduct()
 {
-#ifdef SCENE_BOARD_ENABLE
-    mTUIFoldable = OHOS::Rosen::DisplayManagerLite::GetInstance().IsFoldable();
-#else
-    mTUIFoldable = OHOS::Rosen::DisplayManager::GetInstance().IsFoldable();
-#endif
-    tlogi("TuiDaemonInit mTUIFoldable %" PUBLIC "d\n", mTUIFoldable);
-    if (mTUIFoldable) {
-        tlogi("tui get fold state\n");
-    #ifdef SCENE_BOARD_ENABLE
-        mTUIPanelInfo.foldState = static_cast<uint32_t>(OHOS::Rosen::DisplayManagerLite::GetInstance().GetFoldStatus());
-    #else
-        mTUIPanelInfo.foldState = static_cast<uint32_t>(OHOS::Rosen::DisplayManager::GetInstance().GetFoldStatus());
-    #endif
-        if (mTUIPanelInfo.foldState > FOLD_STATE_HALF_FOLDED) {
-            mTUIPanelInfo.foldState = FOLD_STATE_UNKNOWN; /* default state */
-        }
-    } else {
-        mTUIPanelInfo.foldState = FOLD_STATE_UNKNOWN;
-    }
-
     mTUIPanelInfo.displayMode = TUIGetDisplayMode(mTUIPanelInfo.foldState);
 
     std::string buildProduct = OHOS::system::GetParameter("const.build.product", "0");
@@ -386,6 +366,31 @@ void TUIEvent::TUIGetFoldable()
             mTUIPanelInfo.foldState = FOLD_STATE_UNKNOWN;
         }
     }
+}
+
+void TUIEvent::TUIGetFoldable()
+{
+#ifdef SCENE_BOARD_ENABLE
+    mTUIFoldable = OHOS::Rosen::DisplayManagerLite::GetInstance().IsFoldable();
+#else
+    mTUIFoldable = OHOS::Rosen::DisplayManager::GetInstance().IsFoldable();
+#endif
+    tlogi("TuiDaemonInit mTUIFoldable %" PUBLIC "d\n", mTUIFoldable);
+    if (mTUIFoldable) {
+        tlogi("tui get fold state\n");
+    #ifdef SCENE_BOARD_ENABLE
+        mTUIPanelInfo.foldState = static_cast<uint32_t>(OHOS::Rosen::DisplayManagerLite::GetInstance().GetFoldStatus());
+    #else
+        mTUIPanelInfo.foldState = static_cast<uint32_t>(OHOS::Rosen::DisplayManager::GetInstance().GetFoldStatus());
+    #endif
+        if (mTUIPanelInfo.foldState > FOLD_STATE_HALF_FOLDED) {
+            mTUIPanelInfo.foldState = FOLD_STATE_UNKNOWN; /* default state */
+        }
+    } else {
+        mTUIPanelInfo.foldState = FOLD_STATE_UNKNOWN;
+    }
+
+    TUIAdaptProduct();
 
     std::string foldScreenType = OHOS::system::GetParameter("const.window.foldscreen.type", "0");
     /* trifold phone */
