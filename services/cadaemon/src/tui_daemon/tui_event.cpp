@@ -337,7 +337,7 @@ bool TUIEvent::TUIGetPannelInfo()
     return true;
 }
 
-static void TUIAdaptProduct()
+void TUIEvent::TUIAdaptProduct()
 {
     mTUIPanelInfo.displayMode = TUIGetDisplayMode(mTUIPanelInfo.foldState);
 

@@ -106,6 +106,7 @@ public:
     void TUIGetRunningLock();
     void TUIReleaseRunningLock();
     bool TUIGetPannelInfo();
+    void TUIAdaptProduct();
     void TUIGetFoldable();
     void TUISetStatus(bool status);
     bool TUIGetStatus();
