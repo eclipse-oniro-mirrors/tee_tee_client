@@ -66,6 +66,7 @@ static const uint8_t TTF_HASH_SIZE   = 32;
 static const uint8_t TTF_STRING_SIZE = 64;
 static const uint8_t HEX_BASE        = 16;
 static const uint8_t ASCII_DIGIT_GAP = 10;
+static const float NORMAL_DPI = 400.0;
 static uint8_t g_ttfHash[TTF_HASH_SIZE];
 
 static char g_hashVal[TTF_STRING_SIZE + 1] = {0};
@@ -315,6 +316,12 @@ bool TUIEvent::TUIGetPannelInfo()
     mTUIPanelInfo.height = display->GetHeight();
     mTUIPanelInfo.xdpi = displayInfo->GetXDpi();
     mTUIPanelInfo.ydpi = displayInfo->GetYDpi();
+    if (displayInfo->GetXDpi() + displayInfo->GetXDpi() < displayInfo->GetYDpi() ||
+        displayInfo->GetYDpi() + displayInfo->GetYDpi() < displayInfo->GetXDpi()) {
+        mTUIPanelInfo.xdpi = NORMAL_DPI;
+        mTUIPanelInfo.ydpi = NORMAL_DPI;
+        tlogi("invalid DPI, change to 400\n");
+    }
     mTUIPanelInfo.deviceType = TuiGetDeviceType();
 
     if (displayInfo->GetXDpi() != 0 && displayInfo->GetYDpi() != 0) {
