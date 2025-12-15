@@ -66,6 +66,7 @@ static const uint8_t TTF_HASH_SIZE   = 32;
 static const uint8_t TTF_STRING_SIZE = 64;
 static const uint8_t HEX_BASE        = 16;
 static const uint8_t ASCII_DIGIT_GAP = 10;
+static const float NORMAL_DPI = 400.0;
 static uint8_t g_ttfHash[TTF_HASH_SIZE];
 
 static char g_hashVal[TTF_STRING_SIZE + 1] = {0};
@@ -266,6 +267,23 @@ static bool IsDisplaySAReady()
     return true;
 }
 
+static enum TUIDeviceType TuiGetDeviceType() {
+    std::string deviceType = OHOS::system::GetParameter("const.product.devicetype", "0");
+    if (deviceType == "phone")
+        return TUI_DEVICE_PHONE;
+    if (deviceType == "tv")
+        return TUI_DEVICE_TV;
+    if (deviceType == "tablet")
+        return TUI_DEVICE_TABLET;
+    if (deviceType == "glassed")
+        return TUI_DEVICE_GLASSES;
+    if (deviceType == "wearable")
+        return TUI_DEVICE_WEARABLE;
+    if (deviceType == "2in1")
+        return TUI_DEVICE_2IN1;
+    return TUI_DEVICE_INVALID;
+}
+
 bool TUIEvent::TUIGetPannelInfo()
 {
     if (!IsDisplaySAReady()) {
@@ -296,6 +314,15 @@ bool TUIEvent::TUIGetPannelInfo()
 
     mTUIPanelInfo.width = display->GetWidth();
     mTUIPanelInfo.height = display->GetHeight();
+    mTUIPanelInfo.xdpi = displayInfo->GetXDpi();
+    mTUIPanelInfo.ydpi = displayInfo->GetYDpi();
+    if (displayInfo->GetXDpi() + displayInfo->GetXDpi() < displayInfo->GetYDpi() ||
+        displayInfo->GetYDpi() + displayInfo->GetYDpi() < displayInfo->GetXDpi()) {
+        mTUIPanelInfo.xdpi = NORMAL_DPI;
+        mTUIPanelInfo.ydpi = NORMAL_DPI;
+        tlogi("invalid DPI, change to 400\n");
+    }
+    mTUIPanelInfo.deviceType = TuiGetDeviceType();
 
     if (displayInfo->GetXDpi() != 0 && displayInfo->GetYDpi() != 0) {
         mTUIPanelInfo.phyWidth = mTUIPanelInfo.width * INCH_CM_FACTOR / displayInfo->GetXDpi();
@@ -315,6 +342,37 @@ bool TUIEvent::TUIGetPannelInfo()
         mTUIPanelInfo.displayMode, mTUIPanelInfo.notch);
 
     return true;
+}
+
+void TUIEvent::TUIAdaptProduct()
+{
+    mTUIPanelInfo.displayMode = TUIGetDisplayMode(mTUIPanelInfo.foldState);
+
+    std::string buildProduct = OHOS::system::GetParameter("const.build.product", "0");
+    if (buildProduct == "DEL") {
+        mTUIPanelInfo.displayMode = TUI_NEED_ROTATE;
+    }
+
+    if (buildProduct == "VDE") {
+        if (mTUIPanelInfo.foldState == FOLD_STATE_EXPANDED || mTUIPanelInfo.foldState == FOLD_STATE_HALF_FOLDED) {
+            mTUIPanelInfo.foldState = FOLD_STATE_UNKNOWN;
+        }
+
+        if (mTUIPanelInfo.foldState == FOLD_STATE_FOLDED) {
+            mTUIPanelInfo.foldState += TUI_NEED_ROTATE;
+            mTUIPanelInfo.displayMode = TUI_NEED_ROTATE_180;
+        }
+    }
+
+    if (buildProduct == "HOP") {
+        if (mTUIPanelInfo.foldState == FOLD_STATE_EXPANDED || mTUIPanelInfo.foldState == FOLD_STATE_HALF_FOLDED) {
+            mTUIPanelInfo.displayMode = TUI_NEED_ROTATE;
+        }
+ 
+        if (mTUIPanelInfo.foldState == FOLD_STATE_FOLDED) {
+            mTUIPanelInfo.foldState = FOLD_STATE_UNKNOWN;
+        }
+    }
 }
 
 void TUIEvent::TUIGetFoldable()
@@ -339,23 +397,7 @@ void TUIEvent::TUIGetFoldable()
         mTUIPanelInfo.foldState = FOLD_STATE_UNKNOWN;
     }
 
-    mTUIPanelInfo.displayMode = TUIGetDisplayMode(mTUIPanelInfo.foldState);
-
-    std::string buildProduct = OHOS::system::GetParameter("const.build.product", "0");
-    if (buildProduct == "DEL") {
-        mTUIPanelInfo.displayMode = TUI_NEED_ROTATE;
-    }
-
-    if (buildProduct == "VDE") {
-        if (mTUIPanelInfo.foldState == FOLD_STATE_EXPANDED || mTUIPanelInfo.foldState == FOLD_STATE_HALF_FOLDED) {
-            mTUIPanelInfo.foldState = FOLD_STATE_UNKNOWN;
-        }
-
-        if (mTUIPanelInfo.foldState == FOLD_STATE_FOLDED) {
-            mTUIPanelInfo.foldState += TUI_NEED_ROTATE;
-            mTUIPanelInfo.displayMode = TUI_NEED_ROTATE_180;
-        }
-    }
+    TUIAdaptProduct();
 
     std::string foldScreenType = OHOS::system::GetParameter("const.window.foldscreen.type", "0");
     /* trifold phone */
