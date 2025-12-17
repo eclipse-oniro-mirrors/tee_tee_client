@@ -96,16 +96,24 @@ void CaDaemonService::CreateTuiThread()
 void CaDaemonService::OnAddSystemAbility(
     int32_t systemAbilityId, const std::string& deviceId)
 {
-    void (*initDevMgr)(void) = nullptr;
+    TEEC_FuncMap funcMap = {
+        .initializeContext = TEEC_InitializeContext,
+        .finalizeContext = TEEC_FinalizeContext,
+        .openSession = TEEC_OpenSession,
+        .closeSession = TEEC_CloseSession,
+        .invokeCommand = TEEC_InvokeCommand,
+    };
+    void (*initDstbTee)(TEEC_FuncMap *funcMap) = nullptr;
+
     switch (systemAbilityId) {
         case DISTRIBUTED_HARDWARE_DEVICEMANAGER_SA_ID:
-            initDevMgr = (void(*)(void))dlsym(mDstbHandle, "InitDeviceManager");
-            if (initDevMgr == nullptr) {
-                tloge("get InitDeviceManager handle is null, error=%" PUBLIC "s\n", dlerror());
+            initDstbTee = (void(*)(TEEC_FuncMap *funcMap))dlsym(mDstbHandle, "InitDstbTeeService");
+            if (initDstbTee == nullptr) {
+                tloge("dstb tee service init func is null\n");
                 return;
             }
-            tlogi("callback init device manager\n");
-            initDevMgr();
+            tlogi("callback triger InitDstbTeeService\n");
+            initDstbTee(&funcMap);
             break;
         default:
             tloge("invalid systemAbilityId\n");
@@ -117,14 +125,6 @@ void CaDaemonService::OnAddSystemAbility(
 
 __attribute__((no_sanitize("cfi"))) void CaDaemonService::CreateDstbTeeService()
 {
-    TEEC_FuncMap funcMap = {
-        .initializeContext = TEEC_InitializeContext,
-        .finalizeContext = TEEC_FinalizeContext,
-        .openSession = TEEC_OpenSession,
-        .closeSession = TEEC_CloseSession,
-        .invokeCommand = TEEC_InvokeCommand,
-    };
-
 #if defined(__LP64__)
     mDstbHandle = dlopen("/system/lib64/libdistributed_tee_service.so", RTLD_LAZY);
 #else
@@ -135,18 +135,9 @@ __attribute__((no_sanitize("cfi"))) void CaDaemonService::CreateDstbTeeService()
         return;
     }
 
-    void (*initDstbTee)(TEEC_FuncMap *funcMap) = nullptr;
-    initDstbTee = (void(*)(TEEC_FuncMap *funcMap))dlsym(mDstbHandle, "InitDstbTeeService");
-    if (initDstbTee == nullptr) {
-        tloge("dstb tee service init func is null\n");
-        return;
-    }
-
     if (AddSystemAbilityListener(DISTRIBUTED_HARDWARE_DEVICEMANAGER_SA_ID) == false) {
         tloge("add DHDM system ability listener faile\n");
     }
-
-    initDstbTee(&funcMap);
 }
 
 bool CaDaemonService::Init()
