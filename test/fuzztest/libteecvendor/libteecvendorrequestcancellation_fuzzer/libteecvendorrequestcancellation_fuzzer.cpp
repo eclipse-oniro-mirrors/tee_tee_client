@@ -44,7 +44,6 @@ namespace OHOS {
             operation.session = &session;
 
             (void)TEEC_RequestCancellation(&operation);
-
         }
         return result;
     }
