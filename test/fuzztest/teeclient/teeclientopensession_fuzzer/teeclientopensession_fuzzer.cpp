@@ -82,18 +82,11 @@ namespace OHOS {
             uint32_t returnOrigin = *reinterpret_cast<uint32_t *>(temp);
             temp += sizeof(uint32_t);
 
-            TEEC_Parameter tmpParam = *reinterpret_cast<TEEC_Parameter *>(temp);
-            temp += sizeof(TEEC_Parameter);
-
             TEEC_Parameter param = { { 0 } };
-            /* 0 is the fisrt paramter */
             operation.params[0] = param;
-            /* 1 is the secound paramter */
             operation.params[1] = param;
-            /* 2 is the third paramter */
-            operation.params[2] = tmpParam;
-            /* 3 is the fourth paramter */
-            operation.params[3] = tmpParam;
+            operation.params[2] = param;
+            operation.params[3] = param;
             operation.session = &session;
 
             TEEC_Result ret = TEEC_OpenSession(&context, &session, &uuid, connectionMethod,
@@ -124,16 +117,33 @@ namespace OHOS {
             TEEC_CloseSession(session);
         }
 
-        operation->paramTypes = TEEC_PARAM_TYPES(TEEC_MEMREF_PARTIAL_OUTPUT, TEEC_MEMREF_PARTIAL_OUTPUT,
-            TEEC_MEMREF_PARTIAL_OUTPUT, TEEC_MEMREF_PARTIAL_OUTPUT);
+        operation->params[0].tmpref.buffer = reinterpret_cast<void *>(context);
+        operation->params[0].tmpref.size = 0;
+        operation->paramTypes = TEEC_PARAM_TYPES(TEEC_MEMREF_TEMP_INPUT, TEEC_MEMREF_TEMP_OUTPUT,
+            TEEC_MEMREF_TEMP_INOUT, TEEC_MEMREF_TEMP_INOUT);
         ret = TEEC_OpenSession(context, session, destination, connectionMethod,
             connectionData, operation, returnOrigin);
         if (ret == TEEC_SUCCESS) {
             TEEC_CloseSession(session);
         }
 
-        operation->paramTypes = TEEC_PARAM_TYPES(TEEC_MEMREF_PARTIAL_OUTPUT, TEEC_MEMREF_PARTIAL_OUTPUT,
-            TEEC_NONE, TEEC_NONE);
+        TEEC_SharedMemory mem = { 0 };
+        /* parent is not nullptr, parent->buffer is nullptr */
+        operation->params[0].memref.parent = &mem;
+        /* parent is nullptr */
+        operation->params[1].memref.parent = nullptr;
+        /* parent is not nullptr, parent->buffer is not nullptr */
+        operation->params[2].memref.parent = &mem;
+        mem.buffer = reinterpret_cast<void *>(context);
+        /* memref.parent->flags is not TEEC_MEMREF_PARTIAL_INPUT */
+        mem.flags = 0;
+        operation->params[3].memref.parent = &mem;
+        mem.buffer = reinterpret_cast<void *>(context);
+        /* memref.parent->flags is not TEEC_MEMREF_PARTIAL_OUTPUT */
+        mem.flags = 0;
+
+        operation->paramTypes = TEEC_PARAM_TYPES(TEEC_MEMREF_PARTIAL_OUTPUT, TEEC_MEMREF_PARTIAL_INPUT,
+            TEEC_MEMREF_PARTIAL_INOUT, TEEC_MEMREF_PARTIAL_OUTPUT);
         ret = TEEC_OpenSession(context, session, destination, connectionMethod,
             connectionData, operation, returnOrigin);
         if (ret == TEEC_SUCCESS) {
@@ -162,19 +172,13 @@ namespace OHOS {
             uint32_t returnOrigin = *reinterpret_cast<uint32_t *>(temp);
             temp += sizeof(uint32_t);
 
-            TEEC_Parameter tmpParam = *reinterpret_cast<TEEC_Parameter *>(temp);
-            temp += sizeof(TEEC_Parameter);
-
             TEEC_Parameter param = { { 0 } };
-            /* 0 is the fisrt paramter */
             operation.params[0] = param;
-            /* 1 is the secound paramter */
             operation.params[1] = param;
-            /* 2 is the third paramter */
-            operation.params[2] = tmpParam;
-            /* 3 is the fourth paramter */
-            operation.params[3] = tmpParam;
+            operation.params[2] = param;
+            operation.params[3] = param;
             operation.session = &session;
+
             TEEC_Result ret = TEEC_OpenSession(&context, &session, &uuid, connectionMethod,
                 reinterpret_cast<const char *>(temp), &operation, &returnOrigin);
             if (ret == TEEC_SUCCESS) {
@@ -204,7 +208,6 @@ namespace OHOS {
         MessageParcel reply;
         operation.started = 1;
         uint32_t origin;
-        (void)TEEC_GetTEEVersion();
         RecOpenReply(TEEC_ORIGIN_API, TEEC_SUCCESS, &session, &operation, reply);
         TEEC_Result ret = TEEC_InitializeContext("CaDaemonTest_003", &context);
 
@@ -229,8 +232,7 @@ namespace OHOS {
         operation.params[1].memref.size = 1;
         ret = TEEC_OpenSession(&context, &session, &g_testUuid, TEEC_LOGIN_IDENTIFY, nullptr, &operation, &origin);
 
-        operation.paramTypes =
-                TEEC_PARAM_TYPES(data[0], TEEC_NONE, TEEC_NONE, TEEC_NONE);
+        operation.paramTypes = TEEC_PARAM_TYPES(data[0], TEEC_NONE, TEEC_NONE, TEEC_NONE);
         ret = TEEC_OpenSession(&context, &session, &g_testUuid, TEEC_LOGIN_IDENTIFY, nullptr, &operation, &origin);
 
         ret = TEEC_SendSecfile(pathStr, &session);
