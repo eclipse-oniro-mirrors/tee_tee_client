@@ -121,7 +121,7 @@ namespace OHOS {
             uint8_t *temp = const_cast<uint8_t *>(data);
             TEEC_Session session = *reinterpret_cast<TEEC_Session *>(temp);
             temp += sizeof(TEEC_Session);
-            char *path = reinterpret_cast<char *>(temp);
+            char path[] = "/data/abe89147-cd61-f43f-71c4-1a317e405312.sec";
 
             TEEC_SendSecfile(path, &session);
         }
@@ -160,7 +160,7 @@ namespace OHOS {
             temp += sizeof(int);
             FILE *fp = reinterpret_cast<FILE *>(temp);
             temp += sizeof(FILE);
-            char *path = reinterpret_cast<char *>(temp);
+            char path[] = "/data/abe89147-cd61-f43f-71c4-1a317e405312.sec";
 
             result = TEEC_SendSecfileInner(path, tzFd, fp);
         }
@@ -180,7 +180,7 @@ namespace OHOS {
     bool LibteecVendorSendEventResponseFuzzTest(const uint8_t *data, size_t size)
     {
         bool result = false;
-        if (size > sizeof(uint32_t) + sizeof(FILE)) {
+        if (size > sizeof(uint32_t) + sizeof(uint32_t)) {
             uint8_t *temp = const_cast<uint8_t *>(data);
             int devFd = *reinterpret_cast<int *>(temp);
             temp += sizeof(int);
@@ -201,13 +201,13 @@ namespace OHOS {
     bool LibteecVendorLoadSecfileFuzzTest(const uint8_t *data, size_t size)
     {
         bool result = false;
-        if (size > sizeof(int) + sizeof(FILE)) {
+        if (size > sizeof(int) + sizeof(FILE) + sizeof(int)) {
             uint8_t *temp = const_cast<uint8_t *>(data);
             int tzFd = *reinterpret_cast<int *>(temp);
             temp += sizeof(int);
             FILE *fp = reinterpret_cast<FILE *>(temp);
             temp += sizeof(FILE);
-            char *path = reinterpret_cast<char *>(temp);
+            char path[] = "/data/abe89147-cd61-f43f-71c4-1a317e405312.sec";
 
             TEEC_LoadSecfile(path, tzFd, fp);
         }
@@ -222,15 +222,14 @@ namespace OHOS {
         TC_NS_ClientContext cliContext = { { 0 } };
 
         ret = TEEC_GetApp(nullptr, nullptr, nullptr);
-
         std::string str("./ClientAppLoad_002.txt");
         taFile.taPath = reinterpret_cast<const uint8_t*>(str.c_str());
         ret = TEEC_GetApp(&taFile, &srvUuid, &cliContext);
-
         FILE *fp = fopen("./ClientAppLoad_001.sec", "w+");
         ret = TEEC_GetApp(&taFile, &srvUuid, &cliContext);
-        (void)fclose(fp);
-
+        if (fp) {
+            (void)fclose(fp);
+        }
         taFile.taPath = data;
         ret = TEEC_GetApp(&taFile, &srvUuid, &cliContext);
     }
@@ -249,7 +248,9 @@ namespace OHOS {
 
         uint8_t *temp = const_cast<uint8_t*>(data);
         ret = TEEC_LoadSecfile(reinterpret_cast<char *>(temp), 0, fp);
-        (void)fclose(fp);
+        if (fp) {
+            (void)fclose(fp);
+        }
     }
 
     #define MAX_BUFFER_LEN (8 * 1024 * 1024)
@@ -260,19 +261,29 @@ namespace OHOS {
 
         FILE *fp = fopen("./LoadSecfile_002.txt", "w+");
         ret = LoadSecFile(tzFd, fp, LOAD_TA, nullptr);
-        (void)fclose(fp);
+        if (fp) {
+            (void)fclose(fp);
+        }
 
         fp = fopen("./LoadSecfile_002.txt", "w+");
-        (void)fseek(fp, MAX_BUFFER_LEN + 1, SEEK_SET);
-        char chr = 0;
-        (void)fwrite(&chr, 1, sizeof(chr), fp);
+        if (fp) {
+            (void)fseek(fp, MAX_BUFFER_LEN + 1, SEEK_SET);
+            char chr = 0;
+            (void)fwrite(&chr, 1, sizeof(chr), fp);
+        }
         ret = LoadSecFile(tzFd, fp, LOAD_TA, nullptr);
-        (void)fclose(fp);
+        if (fp) {
+            (void)fclose(fp);
+        }
 
         fp = fopen("./LoadSecfile_002.txt", "w+");
-        (void)fprintf(fp, "%s", "LoadSecfile_002");
+        if (fp) {
+            (void)fprintf(fp, "%s", "LoadSecfile_002");
+        }
         ret = LoadSecFile(tzFd, fp, LOAD_TA, nullptr);
-        (void)fclose(fp);
+        if (fp) {
+            (void)fclose(fp);
+        }
 
         uint8_t *temp = const_cast<uint8_t *>(data);
         if (size > sizeof(int)) {
