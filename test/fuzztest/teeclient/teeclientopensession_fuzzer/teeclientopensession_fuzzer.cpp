@@ -83,9 +83,13 @@ namespace OHOS {
             temp += sizeof(uint32_t);
 
             TEEC_Parameter param = { { 0 } };
+            /* 0 is the fisrt paramter */
             operation.params[0] = param;
+            /* 1 is the fisrt paramter */
             operation.params[1] = param;
+            /* 2 is the fisrt paramter */
             operation.params[2] = param;
+            /* 3 is the fisrt paramter */
             operation.params[3] = param;
             operation.session = &session;
 
@@ -129,14 +133,18 @@ namespace OHOS {
 
         TEEC_SharedMemory mem = { 0 };
         /* parent is not nullptr, parent->buffer is nullptr */
+        /* 0 is the fisrt paramter */
         operation->params[0].memref.parent = &mem;
         /* parent is nullptr */
+        /* 1 is the fisrt paramter */
         operation->params[1].memref.parent = nullptr;
         /* parent is not nullptr, parent->buffer is not nullptr */
+        /* 2 is the fisrt paramter */
         operation->params[2].memref.parent = &mem;
         mem.buffer = reinterpret_cast<void *>(context);
         /* memref.parent->flags is not TEEC_MEMREF_PARTIAL_INPUT */
         mem.flags = 0;
+        /* 3 is the fisrt paramter */
         operation->params[3].memref.parent = &mem;
         mem.buffer = reinterpret_cast<void *>(context);
         /* memref.parent->flags is not TEEC_MEMREF_PARTIAL_OUTPUT */
@@ -173,9 +181,13 @@ namespace OHOS {
             temp += sizeof(uint32_t);
 
             TEEC_Parameter param = { { 0 } };
+            /* 0 is the fisrt paramter */
             operation.params[0] = param;
+            /* 1 is the fisrt paramter */
             operation.params[1] = param;
+            /* 2 is the fisrt paramter */
             operation.params[2] = param;
+            /* 3 is the fisrt paramter */
             operation.params[3] = param;
             operation.session = &session;
 
@@ -208,6 +220,7 @@ namespace OHOS {
         MessageParcel reply;
         operation.started = 1;
         uint32_t origin;
+        (void)TEEC_GetTEEVersion();
         RecOpenReply(TEEC_ORIGIN_API, TEEC_SUCCESS, &session, &operation, reply);
         TEEC_Result ret = TEEC_InitializeContext("CaDaemonTest_003", &context);
 
