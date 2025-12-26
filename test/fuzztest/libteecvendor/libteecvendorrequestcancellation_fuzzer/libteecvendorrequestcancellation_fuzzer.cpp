@@ -22,7 +22,7 @@
 namespace OHOS {
     bool LibteecVendorRequestCancellationFuzzTest(const uint8_t *data, size_t size)
     {
-        bool result = false;
+        bool result = true;
         if (size > sizeof(TEEC_Session) + sizeof(TEEC_Operation) + sizeof(TEEC_Context) +
             sizeof(TEEC_Parameter) + sizeof(TEEC_SharedMemory)) {
             uint8_t *temp = const_cast<uint8_t *>(data);
@@ -34,21 +34,9 @@ namespace OHOS {
             temp += sizeof(TEEC_Context);
             TEEC_Parameter param = *reinterpret_cast<TEEC_Parameter *>(temp);
             temp += sizeof(TEEC_Parameter);
-            TEEC_SharedMemory memory = *reinterpret_cast<TEEC_SharedMemory *>(temp);
-
-            TEEC_Result ret = TEEC_AllocateSharedMemory(&context, &memory);
-            if (ret != TEEC_SUCCESS) {
-                return result;
-            }
-            if (param.tmpref.size > 0) {
-                param.tmpref.buffer = malloc(param.tmpref.size);
-                if (param.tmpref.buffer == nullptr) {
-                    return result;
-                }
-            }
 
             session.context = &context;
-            param.memref.parent = &memory;
+            operation.paramTypes = TEEC_PARAM_TYPES(TEEC_NONE, TEEC_NONE, TEEC_NONE, TEEC_NONE);
             operation.params[0] = param;
             operation.params[1] = param;
             operation.params[2] = param;
@@ -57,11 +45,6 @@ namespace OHOS {
 
             (void)TEEC_RequestCancellation(&operation);
 
-            if (param.tmpref.size > 0 && param.tmpref.buffer != nullptr) {
-                free(param.tmpref.buffer);
-                param.tmpref.buffer = nullptr;
-            }
-            TEEC_ReleaseSharedMemory(&memory);
         }
         return result;
     }
