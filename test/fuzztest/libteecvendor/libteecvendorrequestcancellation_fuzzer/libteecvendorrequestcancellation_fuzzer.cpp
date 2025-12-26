@@ -22,7 +22,7 @@
 namespace OHOS {
     bool LibteecVendorRequestCancellationFuzzTest(const uint8_t *data, size_t size)
     {
-        bool result = true;
+        bool result = false;
         if (size > sizeof(TEEC_Session) + sizeof(TEEC_Operation) + sizeof(TEEC_Context) +
             sizeof(TEEC_Parameter) + sizeof(TEEC_SharedMemory)) {
             uint8_t *temp = const_cast<uint8_t *>(data);
