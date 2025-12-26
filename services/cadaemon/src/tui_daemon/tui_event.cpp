@@ -111,13 +111,13 @@ static uint8_t Ascii2Digit(char a)
     uint8_t hex = 0;
     char i = '0';
     map<char, uint8_t> valueMap;
-    for(i = '0'; i <= '9'; i++) {
+    for (i = '0'; i <= '9'; i++) {
         valueMap[i] = i - '0';
     }
-    for(i = 'a'; i <= 'f'; i++) {
+    for (i = 'a'; i <= 'f'; i++) {
         valueMap[i] = (i - 'a') + ASCII_DIGIT_GAP;
     }
-    for(i = 'A'; i <= 'F'; i++) {
+    for (i = 'A'; i <= 'F'; i++) {
         valueMap[i] = (i - 'A') + ASCII_DIGIT_GAP;
     }
 
