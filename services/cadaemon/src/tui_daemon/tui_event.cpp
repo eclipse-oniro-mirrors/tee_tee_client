@@ -22,6 +22,7 @@
 #include <securec.h>
 #include <securectype.h>
 #include <sys/ioctl.h>
+#include <map>
 
 #include "tee_log.h"
 #include "tc_ns_client.h"
@@ -108,13 +109,21 @@ static void TUISaveTTFHash(void)
 static uint8_t Ascii2Digit(char a)
 {
     uint8_t hex = 0;
+    char i = '0';
+    map<char, uint8_t> valueMap;
+    for(i='0'; i <= '9'; i++) {
+        valueMap[i] = i - '0';
+    }
+    for(i='a'; i <= 'f'; i++) {
+        valueMap[i] = (i - 'a') + ASCII_DIGIT_GAP;
+    }
+    for(i='A'; i <= 'F'; i++) {
+        valueMap[i] = (i - 'A') + ASCII_DIGIT_GAP;
+    }
 
-    if ((a >= '0') && (a <= '9')) {
-        hex = a - '0';
-    } else if ((a >= 'a') && (a <= 'f')) {
-        hex = (a - 'a') + ASCII_DIGIT_GAP;
-    } else if ((a >= 'A') && (a <= 'F')) {
-        hex = (a - 'A') + ASCII_DIGIT_GAP;
+    auto it = valueMap.find(a);
+    if (it != valueMap.end()) {
+        hex = it->second;
     }
 
     return hex;
@@ -269,18 +278,19 @@ static bool IsDisplaySAReady()
 
 static enum TUIDeviceType TuiGetDeviceType() {
     std::string deviceType = OHOS::system::GetParameter("const.product.devicetype", "0");
-    if (deviceType == "phone")
-        return TUI_DEVICE_PHONE;
-    if (deviceType == "tv")
-        return TUI_DEVICE_TV;
-    if (deviceType == "tablet")
-        return TUI_DEVICE_TABLET;
-    if (deviceType == "glassed")
-        return TUI_DEVICE_GLASSES;
-    if (deviceType == "wearable")
-        return TUI_DEVICE_WEARABLE;
-    if (deviceType == "2in1")
-        return TUI_DEVICE_2IN1;
+    map<string, enum TUIDeviceType> mapDevType;
+    mapDevType["phone"] = TUI_DEVICE_PHONE;
+    mapDevType["tv"] = TUI_DEVICE_TV;
+    mapDevType["tablet"] = TUI_DEVICE_TABLET;
+    mapDevType["glassed"] = TUI_DEVICE_GLASSES;
+    mapDevType["wearable"] = TUI_DEVICE_WEARABLE;
+    mapDevType["2in1"] = TUI_DEVICE_2IN1;
+
+    auto it = mapDevType.find(deviceType);
+    if (it != mapDevType.end()) {
+        return it->second;
+    }
+    tloge("device type is invalid!\n");
     return TUI_DEVICE_INVALID;
 }
 
@@ -349,29 +359,26 @@ void TUIEvent::TUIAdaptProduct()
     mTUIPanelInfo.displayMode = TUIGetDisplayMode(mTUIPanelInfo.foldState);
 
     std::string buildProduct = OHOS::system::GetParameter("const.build.product", "0");
+
     if (buildProduct == "DEL") {
         mTUIPanelInfo.displayMode = TUI_NEED_ROTATE;
     }
 
     if (buildProduct == "VDE") {
-        if (mTUIPanelInfo.foldState == FOLD_STATE_EXPANDED || mTUIPanelInfo.foldState == FOLD_STATE_HALF_FOLDED) {
-            mTUIPanelInfo.foldState = FOLD_STATE_UNKNOWN;
-        }
-
         if (mTUIPanelInfo.foldState == FOLD_STATE_FOLDED) {
             mTUIPanelInfo.foldState += TUI_NEED_ROTATE;
             mTUIPanelInfo.displayMode = TUI_NEED_ROTATE_180;
+            return;
         }
+        mTUIPanelInfo.foldState = FOLD_STATE_UNKNOWN;
     }
 
     if (buildProduct == "HOP") {
-        if (mTUIPanelInfo.foldState == FOLD_STATE_EXPANDED || mTUIPanelInfo.foldState == FOLD_STATE_HALF_FOLDED) {
-            mTUIPanelInfo.displayMode = TUI_NEED_ROTATE;
-        }
- 
-        if (mTUIPanelInfo.foldState == FOLD_STATE_FOLDED) {
+        if (mTUIPanelInfo.foldState == FOLD_STATE_FOLDED || mTUIPanelInfo.foldState == FOLD_STATE_UNKNOWN) {
             mTUIPanelInfo.foldState = FOLD_STATE_UNKNOWN;
+            return;
         }
+        mTUIPanelInfo.displayMode = TUI_NEED_ROTATE;
     }
 }
 
@@ -383,6 +390,8 @@ void TUIEvent::TUIGetFoldable()
     mTUIFoldable = OHOS::Rosen::DisplayManager::GetInstance().IsFoldable();
 #endif
     tlogi("TuiDaemonInit mTUIFoldable %" PUBLIC "d\n", mTUIFoldable);
+
+    mTUIPanelInfo.foldState = FOLD_STATE_UNKNOWN;
     if (mTUIFoldable) {
         tlogi("tui get fold state\n");
     #ifdef SCENE_BOARD_ENABLE
@@ -393,8 +402,6 @@ void TUIEvent::TUIGetFoldable()
         if (mTUIPanelInfo.foldState > FOLD_STATE_HALF_FOLDED) {
             mTUIPanelInfo.foldState = FOLD_STATE_UNKNOWN; /* default state */
         }
-    } else {
-        mTUIPanelInfo.foldState = FOLD_STATE_UNKNOWN;
     }
 
     TUIAdaptProduct();
