@@ -9,7 +9,6 @@
   "component": {
     "name": "tee_client",
     "subsystem": "tee",
-    "syscap": [""],
     "features": [
       "tee_client_features_tui"
     ],
