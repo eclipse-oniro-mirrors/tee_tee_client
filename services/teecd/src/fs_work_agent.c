@@ -445,6 +445,8 @@ static int32_t DoJoinFileName(const char *name, char *path, size_t pathLen)
         ret = GetTransientDir(path, pathLen);
     } else if (name == strstr(name, SFS_PARTITION_PERSISTENT)) {
         ret = GetPersistentDir(path, pathLen);
+    } else if (name == strstr(name, SEC_STORAGE_ROOT_DIR)) {
+        ret = 0; /* do not need to modiify the path */
     } else {
         ret = GetDefaultDir(path, pathLen);
     }
