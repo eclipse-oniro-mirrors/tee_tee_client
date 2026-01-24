@@ -610,13 +610,6 @@ TEEC_Result TeeClient::TeecOptDecodePartialMem(TEEC_Parameter *param,
 
     if (paramType == TEEC_MEMREF_WHOLE) {
         cSize = shm->size;
-        /*
-         * Actually, we should usr tSize return from ta,
-         * but our process is temporarily not supported,
-         * so we usr cSize instead. There will be a problem,
-         * if ta write a larger buff size, we can not transfer it to ca
-         */
-        tSize = cSize;
     }
 
     if (IsOverFlow(cSize, shmSize) || (*dataSize < (cSize + shmSize))) {
