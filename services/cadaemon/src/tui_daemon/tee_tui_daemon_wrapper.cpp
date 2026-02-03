@@ -151,12 +151,12 @@ void HandleEvent(const char *eventParam, int32_t paramLen)
     const char *str = eventParam;
     if (strncmp(str, "unused", sizeof("unused")) == 0) {
         tlogi("send false state to frame 1\n");
-        if (g_tuiDaemonFunc != nullptr) {
-            (void)g_tuiDaemonFunc(TUI_DAEMON_TUI_END);
-            if (!g_tuiIsFoldableFunc()) {
-                TuiDaemonClean();
-            }
+        if (g_tuiDaemonFunc == nullptr) {
+            tloge("uninit without init\n");
+            return;
         }
+
+        (void)g_tuiDaemonFunc(TUI_DAEMON_TUI_END);
     } else if (strncmp(str, "config", sizeof("config")) == 0) {
         tlogi("send true state to frame 1\n");
         if (TuiDaemonInit()) {

@@ -60,6 +60,11 @@ static const double INCH_CM_FACTOR    = 2.54;
 static const uint32_t TUI_POLL_CANCEL = 7;
 static const uint32_t TUI_POLL_NOTCH  = 24;
 static const uint32_t TUI_POLL_FOLD   = 26;
+static const uint32_t TUI_ROTATION_0  = 0;
+static const uint32_t TUI_ROTATION_90  = 90;
+static const uint32_t TUI_ROTATION_180 = 180;
+static const uint32_t TUI_ROTATION_270 = 270;
+static const uint32_t TUI_ROTATION_360 = 360;
 static const uint32_t TUI_NEED_ROTATE = 256;
 static const uint32_t TUI_NEED_ROTATE_180 = 258;
 
@@ -138,6 +143,7 @@ static bool TUISendEventToTz(TuiParameter *tuiParam)
     }
     tlogd("TUISendEventToTz get fd = %" PUBLIC "d\n", fd);
 
+    tuiParam->version = TUI_DAEMON_VERSION;
     int32_t ret = ioctl(fd, (int)TC_NS_CLIENT_IOCTL_TUI_EVENT, tuiParam);
     tee_close(&fd);
     if (ret != 0) {
@@ -172,15 +178,17 @@ static void TUISendTTFHashToTeeos(void)
     int rc = memcpy_s(&tuiParam.value,
         sizeof(tuiParam) - sizeof(tuiParam.eventType),
         g_ttfHash, sizeof(g_ttfHash));
-    if (rc == EOK) {
-        if (TUISendEventToTz(&tuiParam)) {
-            g_tuiSendHashSuccess = true;
-        } else {
-            tloge("send notch msg failed\n");
-        }
-    } else {
+    if (rc != EOK) {
         tloge("memcpy tui font hash failed");
+        return;
     }
+
+    if (!TUISendEventToTz(&tuiParam)) {
+        tloge("send notch msg failed\n");
+        return;
+    }
+
+    g_tuiSendHashSuccess = true;
 }
 
 void TUIEvent::TUISetStatus(bool status)
@@ -193,40 +201,61 @@ bool TUIEvent::TUIGetStatus()
     return mTUIStatus;
 }
 
-bool TUIEvent::TUIGetFoldableStatus()
+bool TUIEvent::TTUIIsFoldable()
 {
     return mTUIFoldable;
 }
 
-static uint32_t TUIGetNotch(OHOS::sptr<CutoutInfo> cutoutInfo, uint32_t displayMode)
+static void TUISetNotchInfo(OHOS::sptr<CutoutInfo> cutoutInfo, TuiParameter *tuiParam)
 {
     tlogi("tui get cutoutinfo--->boundingRects for notch\n");
     std::vector<OHOS::Rosen::DMRect> boundingRects = cutoutInfo->GetBoundingRects();
-    if (boundingRects.empty()) {
+    if (boundingRects.empty() || tuiParam == nullptr) {
         tlogi("get boundingRects failed\n");
         return 0;
     }
     for (uint32_t i = 0; i < boundingRects.size(); i++) {
-        tlogi("tui print boundingRects[%" PUBLIC "d] info: \
-posX[%" PUBLIC "d], posY[%" PUBLIC "d], width[%" PUBLIC "d], height[%" PUBLIC "d] \n",
-            i, boundingRects[i].posX_, boundingRects[i].posY_,
-            boundingRects[i].width_, boundingRects[i].height_);
+        tlogi("tui print boundingRects[%" PUBLIC "d] info: "
+              "posX[%" PUBLIC "d], posY[%" PUBLIC "d], "
+              "width[%" PUBLIC "d], height[%" PUBLIC "d] \n",
+              i, boundingRects[i].posX_, boundingRects[i].posY_,
+              boundingRects[i].width_, boundingRects[i].height_);
     }
+
     /* calc notch, here is px, double height of the hole */
-    uint32_t notch = boundingRects[0].height_ + boundingRects[0].height_;
-    if (notch < 0 || notch > NOTCH_SIZE_MAX) {
+    uint32_t notchLen =
+        boundingRects[0].height_ > boundingRects[i].width_ ? boundingRects[i].width_ : boundingRects[0].height_;
+    tuiParam->notch = notchLen + notchLen;
+    if (tuiParam->notch < 0 || tuiParam->notch > NOTCH_SIZE_MAX) {
         /* 200 is too large for notch, just use 0 */
-        return 0;
+        tuiParam->notch = 0;
+        tuiParam->notchOrientation = 0;
     }
-    return notch;
+
+    /* calculate notch orientation */
+    if (boundingRects[i].posY_ - (int32_t)tuiParam->notch <= 0) {
+        tuiParam->notchOrientation = TUI_NOTCH_TOP;
+        retrun;
+    }
+
+    if (boundingRects[i].posY_ + (int32_t)tuiParam->notch >= (int32_t)tuiParam->height) {
+        tuiParam->notchOrientation = TUI_NOTCH_BOTTOM;
+        retrun;
+    }
+
+    if (boundingRects[i].posX_ + (int32_t)tuiParam->notch >= (int32_t)tuiParam->width) {
+        tuiParam->notchOrientation = TUI_NOTCH_RIGHT;
+        retrun;
+    }
+
+    if (boundingRects[i].posX_ - (int32_t)tuiParam->notch <= 0) {
+        tuiParam->notchOrientation = TUI_NOTCH_LEFT;
+        retrun;
+    }
 }
 
 static uint32_t TUIGetDisplayMode(uint32_t foldState)
 {
-    if (foldState == FOLD_STATE_EXPANDED) {
-        return DISPLAY_MODE_FULL;
-    }
-
 #ifdef SCENE_BOARD_ENABLE
     uint32_t displayMode = static_cast<uint32_t>(OHOS::Rosen::DisplayManagerLite::GetInstance().GetFoldDisplayMode());
 #else
@@ -290,8 +319,26 @@ static enum TUIDeviceType TuiGetDeviceType() {
     if (it != mapDevType.end()) {
         return it->second;
     }
+
     tloge("device type is invalid!\n");
     return TUI_DEVICE_INVALID;
+}
+
+void TUIEvent::TUIAdaptRotation(std::string phyRotation)
+{
+    map<string, uint32_t> mapRotation;
+    mapRotation["0"]   = ((TUI_ROTATION_0 + mScreenRotation * TUI_ROTATION_90) % TUI_ROTATION_360) / TUI_ROTATION_90;
+    mapRotation["90"]  = ((TUI_ROTATION_90 + mScreenRotation * TUI_ROTATION_90) % TUI_ROTATION_360) / TUI_ROTATION_90;
+    mapRotation["180"] = ((TUI_ROTATION_180 + mScreenRotation * TUI_ROTATION_90) % TUI_ROTATION_360) / TUI_ROTATION_90;
+    mapRotation["270"] = ((TUI_ROTATION_270 + mScreenRotation * TUI_ROTATION_90) % TUI_ROTATION_360) / TUI_ROTATION_90;
+    auto it = mapRotation.find(phyRotation);
+    if (it != mapRotation.end()) {
+        mTUIPanelInfo.rotation = it->second;
+        tlogi("mTUIPanelInfo.rotation %" PUBLIC "d\n", mTUIPanelInfo.rotation);
+        return;
+    }
+
+    tloge("rotation is invalid!\n");
 }
 
 bool TUIEvent::TUIGetPannelInfo()
