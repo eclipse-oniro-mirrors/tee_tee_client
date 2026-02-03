@@ -341,6 +341,54 @@ void TUIEvent::TUIAdaptRotation(std::string phyRotation)
     tloge("rotation is invalid!\n");
 }
 
+std::vector<std::string> TUISplitString(const std::string& input, const std::string& delimiters)
+{
+    std::vector<std::string> result;
+    std::string item;
+    size_t start = 0;
+    size_t end = 0;
+    while ((end = input.find_first_of(delimiters, start)) != std::string::npos) {
+        if (end != start) {
+            result.push_back(input.substr(start, end - start));
+        }
+        start = end + 1;
+    }
+
+    if (start < input.size()) {
+        result.push_back(input.substr(start));
+    }
+
+    return result;
+}
+
+void TUIEvent::TUIGetFoldable()
+{
+#ifdef SCENE_BOARD_ENABLE
+    mTUIFoldable = OHOS::Rosen::DisplayManagerLite::GetInstance().IsFoldable();
+#else
+    mTUIFoldable = OHOS::Rosen::DisplayManager::GetInstance().IsFoldable();
+#endif
+    tlogi("TuiDaemonInit mTUIFoldable %" PUBLIC "d\n", mTUIFoldable);
+
+    mTUIPanelInfo.foldState = FOLD_STATE_UNKNOWN;
+    if (mTUIFoldable) {
+        tlogi("tui get fold state\n");
+    #ifdef SCENE_BOARD_ENABLE
+        mTUIPanelInfo.foldState = static_cast<uint32_t>(OHOS::Rosen::DisplayManagerLite::GetInstance().GetFoldStatus());
+    #else
+        mTUIPanelInfo.foldState = static_cast<uint32_t>(OHOS::Rosen::DisplayManager::GetInstance().GetFoldStatus());
+    #endif
+        if (mTUIPanelInfo.foldState > FOLD_STATE_HALF_FOLDED) {
+            mTUIPanelInfo.foldState = FOLD_STATE_UNKNOWN; /* default state */
+        }
+    }
+}
+
+enum TUIPhyScreen TUIEvent::TUIGetPhyScreen()
+{
+    std::string foldScreenType = OHOS::system::Get
+}
+
 bool TUIEvent::TUIGetPannelInfo()
 {
     if (!IsDisplaySAReady()) {
@@ -427,44 +475,6 @@ void TUIEvent::TUIAdaptProduct()
         }
         mTUIPanelInfo.displayMode = TUI_NEED_ROTATE;
     }
-}
-
-void TUIEvent::TUIGetFoldable()
-{
-#ifdef SCENE_BOARD_ENABLE
-    mTUIFoldable = OHOS::Rosen::DisplayManagerLite::GetInstance().IsFoldable();
-#else
-    mTUIFoldable = OHOS::Rosen::DisplayManager::GetInstance().IsFoldable();
-#endif
-    tlogi("TuiDaemonInit mTUIFoldable %" PUBLIC "d\n", mTUIFoldable);
-
-    mTUIPanelInfo.foldState = FOLD_STATE_UNKNOWN;
-    if (mTUIFoldable) {
-        tlogi("tui get fold state\n");
-    #ifdef SCENE_BOARD_ENABLE
-        mTUIPanelInfo.foldState = static_cast<uint32_t>(OHOS::Rosen::DisplayManagerLite::GetInstance().GetFoldStatus());
-    #else
-        mTUIPanelInfo.foldState = static_cast<uint32_t>(OHOS::Rosen::DisplayManager::GetInstance().GetFoldStatus());
-    #endif
-        if (mTUIPanelInfo.foldState > FOLD_STATE_HALF_FOLDED) {
-            mTUIPanelInfo.foldState = FOLD_STATE_UNKNOWN; /* default state */
-        }
-    }
-
-    TUIAdaptProduct();
-
-    std::string foldScreenType = OHOS::system::GetParameter("const.window.foldscreen.type", "0");
-    /* trifold phone */
-    if (foldScreenType == "6,1,0,0") {
-        mTUIPanelInfo.foldState += TUI_NEED_ROTATE;
-        mTUIPanelInfo.displayMode = TUI_NEED_ROTATE;
-    }
-
-    if (mTUIPanelInfo.foldState == FOLD_STATE_EXPANDED || mTUIPanelInfo.foldState == FOLD_STATE_HALF_FOLDED) {
-        mTUIPanelInfo.foldState += TUI_NEED_ROTATE;
-    }
-
-    return;
 }
 
 void TUIEvent::TUIGetRunningLock()
