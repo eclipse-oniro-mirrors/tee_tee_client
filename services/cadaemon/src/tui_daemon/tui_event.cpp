@@ -387,6 +387,7 @@ void TUIEvent::TUIGetFoldable()
 enum TUIPhyScreen TUIEvent::TUIGetPhyScreen()
 {
     std::string foldScreenType = OHOS::system::Get
+    
 }
 
 bool TUIEvent::TUIGetPannelInfo()
