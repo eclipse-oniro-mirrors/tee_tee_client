@@ -66,7 +66,7 @@ TEEC_Result TEEC_OpenSessionInner(int callingPid, const TaFileInfo *taFile, TEEC
     TEEC_Session *session, const TEEC_UUID *destination, uint32_t connectionMethod,
     const void *connectionData, TEEC_Operation *operation, uint32_t *returnOrigin);
 TEEC_Result TEEC_InvokeCommandInner(TEEC_ContextInner *context, const TEEC_Session *session,
-    uint32_t commandID, const TEEC_Operation *operation, uint32_t *returnOrigin);
+    uint32_t commandID, TEEC_Operation *operation, uint32_t *returnOrigin);
 int32_t TEEC_CloseSessionInner(TEEC_Session *session, const TEEC_ContextInner *context);
 void TEEC_FinalizeContextInner(TEEC_ContextInner *context);
 TEEC_Result TEEC_RegisterSharedMemoryInner(TEEC_ContextInner *context, TEEC_SharedMemoryInner *sharedMem);

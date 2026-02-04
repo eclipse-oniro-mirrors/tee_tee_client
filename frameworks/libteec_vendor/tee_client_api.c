@@ -608,20 +608,23 @@ static void TEEC_EncodeTempParam(const TEEC_TempMemoryReference *tempRef, TC_NS_
     param->memref.size_h_addr   = (unsigned int)(((unsigned long long)(uintptr_t)&tempRef->size) >> H_OFFSET);
 }
 
-static void TEEC_EncodePartialParam(uint32_t paramType, const TEEC_RegisteredMemoryReference *memRef,
+static void TEEC_EncodePartialParam(uint32_t paramType, TEEC_RegisteredMemoryReference *memRef,
                                     TC_NS_ClientParam *param)
 {
     /* buffer offset len */
     if (paramType == TEEC_MEMREF_WHOLE) {
         param->memref.offset      = 0;
-        param->memref.size_addr   = (unsigned int)(uintptr_t)&memRef->parent->size;
-        param->memref.size_h_addr =
-            (unsigned int)(((unsigned long long)(uintptr_t)&memRef->parent->size) >> H_OFFSET);
+        /*
+         * According to GP specification, the memref->size variable
+         * should be read from the parent shared memory structure.
+         */
+        memRef->size = memRef->parent->size;
     } else {
         param->memref.offset      = memRef->offset;
-        param->memref.size_addr   = (unsigned int)(uintptr_t)&memRef->size;
-        param->memref.size_h_addr = (unsigned int)(((unsigned long long)(uintptr_t)&memRef->size) >> H_OFFSET);
     }
+
+    param->memref.size_addr   = (unsigned int)(uintptr_t)&memRef->size;
+    param->memref.size_h_addr = (unsigned int)(((unsigned long long)(uintptr_t)&memRef->size) >> H_OFFSET);
 
     if (memRef->parent->is_allocated) {
         param->memref.buffer        = (unsigned int)(uintptr_t)memRef->parent->buffer;
@@ -652,7 +655,7 @@ static void TEEC_EncodeIonParam(const TEEC_IonReference *ionRef, TC_NS_ClientPar
     param->value.b_h_addr = (unsigned int)(((unsigned long long)(uintptr_t)&ionRef->ion_size) >> H_OFFSET);
 }
 
-static void TEEC_EncodeParam(TC_NS_ClientContext *cliContext, const TEEC_Operation *operation)
+static void TEEC_EncodeParam(TC_NS_ClientContext *cliContext, TEEC_Operation *operation)
 {
     uint32_t paramType[TEEC_PARAM_NUM];
     uint32_t paramCnt;
@@ -666,7 +669,7 @@ static void TEEC_EncodeParam(TC_NS_ClientContext *cliContext, const TEEC_Operati
         if (IS_TEMP_MEM(paramType[paramCnt])) {
             TEEC_EncodeTempParam(&operation->params[paramCnt].tmpref, &cliContext->params[paramCnt]);
         } else if (IS_PARTIAL_MEM(paramType[paramCnt]) || IS_SHARED_MEM(paramType[paramCnt])) {
-            const TEEC_RegisteredMemoryReference *memref = &operation->params[paramCnt].memref;
+            TEEC_RegisteredMemoryReference *memref = &operation->params[paramCnt].memref;
 
             TEEC_EncodePartialParam(paramType[paramCnt], memref, &cliContext->params[paramCnt]);
 
@@ -695,7 +698,7 @@ static void TEEC_EncodeParam(TC_NS_ClientContext *cliContext, const TEEC_Operati
 }
 
 static TEEC_Result TEEC_Encode(TC_NS_ClientContext *cliContext, const TEEC_Session *session,
-                               uint32_t cmdId, const TC_NS_ClientLogin *cliLogin, const TEEC_Operation *operation)
+                               uint32_t cmdId, const TC_NS_ClientLogin *cliLogin, TEEC_Operation *operation)
 {
     errno_t rc;
 
@@ -1343,7 +1346,7 @@ static TEEC_Result ProcessInvokeCommand(const TEEC_ContextInner *context, TC_NS_
 }
 
 TEEC_Result TEEC_InvokeCommandInner(TEEC_ContextInner *context, const TEEC_Session *session,
-    uint32_t commandID, const TEEC_Operation *operation, uint32_t *returnOrigin)
+    uint32_t commandID, TEEC_Operation *operation, uint32_t *returnOrigin)
 {
     TEEC_Result teecRet = (TEEC_Result)TEEC_ERROR_BAD_PARAMETERS;
     TC_NS_ClientContext cliContext;
