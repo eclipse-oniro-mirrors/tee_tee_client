@@ -31,7 +31,7 @@
 
 #define LOG_FILE_INDEX_MAX          4U
 
-#define NEVER_USED_LEN              24U
+#define NEVER_USED_LEN              32U
 #define TEE_UUID_LEN                16U
 #define ITEM_RESERVED_LEN           1U
 #define UUID_MAX_STR_LEN            40U
@@ -39,8 +39,6 @@
 /* 64 byte head + user log */
 struct LogItem {
     uint8_t neverUsed[NEVER_USED_LEN];
-    uint32_t nsid;
-    uint32_t vmid;
     uint16_t magic;
     uint16_t reserved0;
     uint32_t serialNo;
