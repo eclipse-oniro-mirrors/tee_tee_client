@@ -230,7 +230,12 @@ namespace OHOS {
         if (fp) {
             (void)fclose(fp);
         }
-        taFile.taPath = data;
+        char pathStr[MAX_TA_PATH_LEN + 1] = { 0 };
+        if (memcpy_s(pathStr, MAX_TA_PATH_LEN,
+            (const char*)data, size > MAX_TA_PATH_LEN ? MAX_TA_PATH_LEN : size) == 0) {
+            context.ta_path = (uint8_t *)pathStr;
+        }
+        taFile.taPath = pathStr;
         ret = TEEC_GetApp(&taFile, &srvUuid, &cliContext);
     }
 
