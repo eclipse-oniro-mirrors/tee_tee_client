@@ -231,7 +231,7 @@ namespace OHOS {
             (void)fclose(fp);
         }
         char pathStr[MAX_TA_PATH_LEN + 1] = { 0 };
-        if (memcpy_s(pathStr, MAX_TA_PATH_LEN,
+        if (memcpy_s(pathStr, sizeof(pathStr),
             (const char*)data, size > MAX_TA_PATH_LEN ? MAX_TA_PATH_LEN : size) == 0) {
             context.ta_path = (uint8_t *)pathStr;
         }
