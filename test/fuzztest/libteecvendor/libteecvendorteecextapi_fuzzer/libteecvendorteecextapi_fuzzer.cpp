@@ -220,6 +220,7 @@ namespace OHOS {
         TaFileInfo taFile = { 0 };
         TEEC_UUID srvUuid = { 0 };
         TC_NS_ClientContext cliContext = { { 0 } };
+        char pathStr[MAX_TA_PATH_LEN + 1] = { 0 };
 
         ret = TEEC_GetApp(nullptr, nullptr, nullptr);
         std::string str("./ClientAppLoad_002.txt");
@@ -231,13 +232,11 @@ namespace OHOS {
             (void)fclose(fp);
         }
 
-        char pathStr[MAX_TA_PATH_LEN + 1] = { 0 };
         if (memcpy_s(pathStr, sizeof(pathStr),
             (const char*)data, size > MAX_TA_PATH_LEN ? MAX_TA_PATH_LEN : size) == 0) {
             taFile.taPath = (uint8_t *)pathStr;
+            ret = TEEC_GetApp(&taFile, &srvUuid, &cliContext);
         }
-
-        ret = TEEC_GetApp(&taFile, &srvUuid, &cliContext);
     }
 
     void LibteecVendorLoadSecfileFuzzTest_001(const uint8_t *data, size_t size)
