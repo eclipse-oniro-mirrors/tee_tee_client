@@ -16,6 +16,7 @@
 #include <cstdint>
 #include <malloc.h>
 #include <string>
+#include "securec.h"
 #include "tee_client_api.h"
 #include "tee_client_ext_api.h"
 #include "tee_client_inner_api.h"
