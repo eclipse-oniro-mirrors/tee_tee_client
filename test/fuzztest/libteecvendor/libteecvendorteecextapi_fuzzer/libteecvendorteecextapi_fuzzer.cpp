@@ -16,7 +16,6 @@
 #include <cstdint>
 #include <malloc.h>
 #include <string>
-#include "securec.h"
 #include "tee_client_api.h"
 #include "tee_client_ext_api.h"
 #include "tee_client_inner_api.h"
@@ -234,9 +233,8 @@ namespace OHOS {
         char pathStr[MAX_TA_PATH_LEN + 1] = { 0 };
         if (memcpy_s(pathStr, sizeof(pathStr),
             (const char*)data, size > MAX_TA_PATH_LEN ? MAX_TA_PATH_LEN : size) == 0) {
-            context.ta_path = (uint8_t *)pathStr;
+            taFile.taPath = (uint8_t *)pathStr;
         }
-        taFile.taPath = pathStr;
         ret = TEEC_GetApp(&taFile, &srvUuid, &cliContext);
     }
 
