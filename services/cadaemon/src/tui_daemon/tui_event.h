@@ -137,10 +137,10 @@ public:
     bool TUIGetPannelInfo();
     void TUISensorCorrect();
     void TUISetPanelInfo(uint32_t width, uint32_t height, float xdpi, float ydpi);
-    enum TUIGetPhyScreen(std::string sensorCorrectEn);
+    enum TUIPhyScreen TUIGetPhyScreen(std::string sensorCorrectEn);
+    void TUIAdaptRotation(std::string phyRotation);
     void TUIGetRotation();
     bool TUIIsFoldable();
-    void TUIAdaptProduct();
     void TUIGetFoldable();
     void TUISetStatus(bool status);
     bool TUIGetStatus();
