@@ -425,10 +425,10 @@ void TUIEvent::TUISensorCorrect()
         }
 
         tlogi("SubSplitRot[0] %" PUBLIC "d : %" PUBLIC "d\n",
-            Ascii2Digit(SubSplitRot[0][0]), Ascii2Digit(SubSplitRot[1][0]));
-        if (Ascii2Digit(SubSplitRot[0][0]) == (uint8_t)mTUIPanelInfo.displayMode) {
+            Ascii2Digit(subSplitRot[0][0]), Ascii2Digit(subSplitRot[1][0]));
+        if (Ascii2Digit(subSplitRot[0][0]) == (uint8_t)mTUIPanelInfo.displayMode) {
             mScreenRotation =
-                mScreenRotation + TUI_ROTATION_360 / TUI_ROTATION_90 - (uint32_t)Ascii2Digit(SubSplitRot[1][0]);
+                mScreenRotation + TUI_ROTATION_360 / TUI_ROTATION_90 - (uint32_t)Ascii2Digit(subSplitRot[1][0]);
         }
     }
 }
@@ -519,11 +519,11 @@ bool TUIEvent::TUIGetPannelInfo()
 
     tlogi("tui panelinfo: w %" PUBLIC "d, h %" PUBLIC "d, fold %" PUBLIC "u, "
         "displayMode %" PUBLIC "u, notch %" PUBLIC "u, notchOrientation %" PUBLIC "u, "
-        "xdpi %" PUBLIC "f, ydpi %" PUBLIC "f\n"
+        "xdpi %" PUBLIC "f, ydpi %" PUBLIC "f\n",
         mTUIPanelInfo.width, mTUIPanelInfo.height, mTUIPanelInfo.foldState,
         mTUIPanelInfo.displayMode, mTUIPanelInfo.notch, mTUIPanelInfo.notchOrientation,
         mTUIPanelInfo.xdpi, mTUIPanelInfo.ydpi);
-    
+
     display.clear();
     displayInfo.clear();
     cutoutInfo.clear();
