@@ -67,6 +67,7 @@ static const uint32_t TUI_ROTATION_270 = 270;
 static const uint32_t TUI_ROTATION_360 = 360;
 static const uint32_t TUI_NEED_ROTATE = 256;
 static const uint32_t TUI_NEED_ROTATE_180 = 258;
+static const uint32_t ROTATION_CORRECT_SIZE = 2;
 
 static const uint8_t TTF_HASH_SIZE   = 32;
 static const uint8_t TTF_STRING_SIZE = 64;
@@ -384,10 +385,91 @@ void TUIEvent::TUIGetFoldable()
     }
 }
 
-enum TUIPhyScreen TUIEvent::TUIGetPhyScreen()
+enum TUIPhyScreen TUIEvent::TUIGetPhyScreen(std::string sensorCorrectEn)
 {
-    std::string foldScreenType = OHOS::system::Get
-    
+    std::string foldScreenType = OHOS::system::GetParameter("const.window.foldscreen.type", "0");
+    std::vector<std::string> splitScreenType = TUISplitString(foldScreenType, ",");
+    /* trifold phone */
+    if (splitScreenType[0] == "6") {
+        tlogi("trifold.\n");
+        if ((mTUIPanelInfo.foldState == FOLD_STATE_UNKNOWN) && (sensorCorrectEn != "1")) {
+            return TUI_SCREEN_0;
+        }
+
+        return TUI_SCREEN_1;
+    }
+
+    if (mTUIPanelInfo.foldState == FOLD_STATE_EXPANDED || mTUIPanelInfo.foldState == FOLD_STATE_FOLDED) {
+        return TUI_SCREEN_1;
+    }
+
+    return TUI_SCREEN_0;
+}
+
+void TUIEvent::TUISensorCorrect()
+{
+    std::string rotation_correct = OHOS::system::GetParmater("const.dms.rotation_correction", "0");
+    std::vector<std::string> splitRot = TUISplitString(rotation_correct, ";");
+    for (uint32_t i = 0; i < splitRot.size(); i++) {
+        std::vector<std::string> subSplitRot = TUISplitString(splitRot[i], ",");
+        if (subSplitRot.size() != ROTATION_CORRECT_SIZE) {
+            tlogi("rotation correct is invalid.\n");
+            break;
+        }
+
+        tlogi("SubSplitRot[0] %" PUBLIC "d : %" PUBLIC "d\n",
+            AsciiDigit(SubSplitRot[0][0]), AsciiDigit(SubSplitRot[1][0]));
+        if (AsciiDigit(SubSplitRot[0][0]) == (uint8_t)mTUIPanelInfo.displayMode) {
+            mScreenRotation =
+                mScreenRotation + TUI_ROTATION_360 / TUI_ROTATION_90 - (uint32_t)AsciiDigit(SubSplitRot[1][0]);
+        }
+    }
+}
+
+void TUIEvent::TUIGetRotation()
+{
+    std::string phyRotation = OHOS::system::GetParameter("const.window.phyrotation.offset", "0");
+    mTUIPanelInfo.displayMode = TUIGetDisplayMode(mTUIPanelInfo.foldState);
+    tlogi("TUI get phyrotation.offset = %" PUBLIC "s, display mode %" PUBLIC "d.\n",
+        phyRotation.c_str(), (uint32_t)mTUIPanelInfo.displayMode);
+    std::string sensorCorrectEn = OHOS::system::GetParameter("const.system.sensor_correction_enable", "0");
+    if (sensorCorrectEn == "1") {
+        TUISensorCorrect();
+    }
+
+    TUIGetFoldable();
+    if (!TUIIsFoldable()) {
+        TUIAdaptRotation(phyRotation);
+        return;
+    }
+
+    std::vector<std::string> splitVec = TUISplitString(phyRotation, ";");
+    enum TUIPhyScreen phyScreen = TUIGetPhyScreen(sensorCorrectEn);
+    if (phyScreen >= splitVec.size()) {
+        tloge("phyScreen is not 0 or 1.\n");
+        return;
+    }
+
+    TUIAdaptRotation(splitVec[phyScreen]);
+    return;
+}
+
+void TUIEvent::TUISetPanelInfo(uint32_t width, uint32_t height, float xdpi, float ydpi)
+{
+    mTUIPanelInfo.width = width;
+    mTUIPanelInfo.height = height;
+    mTUIPanelInfo.xdpi = xdpi;
+    mTUIPanelInfo.ydpi = ydpi;
+    if ((uint32_t)xdpi + (uint32_t)xdpi < (uint32_t)ydpi || (uint32_t)ydpi + (uint32_t)ydpi < (uint32_t)xdpi) {
+        mTUIPanelInfo.xdpi = NORMAL_DPI;
+        mTUIPanelInfo.ydpi = NORMAL_DPI;
+        tlogi("invalid DPI, change to 400\n");
+    }
+
+    if ((uint32_t)xdpi != 0 && (uint32_t)ydpi != 0) {
+        mTUIPanelInfo.phyWidth = mTUIPanelInfo.width * INCH_CM_FACTOR / (uint32_t)xdpi;
+        mTUIPanelInfo.phyHeight = mTUIPanelInfo.height * INCH_CM_FACTOR / (uint32_t)ydpi;
+    }
 }
 
 bool TUIEvent::TUIGetPannelInfo()
@@ -416,66 +498,30 @@ bool TUIEvent::TUIGetPannelInfo()
         return false;
     }
 
-    TUIGetFoldable();
+    mScreenRotation = static_cast<uint32_t>(displayInfo->GetDisplayOrientation());
+    TUIGetRotation();
+    TUISetPanelInfo(display->GetWidth(), display->GetHeight(), displayInfo->GetXDpi(), displayInfo->GetYDpi());
 
-    mTUIPanelInfo.width = display->GetWidth();
-    mTUIPanelInfo.height = display->GetHeight();
-    mTUIPanelInfo.xdpi = displayInfo->GetXDpi();
-    mTUIPanelInfo.ydpi = displayInfo->GetYDpi();
-    if (displayInfo->GetXDpi() + displayInfo->GetXDpi() < displayInfo->GetYDpi() ||
-        displayInfo->GetYDpi() + displayInfo->GetYDpi() < displayInfo->GetXDpi()) {
-        mTUIPanelInfo.xdpi = NORMAL_DPI;
-        mTUIPanelInfo.ydpi = NORMAL_DPI;
-        tlogi("invalid DPI, change to 400\n");
-    }
     mTUIPanelInfo.deviceType = TuiGetDeviceType();
-
-    if (displayInfo->GetXDpi() != 0 && displayInfo->GetYDpi() != 0) {
-        mTUIPanelInfo.phyWidth = mTUIPanelInfo.width * INCH_CM_FACTOR / displayInfo->GetXDpi();
-        mTUIPanelInfo.phyHeight = mTUIPanelInfo.height * INCH_CM_FACTOR / displayInfo->GetYDpi();
-    }
-
     OHOS::sptr<CutoutInfo> cutoutInfo = display->GetCutoutInfo();
     if (cutoutInfo == nullptr) {
         tloge("get cutoutinfo failed\n");
     } else {
-        mTUIPanelInfo.notch = TUIGetNotch(cutoutInfo, mTUIPanelInfo.displayMode);
+        TUISetNotchInfo(cutoutInfo, &mTUIPanelInfo);
     }
 
     tlogi("tui panelinfo: w %" PUBLIC "d, h %" PUBLIC "d, fold %" PUBLIC "u, "
-        "displayMode %" PUBLIC "u, notch %" PUBLIC "u\n",
+        "displayMode %" PUBLIC "u, notch %" PUBLIC "u, notchOrientation %" PUBLIC "u, "
+        "xdpi %" PUBLIC "f, ydpi %" PUBLIC "f\n"
         mTUIPanelInfo.width, mTUIPanelInfo.height, mTUIPanelInfo.foldState,
-        mTUIPanelInfo.displayMode, mTUIPanelInfo.notch);
+        mTUIPanelInfo.displayMode, mTUIPanelInfo.notch, mTUIPanelInfo.notchOrientation,
+        mTUIPanelInfo.xdpi, mTUIPanelInfo.ydpi);
+    
+    display.clear();
+    displayInfo.clear();
+    cutoutInfo.clear();
 
     return true;
-}
-
-void TUIEvent::TUIAdaptProduct()
-{
-    mTUIPanelInfo.displayMode = TUIGetDisplayMode(mTUIPanelInfo.foldState);
-
-    std::string buildProduct = OHOS::system::GetParameter("const.build.product", "0");
-
-    if (buildProduct == "DEL") {
-        mTUIPanelInfo.displayMode = TUI_NEED_ROTATE;
-    }
-
-    if (buildProduct == "VDE") {
-        if (mTUIPanelInfo.foldState == FOLD_STATE_FOLDED) {
-            mTUIPanelInfo.foldState += TUI_NEED_ROTATE;
-            mTUIPanelInfo.displayMode = TUI_NEED_ROTATE_180;
-            return;
-        }
-        mTUIPanelInfo.foldState = FOLD_STATE_UNKNOWN;
-    }
-
-    if (buildProduct == "HOP") {
-        if (mTUIPanelInfo.foldState == FOLD_STATE_FOLDED || mTUIPanelInfo.foldState == FOLD_STATE_UNKNOWN) {
-            mTUIPanelInfo.foldState = FOLD_STATE_UNKNOWN;
-            return;
-        }
-        mTUIPanelInfo.displayMode = TUI_NEED_ROTATE;
-    }
 }
 
 void TUIEvent::TUIGetRunningLock()
@@ -510,6 +556,7 @@ void TUIEvent::TuiEventInit()
     mTUIPanelInfo = { 0 };
     mTUIStatus = false;
     mTUIFoldable = false;
+    mScreenRotation = 0;
 
     return;
 }

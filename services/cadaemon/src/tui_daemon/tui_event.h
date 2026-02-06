@@ -31,6 +31,8 @@
 #endif
 #define LOG_TAG "tee_tui_daemon"
 
+#define TUI_DAEMON_VERSION 101
+
 /* same with class FoldDisplayMode in dm_common.h */
 enum FoldDisplayMode {
     DISPLAY_MODE_UNKNOWN = 0,
@@ -38,6 +40,7 @@ enum FoldDisplayMode {
     DISPLAY_MODE_MAIN,
     DISPLAY_MODE_SUB,
     DISPLAY_MODE_COORDINATION,
+    DISPLAY_MODE_GLOBAL;
     DISPLAY_MODE_MAX,
 };
 
@@ -68,7 +71,28 @@ enum TUIDeviceType {
     TUI_DEVICE_MAX
 };
 
+enum TUIRotation {
+    TUI_ROTATE_0 = 0,
+    TUI_ROTATE_90,
+    TUI_ROTATE_180,
+    TUI_ROTATE_270,
+};
+
+enum TUIPhyScreen {
+    TUI_SCREEN_0 = 0,
+    TUI_SCREEN_1,
+    TUI_SCREEN_MAX,
+};
+
+enum TUINotchOrientation {
+    TUI_NOTCH_TOP = 0,
+    TUI_NOTCH_RIGHT,
+    TUI_NOTCH_BOTTOM,
+    TUI_NOTCH_LEFT,
+};
+
 typedef struct {
+    uint32_t version; /* Tui daemon version */
     uint32_t eventType; /* Tui event type */
     uint32_t value;   /* return value, is keycode if tui event is getKeycode */
     uint32_t notch;   /* notch size of phone */
@@ -78,6 +102,10 @@ typedef struct {
     uint32_t displayMode; /* one state of folded state */
     uint32_t phyWidth;     /* real width of the mobile : px */
     uint32_t phyHeight;    /* real height of the mobile : px */
+    uint32_t rotation;     /* rotation of screen */
+    uint32_t notchOrientation; /* orientation of notch*/
+    uint32_t rsv0;
+    uint32_t rsv1;
     float xdpi;
     float ydpi;
     enum TUIDeviceType deviceType;
@@ -93,6 +121,7 @@ private:
     TuiParameter mTUIPanelInfo;
     bool mTUIStatus;
     bool mTUIFoldable;
+    uint32_t mScreenRotation;
 public:
     static TUIEvent *GetInstance()
     {
@@ -106,11 +135,15 @@ public:
     void TUIGetRunningLock();
     void TUIReleaseRunningLock();
     bool TUIGetPannelInfo();
+    void TUISensorCorrect();
+    void TUISetPanelInfo(uint32_t width, uint32_t height, float xdpi, float ydpi);
+    enum TUIGetPhyScreen(std::string sensorCorrectEn);
+    void TUIGetRotation();
+    bool TUIIsFoldable();
     void TUIAdaptProduct();
     void TUIGetFoldable();
     void TUISetStatus(bool status);
     bool TUIGetStatus();
-    bool TUIGetFoldableStatus();
     void TUIDealWithEvent(bool state);
     bool TUISendCmd(uint32_t tuiEvent);
 };

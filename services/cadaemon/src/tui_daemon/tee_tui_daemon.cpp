@@ -60,7 +60,7 @@ static bool TuiDaemonInit(bool onlyConfigRes)
         return false;
     }
 
-    g_tuiFoldable = g_tuiEventInstance->TUIGetFoldableStatus();
+    g_tuiFoldable = g_tuiEventInstance->TUIIsFoldable();
     tlogi("TuiDaemonInit g_tuiFoldable %" PUBLIC "d\n", g_tuiFoldable);
     if (!g_tuiEventInstance->TUISendCmd(TUI_POLL_FOLD)) {
         TuiDaemonClear();
