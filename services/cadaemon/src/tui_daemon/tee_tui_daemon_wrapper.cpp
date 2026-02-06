@@ -85,13 +85,13 @@ int32_t GetEvent(char *eventParam, int *paramLen)
     if (readSize <= 0) {
         tloge("TUI read state fail %" PUBLIC "d, len=%" PUBLIC "d\n", ferror(g_mTuiFp), readSize);
         return -1;
- 	}
+    }
 
- 	*(eventParam + readSize) = '\0';
- 	tlogi("get c_state len is %" PUBLIC "d\n", readSize);
- 	*paramLen = readSize;
+    *(eventParam + readSize) = '\0';
+    tlogi("get c_state len is %" PUBLIC "d\n", readSize);
+    *paramLen = readSize;
 
- 	return 0;
+    return 0;
 }
 
 static void *g_dlHandle = nullptr;
