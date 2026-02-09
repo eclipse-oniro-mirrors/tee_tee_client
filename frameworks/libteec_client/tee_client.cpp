@@ -27,6 +27,7 @@
 #include "tee_client_ext_api.h"
 #include "tee_client_inner.h"
 #include "tee_log.h"
+#include "tee_file.h"
 using namespace std;
 namespace OHOS {
 bool TeeClient::mServiceValid = false;
@@ -459,7 +460,7 @@ TEEC_Result TeeClient::OpenSession(TEEC_Context *context, TEEC_Session *session,
     teecRet = OpenSessionSendCmd(context, session, destination, connectionMethod, fd, operation, &retOrigin);
 
     if (fd >= 0) {
-        close(fd);
+        tee_close(&fd);
     }
 
 END:
@@ -1228,7 +1229,7 @@ int32_t TeeClient::GetFileFd(const char *filePath)
     if (strncmp(realLoadFile, "/data/", sizeof("/data/") - 1) == 0 ||
         strncmp(realLoadFile, "/chip_prod/", sizeof("/chip_prod/") - 1) == 0 ||
         strncmp(realLoadFile, "/system/", sizeof("/system/") - 1) == 0) {
-        int fd = open(realLoadFile, O_RDONLY);
+        int fd = tee_open(realLoadFile, O_RDONLY, 0);
         if (fd == -1) {
             tloge("open ta failed\n");
         }
@@ -1566,7 +1567,7 @@ TEEC_Result TeeClient::SendSecfile(const char *path, TEEC_Session *session)
     }
 
 teec_error:
-    close(fd);
+    tee_close(&fd);
     return (TEEC_Result)result;
 }
 
