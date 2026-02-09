@@ -425,7 +425,7 @@ void TUIEvent::TUISensorCorrect()
         std::vector<std::string> subSplitRot = TUISplitString(splitRot[i], ",");
         if (subSplitRot.size() != ROTATION_CORRECT_SIZE) {
             tlogi("rotation correct is invalid.\n");
-            break;
+            continue;
         }
 
         if (subSplitRot[0].length() > 0 && subSplitRot[1].length() > 0) {
@@ -473,16 +473,19 @@ void TUIEvent::TUISetPanelInfo(uint32_t width, uint32_t height, float xdpi, floa
     mTUIPanelInfo.height = height;
     mTUIPanelInfo.xdpi = xdpi;
     mTUIPanelInfo.ydpi = ydpi;
-    if ((uint32_t)xdpi + (uint32_t)xdpi < (uint32_t)ydpi || (uint32_t)ydpi + (uint32_t)ydpi < (uint32_t)xdpi) {
+    if ((int32_t)xdpi <= 0 || (int32_t)ydpi <= 0 ||
+        (int32_t)xdpi + (int32_t)xdpi < (int32_t)ydpi ||
+        (int32_t)ydpi + (int32_t)ydpi < (int32_t)xdpi) {
         mTUIPanelInfo.xdpi = NORMAL_DPI;
         mTUIPanelInfo.ydpi = NORMAL_DPI;
+        mTUIPanelInfo.phyWidth = mTUIPanelInfo.width * INCH_CM_FACTOR / NORMAL_DPI;
+        mTUIPanelInfo.phyHeight = mTUIPanelInfo.height * INCH_CM_FACTOR / NORMAL_DPI;
         tlogi("invalid DPI, change to 400\n");
+        return;
     }
 
-    if ((uint32_t)xdpi != 0 && (uint32_t)ydpi != 0) {
-        mTUIPanelInfo.phyWidth = mTUIPanelInfo.width * INCH_CM_FACTOR / (uint32_t)xdpi;
-        mTUIPanelInfo.phyHeight = mTUIPanelInfo.height * INCH_CM_FACTOR / (uint32_t)ydpi;
-    }
+    mTUIPanelInfo.phyWidth = mTUIPanelInfo.width * INCH_CM_FACTOR / (uint32_t)xdpi;
+    mTUIPanelInfo.phyHeight = mTUIPanelInfo.height * INCH_CM_FACTOR / (uint32_t)ydpi;
 }
 
 bool TUIEvent::TUIGetPannelInfo()
