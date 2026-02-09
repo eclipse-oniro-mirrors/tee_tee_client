@@ -428,11 +428,13 @@ void TUIEvent::TUISensorCorrect()
             break;
         }
 
-        tlogi("SubSplitRot[0] %" PUBLIC "d : %" PUBLIC "d\n",
-            Ascii2Digit(subSplitRot[0][0]), Ascii2Digit(subSplitRot[1][0]));
-        if (Ascii2Digit(subSplitRot[0][0]) == (uint8_t)mTUIPanelInfo.displayMode) {
-            mScreenRotation =
-                mScreenRotation + TUI_ROTATION_360 / TUI_ROTATION_90 - (uint32_t)Ascii2Digit(subSplitRot[1][0]);
+        if (SubSplitRot[0].length() > 0 && SubSplitRot[1].length() > 0) {
+            tlogi("SubSplitRot[0] %" PUBLIC "d : %" PUBLIC "d\n",
+                Ascii2Digit(subSplitRot[0][0]), Ascii2Digit(subSplitRot[1][0]));
+            if (Ascii2Digit(subSplitRot[0][0]) == (uint8_t)mTUIPanelInfo.displayMode) {
+                mScreenRotation =
+                    mScreenRotation + TUI_ROTATION_360 / TUI_ROTATION_90 - (uint32_t)Ascii2Digit(subSplitRot[1][0]);
+            }
         }
     }
 }
