@@ -428,7 +428,7 @@ void TUIEvent::TUISensorCorrect()
             break;
         }
 
-        if (SubSplitRot[0].length() > 0 && SubSplitRot[1].length() > 0) {
+        if (subSplitRot[0].length() > 0 && subSplitRot[1].length() > 0) {
             tlogi("SubSplitRot[0] %" PUBLIC "d : %" PUBLIC "d\n",
                 Ascii2Digit(subSplitRot[0][0]), Ascii2Digit(subSplitRot[1][0]));
             if (Ascii2Digit(subSplitRot[0][0]) == (uint8_t)mTUIPanelInfo.displayMode) {
