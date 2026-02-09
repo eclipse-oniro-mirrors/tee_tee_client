@@ -22,7 +22,12 @@ ohos_shared_library("libteec") {
 
   branch_protector_ret = "pac_ret"
 
-  sources = [ "../../libteec_client/tee_client.cpp" ]
+  sources = [
+    "../../libteec_client/tee_client.cpp",
+    "../../tee_file/tee_file.c",
+  ]
+ 
+  defines = [ "ENABLE_FDSAN_CHECK" ]
 
   include_dirs = [
     "../../../interfaces/inner_api",
@@ -65,6 +70,7 @@ ohos_shared_library("libteec_vendor") {
   defines = [
     "LIB_TEEC_VENDOR",
     "CONFIG_LOG_REPORT",
+    "ENABLE_FDSAN_CHECK",
   ]
 
   sources = [
@@ -72,6 +78,7 @@ ohos_shared_library("libteec_vendor") {
     "../../libteec_vendor/tee_client_api.c",
     "../../libteec_vendor/tee_client_app_load.c",
     "../../libteec_vendor/tee_client_socket.c",
+    "../../tee_file/tee_file.c",
     "../../../services/authentication/tee_auth_common.c",
   ]
 
