@@ -532,11 +532,6 @@ bool TUIEvent::TUIGetPannelInfo()
         mTUIPanelInfo.width, mTUIPanelInfo.height, mTUIPanelInfo.foldState,
         mTUIPanelInfo.displayMode, mTUIPanelInfo.notch, mTUIPanelInfo.notchOrientation,
         mTUIPanelInfo.xdpi, mTUIPanelInfo.ydpi);
-
-    display.clear();
-    displayInfo.clear();
-    cutoutInfo.clear();
-
     return true;
 }
 
