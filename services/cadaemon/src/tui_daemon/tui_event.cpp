@@ -396,6 +396,10 @@ enum TUIPhyScreen TUIEvent::TUIGetPhyScreen(std::string sensorCorrectEn)
 {
     std::string foldScreenType = OHOS::system::GetParameter("const.window.foldscreen.type", "0");
     std::vector<std::string> splitScreenType = TUISplitString(foldScreenType, ",");
+    if (splitScreenType.empty()) {
+        return TUI_SCREEN_0;
+    }
+
     /* trifold phone */
     if (splitScreenType[0] == "6") {
         tlogi("trifold.\n");
