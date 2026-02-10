@@ -47,7 +47,7 @@ static int ConnectTeecdSocket(int *socketFd)
         return -1;
     }
 
-    int s = tee_socket(AF_UNIX, SOCK_STREAM, 0);
+    int s = TeeSocket(AF_UNIX, SOCK_STREAM, 0);
     if (s == -1) {
         tloge("can't open stream socket, errno=%" PUBLIC "d", errno);
         return -1;
