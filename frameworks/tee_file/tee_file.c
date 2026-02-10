@@ -46,7 +46,7 @@ void tee_close(int *fd)
     return;
 }
 
-int tee_socket(int domain, int type, int protocol)
+int TeeSocket(int domain, int type, int protocol)
 {
     int fd = socket(domain, type, protocol);
 #ifdef ENABLE_FDSAN_CHECK
