@@ -24,7 +24,7 @@ extern "C" {
 
 int tee_open(const char *pathname, int flags, mode_t mode);
 void tee_close(int *fd);
-int tee_socket(int domain, int type, int protocol);
+int TeeSocket(int domain, int type, int protocol);
 
 #ifdef __cplusplus
 }
