@@ -16,6 +16,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <sys/socket.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -23,6 +24,7 @@ extern "C" {
 
 int tee_open(const char *pathname, int flags, mode_t mode);
 void tee_close(int *fd);
+int TeeSocket(int domain, int type, int protocol);
 
 #ifdef __cplusplus
 }

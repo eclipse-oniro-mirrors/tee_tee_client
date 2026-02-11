@@ -21,7 +21,7 @@
 #include "tee_log.h"
 #include "tc_ns_client.h"
 #include "tee_client_inner.h"
-
+#include "tee_file.h"
 #ifdef LOG_TAG
 #undef LOG_TAG
 #endif
@@ -47,7 +47,7 @@ static int ConnectTeecdSocket(int *socketFd)
         return -1;
     }
 
-    int s = socket(AF_UNIX, SOCK_STREAM, 0);
+    int s = TeeSocket(AF_UNIX, SOCK_STREAM, 0);
     if (s == -1) {
         tloge("can't open stream socket, errno=%" PUBLIC "d", errno);
         return -1;
@@ -59,7 +59,7 @@ static int ConnectTeecdSocket(int *socketFd)
     rc = strncpy_s(remote.sun_path, sizeof(remote.sun_path), TC_NS_SOCKET_NAME, sizeof(TC_NS_SOCKET_NAME));
     if (rc != EOK) {
         tloge("strncpy_s failed, errno=%" PUBLIC "d", rc);
-        close(s);
+        tee_close(&s);
         return -1;
     }
     len = (uint32_t)(strlen(remote.sun_path) + sizeof(remote.sun_family));
@@ -71,7 +71,7 @@ static int ConnectTeecdSocket(int *socketFd)
         if (errno == EACCES) {
             ret = EACCES_ERR;
         }
-        close(s);
+        tee_close(&s);
         return ret;
     }
     tlogd("Connected.\n");
@@ -239,13 +239,13 @@ int CaDaemonConnectWithCaInfo(const CaAuthInfo *caInfo, int cmd)
 
     if (memset_s(&message, sizeof(message), 0, sizeof(message)) != EOK) {
         tloge("ca daemon: memset failed\n");
-        close(s);
+        tee_close(&s);
         return -1;
     }
 
     if (FillMsgBuffer(caInfo, &revMsg, cmd) != EOK) {
         tloge("memcpy_s error!\n");
-        close(s);
+        tee_close(&s);
         return -1;
     }
 
@@ -253,7 +253,7 @@ int CaDaemonConnectWithCaInfo(const CaAuthInfo *caInfo, int cmd)
     InitSockMsg(&message, revMsg, iov);
     if (sendmsg(s, &message, 0) < 0) {
         tloge("send message error %" PUBLIC "d \n", errno);
-        close(s);
+        tee_close(&s);
         free(revMsg);
         return SEND_MESS_ERR;
     }
@@ -262,7 +262,7 @@ int CaDaemonConnectWithCaInfo(const CaAuthInfo *caInfo, int cmd)
     if (fd >= 0) {
         tlogd("FD received!");
     }
-    close(s);
+    tee_close(&s);
     free(revMsg);
     return fd;
 }

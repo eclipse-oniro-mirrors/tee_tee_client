@@ -46,3 +46,13 @@ void tee_close(int *fd)
     return;
 }
 
+int TeeSocket(int domain, int type, int protocol)
+{
+    int fd = socket(domain, type, protocol);
+#ifdef ENABLE_FDSAN_CHECK
+    if (fd >= 0) {
+        fdsan_exchange_owner_tag(fd, 0, TEE_FD_TAG);
+    }
+#endif
+    return fd;
+}
