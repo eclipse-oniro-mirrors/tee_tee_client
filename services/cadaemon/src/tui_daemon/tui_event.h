@@ -104,11 +104,11 @@ typedef struct {
     uint32_t phyHeight;    /* real height of the mobile : px */
     uint32_t rotation;     /* rotation of screen */
     uint32_t notchOrientation; /* orientation of notch */
-    uint32_t rsv0;
-    uint32_t rsv1;
-    float xdpi;
-    float ydpi;
-    enum TUIDeviceType deviceType;
+    uint32_t rsv0; /* reserve 0 */
+    uint32_t rsv1; /* reserve 1 */
+    float xdpi; /* dpi of width */
+    float ydpi; /* dpi of height */
+    enum TUIDeviceType deviceType; /* device type : phone, pc ... */
 } TuiParameter;
 
 class TUIEvent {
