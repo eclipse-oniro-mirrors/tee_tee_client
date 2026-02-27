@@ -1830,7 +1830,7 @@ static TEEC_Result TEEC_CheckMemRef(TEEC_ContextInner *context, TEEC_RegisteredM
     condition = (paramType == TEEC_MEMREF_PARTIAL_INPUT) || (paramType == TEEC_MEMREF_PARTIAL_OUTPUT) ||
                 (paramType == TEEC_MEMREF_PARTIAL_INOUT);
     if (condition) {
-        if ((memref.offset + memref.size) > memref.parent->size) {
+        if (memref.parent->size < memref.size || memref.parent->size - memref.size < memref.offset) {
             tloge("offset + size exceed the parent size\n");
             return (TEEC_Result)TEEC_ERROR_BAD_PARAMETERS;
         }
