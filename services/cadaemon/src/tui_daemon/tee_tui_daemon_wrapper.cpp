@@ -85,11 +85,10 @@ int32_t GetEvent(char *eventParam, int *paramLen)
     if (readSize <= 0) {
         tloge("TUI read state fail %" PUBLIC "d, len=%" PUBLIC "d\n", ferror(g_mTuiFp), readSize);
         return -1;
-    } else {
-        *(eventParam + readSize) = '\0';
-        tlogi("get c_state len is %" PUBLIC "d\n", readSize);
     }
 
+    *(eventParam + readSize) = '\0';
+    tlogi("get c_state len is %" PUBLIC "d\n", readSize);
     *paramLen = readSize;
 
     return 0;
@@ -152,12 +151,12 @@ void HandleEvent(const char *eventParam, int32_t paramLen)
     const char *str = eventParam;
     if (strncmp(str, "unused", sizeof("unused")) == 0) {
         tlogi("send false state to frame 1\n");
-        if (g_tuiDaemonFunc != nullptr) {
-            (void)g_tuiDaemonFunc(TUI_DAEMON_TUI_END);
-            if (!g_tuiIsFoldableFunc()) {
-                TuiDaemonClean();
-            }
+        if (g_tuiDaemonFunc == nullptr) {
+            tloge("uninit without init\n");
+            return;
         }
+
+        (void)g_tuiDaemonFunc(TUI_DAEMON_TUI_END);
     } else if (strncmp(str, "config", sizeof("config")) == 0) {
         tlogi("send true state to frame 1\n");
         if (TuiDaemonInit()) {
