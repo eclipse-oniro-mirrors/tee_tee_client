@@ -118,6 +118,7 @@ HWTEST_F(TUIDaemonTest, GetTUIEventInstance_002, TestSize.Level1)
     EXPECT_TRUE(TmpInstance != nullptr);
 
     /* get & release lock */
+    TmpInstance->TUIEventInit();
     TmpInstance->TUIGetRunningLock();
     TmpInstance->TUIReleaseRunningLock();
 }
@@ -228,5 +229,39 @@ HWTEST_F(TUIDaemonTest, TeeTuiThreadWork_003, TestSize.Level1)
     fd = tee_open("./TeeTuiThreadWork_003", O_WRONLY | O_TRUNC | O_CREAT, 0);
     tee_close(&fd);
     EXPECT_TRUE(ret != 0);
+}
+
+HWTEST_F(TUIDaemonTest, TeeTuiThreadWork_004, TestSize.Level1)
+{
+    auto TmpInstance = TUIEvent::GetInstance();
+    EXPECT_TRUE(TmpInstance != nullptr);
+
+    TmpInstance->TUIGetRotation();
+    auto status = TUIIsFoldable();
+    EXPECT_TRUE(status == false);
+    TmpInstance->TUISetStatus(false);
+    status = TmpInstance->TUIGetStatus();
+    EXPECT_TRUE(status == false);
+    TmpInstance->TUISetStatus(true);
+    status = TmpInstance->TUIGetStatus();
+    EXPECT_TRUE(status == true);
+    TmpInstance->TUISensorCorrect();
+    auto screen = TmpInstance->TUIGetPhyScreen("0");
+}
+
+HWTEST_F(TUIDaemonTest, TeeTuiThreadWork_004, TestSize.Level1)
+{
+    auto TmpInstance = TUIEvent::GetInstance();
+    EXPECT_TRUE(TmpInstance != nullptr);
+
+    TmpInstance->TUIAdapyRotation(nullptr);
+    TmpInstance->TUIAdapyRotation("100");
+    TmpInstance->TUIAdapyRotation("90");
+    auto status = TmpInstance->TUISendCmd(7);
+    status = TmpInstance->TUISendCmd(0);
+    TmpInstance->TUISetPanelInfo(0, 0, 0.0, 0.0);
+    TmpInstance->TUISetPanelInfo(0, 0, -1.0, -1.0);
+    auto status = CheckSAStart(0);
+    EXPECT_TRUE(status == false);
 }
 }
