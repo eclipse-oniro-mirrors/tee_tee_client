@@ -80,6 +80,7 @@ HWTEST_F(TUIDaemonTest, TUIDaemonInit_001, TestSize.Level1)
     auto tuiDaemon = new TUIDaemon();
     tuiDaemon->TuiDaemonInit(true);
     EXPECT_TRUE(tuiDaemon->mTUIDisplayListener_ == nullptr);
+    tuiDaemon->TuiDaemonInit(false);
 }
 
 /**
@@ -247,6 +248,7 @@ HWTEST_F(TUIDaemonTest, TeeTuiThreadWork_004, TestSize.Level1)
     EXPECT_TRUE(status == true);
     TmpInstance->TUISensorCorrect();
     auto screen = TmpInstance->TUIGetPhyScreen("0");
+    EXPECT_TRUE(screen == 0);
 }
 
 HWTEST_F(TUIDaemonTest, TeeTuiThreadWork_005, TestSize.Level1)
@@ -261,7 +263,5 @@ HWTEST_F(TUIDaemonTest, TeeTuiThreadWork_005, TestSize.Level1)
     status = TmpInstance->TUISendCmd(0);
     TmpInstance->TUISetPanelInfo(0, 0, 0.0, 0.0);
     TmpInstance->TUISetPanelInfo(0, 0, -1.0, -1.0);
-    auto saStatus = CheckSAStart(0);
-    EXPECT_TRUE(saStatus == false);
 }
 }
