@@ -249,7 +249,7 @@ HWTEST_F(TUIDaemonTest, TeeTuiThreadWork_004, TestSize.Level1)
     auto screen = TmpInstance->TUIGetPhyScreen("0");
 }
 
-HWTEST_F(TUIDaemonTest, TeeTuiThreadWork_004, TestSize.Level1)
+HWTEST_F(TUIDaemonTest, TeeTuiThreadWork_005, TestSize.Level1)
 {
     auto TmpInstance = TUIEvent::GetInstance();
     EXPECT_TRUE(TmpInstance != nullptr);
