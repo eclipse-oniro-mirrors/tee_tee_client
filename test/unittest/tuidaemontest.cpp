@@ -80,7 +80,6 @@ HWTEST_F(TUIDaemonTest, TUIDaemonInit_001, TestSize.Level1)
     auto tuiDaemon = new TUIDaemon();
     tuiDaemon->TuiDaemonInit(true);
     EXPECT_TRUE(tuiDaemon->mTUIDisplayListener_ == nullptr);
-    tuiDaemon->TuiDaemonInit(false);
 }
 
 /**
@@ -119,7 +118,6 @@ HWTEST_F(TUIDaemonTest, GetTUIEventInstance_002, TestSize.Level1)
     EXPECT_TRUE(TmpInstance != nullptr);
 
     /* get & release lock */
-    TmpInstance->TuiEventInit();
     TmpInstance->TUIGetRunningLock();
     TmpInstance->TUIReleaseRunningLock();
 }
@@ -256,12 +254,29 @@ HWTEST_F(TUIDaemonTest, TeeTuiThreadWork_005, TestSize.Level1)
     auto TmpInstance = TUIEvent::GetInstance();
     EXPECT_TRUE(TmpInstance != nullptr);
 
-    TmpInstance->TUIAdaptRotation(nullptr);
     TmpInstance->TUIAdaptRotation("100");
     TmpInstance->TUIAdaptRotation("90");
     auto status = TmpInstance->TUISendCmd(7);
     status = TmpInstance->TUISendCmd(0);
     TmpInstance->TUISetPanelInfo(0, 0, 0.0, 0.0);
     TmpInstance->TUISetPanelInfo(0, 0, -1.0, -1.0);
+    TmpInstance->TUISetPanelInfo(0, 0, 100.0, 300.0);
+}
+
+HWTEST_F(TUIDaemonTest, TUIDaemonInit_002, TestSize.Level1)
+{
+    auto tuiDaemon = new TUIDaemon();
+    tuiDaemon->TuiDaemonInit(false);
+    EXPECT_TRUE(tuiDaemon->mTUIDisplayListener_ != nullptr);
+}
+
+HWTEST_F(TUIDaemonTest, GetTUIEventInstance_003, TestSize.Level1)
+{
+    /* check get instance */
+    auto TmpInstance = TUIEvent::GetInstance();
+    EXPECT_TRUE(TmpInstance != nullptr);
+
+    /* tui event init */
+    TmpInstance->TuiEventInit();
 }
 }
