@@ -22,13 +22,16 @@
 #include "tee_log.h"
 #include "tee_client_inner.h"
 #include "tee_client_socket.h"
+#include "fuzzer/FuzzedDataProvider.h"
 namespace OHOS {
     #define TC_NS_SOCKET_NAME "#tc_ns_socket"
     int InitMessage(struct msghdr *message, CaRevMsg *revBuffer, char *ctrlBuffer, const uint8_t *data, size_t size)
     {
-        size_t msgLen = size >= sizeof(*message) ? sizeof(*message) : size;
-
-        if (memcpy_s(message, msgLen - 1, data, msgLen - 1) != EOK) {
+        FuzzedDataProvider provider(data, size);
+        std::string value =  provider.ConsumeRandomLengthString(sizeof(*message));
+        size_t msgLen = strlen(value.c_str());
+ 
+        if (memcpy_s(message, msgLen, value.c_str(), msgLen) != EOK) {
             return -1;
         }
         struct iovec iov[1];
