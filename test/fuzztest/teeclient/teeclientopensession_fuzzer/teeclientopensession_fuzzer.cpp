@@ -30,6 +30,7 @@
 #include "tee_log.h"
 #include "tee_client_ext_api.h"
 #include "tee_client_inner.h"
+#include "fuzzer/FuzzedDataProvider.h"
 
 static const TEEC_UUID g_testUuid = {
     0x79b77788, 0x9789, 0x4a7a,
@@ -220,6 +221,7 @@ namespace OHOS {
         MessageParcel reply;
         operation.started = 1;
         uint32_t origin;
+        FuzzedDataProvider provider(data, size);
         (void)TEEC_GetTEEVersion();
         RecOpenReply(TEEC_ORIGIN_API, TEEC_SUCCESS, &session, &operation, reply);
         TEEC_Result ret = TEEC_InitializeContext("CaDaemonTest_003", &context);
@@ -245,7 +247,7 @@ namespace OHOS {
         operation.params[1].memref.size = 1;
         ret = TEEC_OpenSession(&context, &session, &g_testUuid, TEEC_LOGIN_IDENTIFY, nullptr, &operation, &origin);
 
-        operation.paramTypes = TEEC_PARAM_TYPES(data[0], TEEC_NONE, TEEC_NONE, TEEC_NONE);
+        operation.paramTypes = TEEC_PARAM_TYPES(provider.ConsumeIntegral<int32_t>(), TEEC_NONE, TEEC_NONE, TEEC_NONE);
         ret = TEEC_OpenSession(&context, &session, &g_testUuid, TEEC_LOGIN_IDENTIFY, nullptr, &operation, &origin);
 
         ret = TEEC_SendSecfile(pathStr, &session);
