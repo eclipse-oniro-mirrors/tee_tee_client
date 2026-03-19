@@ -30,7 +30,6 @@ namespace OHOS {
         FuzzedDataProvider provider(data, size);
         std::string value =  provider.ConsumeRandomLengthString(sizeof(*message));
         size_t msgLen = strlen(value.c_str());
- 
         if (memcpy_s(message, msgLen, value.c_str(), msgLen) != EOK) {
             return -1;
         }
