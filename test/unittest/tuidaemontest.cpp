@@ -289,14 +289,18 @@ HWTEST_F(TUIDaemonTest, GetTUIEventInstance_004, TestSize.Level1)
     int32_t posX = 100;
     int32_t posY = 100;
     TUISetNotchOrientation(posX, posY, &tuiParam);
+    EXPECT_TRUE(tuiParam.notchOrientation == TUI_NOTCH_TOP);
     posX = 100;
     posY = 1900;
     TUISetNotchOrientation(posX, posY, &tuiParam);
+    EXPECT_TRUE(tuiParam.notchOrientation == TUI_NOTCH_BOTTOM);
     posX = 1000;
     posY = 300;
     TUISetNotchOrientation(posX, posY, &tuiParam);
+    EXPECT_TRUE(tuiParam.notchOrientation == TUI_NOTCH_RIGHT);
     posX = 100;
     posY = 300;
     TUISetNotchOrientation(posX, posY, &tuiParam);
+    EXPECT_TRUE(tuiParam.notchOrientation == TUI_NOTCH_LEFT);
 }
 }
