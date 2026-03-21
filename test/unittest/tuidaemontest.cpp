@@ -40,7 +40,6 @@ using namespace OHOS::Telephony;
 extern "C" void TeeTuiThreadWork(void);
 extern "C" int32_t GetEvent(char *eventParam, int *paramLen);
 extern "C" void HandleEvent(const char *eventParam, int32_t paramLen);
-extern "C" void TUISetNotchOrientation(int32_t posX, int32_t posY, TuiParameter *tuiParam);
 
 class TUIDaemonTest : public testing::Test {
 public:
