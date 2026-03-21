@@ -227,7 +227,7 @@ void TUISetNotchOrientation(int32_t posX, int32_t posY, TuiParameter *tuiParam)
     }
 }
 
-static void TUISetNotchInfo(OHOS::sptr<CutoutInfo> cutoutInfo, TuiParameter *tuiParam)
+void TUISetNotchInfo(OHOS::sptr<CutoutInfo> cutoutInfo, TuiParameter *tuiParam)
 {
     if (tuiParam == nullptr) {
         tloge("tuiParam is null\n");
