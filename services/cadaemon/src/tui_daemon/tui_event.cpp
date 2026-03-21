@@ -206,22 +206,22 @@ bool TUIEvent::TUIIsFoldable()
 
 void TUISetNotchOrientation(int32_t posX, int32_t posY, TuiParameter *tuiParam)
 {
-    if (posY - (int32_t)tuiParam->notch <= 0) {
+    if (posY - static_cast<int32_t>(tuiParam->notch) <= 0) {
         tuiParam->notchOrientation = TUI_NOTCH_TOP;
         return;
     }
 
-    if (posY + (int32_t)tuiParam->notch >= (int32_t)tuiParam->height) {
+    if (posY + static_cast<int32_t>(tuiParam->notch) >= static_cast<int32_t>(tuiParam->height)) {
         tuiParam->notchOrientation = TUI_NOTCH_BOTTOM;
         return;
     }
 
-    if (posX + (int32_t)tuiParam->notch >= (int32_t)tuiParam->width) {
+    if (posX + static_cast<int32_t>(tuiParam->notch) >= static_cast<int32_t>(tuiParam->width)) {
         tuiParam->notchOrientation = TUI_NOTCH_RIGHT;
         return;
     }
 
-    if (posX - (int32_t)tuiParam->notch <= 0) {
+    if (posX - static_cast<int32_t>(tuiParam->notch) <= 0) {
         tuiParam->notchOrientation = TUI_NOTCH_LEFT;
         return;
     }
