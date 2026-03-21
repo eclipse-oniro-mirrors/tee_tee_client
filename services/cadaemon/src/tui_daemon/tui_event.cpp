@@ -514,11 +514,19 @@ bool TUIEvent::TUIGetPannelInfo()
         return false;
     }
 
+    mTUIPanelInfo.deviceType = TuiGetDeviceType();
     mScreenRotation = static_cast<uint32_t>(displayInfo->GetDisplayOrientation());
+    if (mTUIPanelInfo.deviceType == TUI_DEVICE_2IN1) {
+        if (mScreenRotation == 0) {
+            mScreenRotation = TUI_ROTATE_270;
+        } else {
+            mScreenRotation = mScreenRotation - 1;
+        }
+    }
+
     TUIGetRotation();
     TUISetPanelInfo(display->GetWidth(), display->GetHeight(), displayInfo->GetXDpi(), displayInfo->GetYDpi());
 
-    mTUIPanelInfo.deviceType = TuiGetDeviceType();
     OHOS::sptr<CutoutInfo> cutoutInfo = display->GetCutoutInfo();
     if (cutoutInfo == nullptr) {
         tloge("get cutoutinfo failed\n");
