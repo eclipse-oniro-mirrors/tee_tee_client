@@ -204,6 +204,29 @@ bool TUIEvent::TUIIsFoldable()
     return mTUIFoldable;
 }
 
+void TUISetNotchOrientation(int32_t posX, int32_t posY, TuiParameter *tuiParam)
+{
+    if (posY - (int32_t)tuiParam->notch <= 0) {
+        tuiParam->notchOrientation = TUI_NOTCH_TOP;
+        return;
+    }
+
+    if (posY + (int32_t)tuiParam->notch >= (int32_t)tuiParam->height) {
+        tuiParam->notchOrientation = TUI_NOTCH_BOTTOM;
+        return;
+    }
+
+    if (posX + (int32_t)tuiParam->notch >= (int32_t)tuiParam->width) {
+        tuiParam->notchOrientation = TUI_NOTCH_RIGHT;
+        return;
+    }
+
+    if (posX - (int32_t)tuiParam->notch <= 0) {
+        tuiParam->notchOrientation = TUI_NOTCH_LEFT;
+        return;
+    }
+}
+
 static void TUISetNotchInfo(OHOS::sptr<CutoutInfo> cutoutInfo, TuiParameter *tuiParam)
 {
     if (tuiParam == nullptr) {
@@ -239,25 +262,7 @@ static void TUISetNotchInfo(OHOS::sptr<CutoutInfo> cutoutInfo, TuiParameter *tui
     }
 
     /* calculate notch orientation */
-    if (boundingRects[0].posY_ - (int32_t)tuiParam->notch <= 0) {
-        tuiParam->notchOrientation = TUI_NOTCH_TOP;
-        return;
-    }
-
-    if (boundingRects[0].posY_ + (int32_t)tuiParam->notch >= (int32_t)tuiParam->height) {
-        tuiParam->notchOrientation = TUI_NOTCH_BOTTOM;
-        return;
-    }
-
-    if (boundingRects[0].posX_ + (int32_t)tuiParam->notch >= (int32_t)tuiParam->width) {
-        tuiParam->notchOrientation = TUI_NOTCH_RIGHT;
-        return;
-    }
-
-    if (boundingRects[0].posX_ - (int32_t)tuiParam->notch <= 0) {
-        tuiParam->notchOrientation = TUI_NOTCH_LEFT;
-        return;
-    }
+    TUISetNotchOrientation(boundingRects[0].posX_, boundingRects[0].posY_, tuiParam);
 }
 
 static uint32_t TUIGetDisplayMode(uint32_t foldState)
