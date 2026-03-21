@@ -282,7 +282,7 @@ HWTEST_F(TUIDaemonTest, GetTUIEventInstance_003, TestSize.Level1)
 
 HWTEST_F(TUIDaemonTest, GetTUIEventInstance_004, TestSize.Level1)
 {
-    struct TuiParameter tuiParam = {0};
+    TuiParameter tuiParam = {0};
     tuiParam.notch = 150;
     tuiParam.width = 1080;
     tuiParam.height = 1920;
