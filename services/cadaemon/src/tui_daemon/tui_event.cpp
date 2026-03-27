@@ -204,7 +204,30 @@ bool TUIEvent::TUIIsFoldable()
     return mTUIFoldable;
 }
 
-static void TUISetNotchInfo(OHOS::sptr<CutoutInfo> cutoutInfo, TuiParameter *tuiParam)
+void TUISetNotchOrientation(int32_t posX, int32_t posY, TuiParameter *tuiParam)
+{
+    if (posY - static_cast<int32_t>(tuiParam->notch) <= 0) {
+        tuiParam->notchOrientation = TUI_NOTCH_TOP;
+        return;
+    }
+
+    if (posY + static_cast<int32_t>(tuiParam->notch) >= static_cast<int32_t>(tuiParam->height)) {
+        tuiParam->notchOrientation = TUI_NOTCH_BOTTOM;
+        return;
+    }
+
+    if (posX + static_cast<int32_t>(tuiParam->notch) >= static_cast<int32_t>(tuiParam->width)) {
+        tuiParam->notchOrientation = TUI_NOTCH_RIGHT;
+        return;
+    }
+
+    if (posX - static_cast<int32_t>(tuiParam->notch) <= 0) {
+        tuiParam->notchOrientation = TUI_NOTCH_LEFT;
+        return;
+    }
+}
+
+void TUISetNotchInfo(OHOS::sptr<CutoutInfo> cutoutInfo, TuiParameter *tuiParam)
 {
     if (tuiParam == nullptr) {
         tloge("tuiParam is null\n");
@@ -239,25 +262,7 @@ static void TUISetNotchInfo(OHOS::sptr<CutoutInfo> cutoutInfo, TuiParameter *tui
     }
 
     /* calculate notch orientation */
-    if (boundingRects[0].posY_ - (int32_t)tuiParam->notch <= 0) {
-        tuiParam->notchOrientation = TUI_NOTCH_TOP;
-        return;
-    }
-
-    if (boundingRects[0].posY_ + (int32_t)tuiParam->notch >= (int32_t)tuiParam->height) {
-        tuiParam->notchOrientation = TUI_NOTCH_BOTTOM;
-        return;
-    }
-
-    if (boundingRects[0].posX_ + (int32_t)tuiParam->notch >= (int32_t)tuiParam->width) {
-        tuiParam->notchOrientation = TUI_NOTCH_RIGHT;
-        return;
-    }
-
-    if (boundingRects[0].posX_ - (int32_t)tuiParam->notch <= 0) {
-        tuiParam->notchOrientation = TUI_NOTCH_LEFT;
-        return;
-    }
+    TUISetNotchOrientation(boundingRects[0].posX_, boundingRects[0].posY_, tuiParam);
 }
 
 static uint32_t TUIGetDisplayMode(uint32_t foldState)
@@ -514,11 +519,19 @@ bool TUIEvent::TUIGetPannelInfo()
         return false;
     }
 
+    mTUIPanelInfo.deviceType = TuiGetDeviceType();
     mScreenRotation = static_cast<uint32_t>(displayInfo->GetDisplayOrientation());
+    if (mTUIPanelInfo.deviceType == TUI_DEVICE_2IN1) {
+        if (mScreenRotation == 0) {
+            mScreenRotation = TUI_ROTATE_270;
+        } else {
+            mScreenRotation = mScreenRotation - 1;
+        }
+    }
+
     TUIGetRotation();
     TUISetPanelInfo(display->GetWidth(), display->GetHeight(), displayInfo->GetXDpi(), displayInfo->GetYDpi());
 
-    mTUIPanelInfo.deviceType = TuiGetDeviceType();
     OHOS::sptr<CutoutInfo> cutoutInfo = display->GetCutoutInfo();
     if (cutoutInfo == nullptr) {
         tloge("get cutoutinfo failed\n");

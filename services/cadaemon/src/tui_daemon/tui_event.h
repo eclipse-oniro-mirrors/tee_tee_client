@@ -111,6 +111,7 @@ typedef struct {
     enum TUIDeviceType deviceType; /* device type : phone, pc ... */
 } TuiParameter;
 
+void TUISetNotchOrientation(int32_t posX, int32_t posY, TuiParameter *tuiParam);
 class TUIEvent {
 private:
     TUIEvent() = default;
