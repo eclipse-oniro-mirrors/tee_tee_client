@@ -50,6 +50,12 @@ enum FoldStates {
     FOLD_STATE_EXPANDED,
     FOLD_STATE_FOLDED,
     FOLD_STATE_HALF_FOLDED,
+    FOLD_STATE_EXPAND_WITH_SECOND_EXPAND = 11,
+    FOLD_STATE_EXPAND_WITH_SECOND_HALF_FOLDED = 21,
+    FOLD_STATE_FOLDED_WITH_SECOND_EXPAND = 12,
+    FOLD_STATE_FOLDED_WITH_SECOND_HALF_FOLDED = 22,
+    FOLD_STATE_HALF_FOLDED_WITH_SECOND_EXPAND = 13,
+    FOLD_STATE_HALF_FOLDED_WITH_SECOND_HALF_FOLDED = 23,
 };
 
 enum TUIStates {
@@ -138,7 +144,7 @@ public:
     bool TUIGetPannelInfo();
     void TUISensorCorrect();
     void TUISetPanelInfo(uint32_t width, uint32_t height, float xdpi, float ydpi);
-    enum TUIPhyScreen TUIGetPhyScreen(std::string sensorCorrectEn);
+    enum TUIPhyScreen TUIGetPhyScreen(std::string screenType, uint32_t foldState);
     void TUIAdaptRotation(std::string phyRotation);
     void TUIGetRotation();
     bool TUIIsFoldable();

@@ -391,31 +391,33 @@ void TUIEvent::TUIGetFoldable()
     #else
         mTUIPanelInfo.foldState = static_cast<uint32_t>(OHOS::Rosen::DisplayManager::GetInstance().GetFoldStatus());
     #endif
-        if (mTUIPanelInfo.foldState > FOLD_STATE_HALF_FOLDED) {
-            mTUIPanelInfo.foldState = FOLD_STATE_UNKNOWN; /* default state */
-        }
     }
 }
 
-enum TUIPhyScreen TUIEvent::TUIGetPhyScreen(std::string sensorCorrectEn)
+enum TUIPhyScreen TUIEvent::TUIGetPhyScreen(std::string screenType, uint32_t foldState)
 {
-    std::string foldScreenType = OHOS::system::GetParameter("const.window.foldscreen.type", "0");
-    std::vector<std::string> splitScreenType = TUISplitString(foldScreenType, ",");
-    if (splitScreenType.empty()) {
-        return TUI_SCREEN_0;
-    }
-
     /* trifold phone */
-    if (splitScreenType[0] == "6") {
+    if (screenType == "6") {
         tlogi("trifold.\n");
-        if ((mTUIPanelInfo.foldState == FOLD_STATE_UNKNOWN) && (sensorCorrectEn != "1")) {
+        if (foldState == FOLD_STATE_EXPAND_WITH_SECOND_EXPAND) {
             return TUI_SCREEN_0;
         }
 
         return TUI_SCREEN_1;
     }
 
-    if (mTUIPanelInfo.foldState == FOLD_STATE_EXPANDED || mTUIPanelInfo.foldState == FOLD_STATE_HALF_FOLDED) {
+    /* trifold phone V2*/
+    if (screenType == "8") {
+        tlogi("trifold V2.\n");
+        if (foldState == FOLD_STATE_EXPAND_WITH_SECOND_HALF_FOLDED ||
+            foldState == FOLD_STATE_HALF_FOLDED_WITH_SECOND_EXPAND) {
+            return TUI_SCREEN_1;
+        }
+
+        return TUI_SCREEN_0;
+    }
+
+    if (foldState == FOLD_STATE_EXPANDED || foldState == FOLD_STATE_HALF_FOLDED) {
         return TUI_SCREEN_1;
     }
 
@@ -462,7 +464,13 @@ void TUIEvent::TUIGetRotation()
     }
 
     std::vector<std::string> splitVec = TUISplitString(phyRotation, ";");
-    enum TUIPhyScreen phyScreen = TUIGetPhyScreen(sensorCorrectEn);
+    std::string foldScreenType = OHOS::system::GetParameter("const.window.foldscreen.type", "0");
+    std::vector<std::string> splitScreenType = TUISplitString(foldScreenType, ",");
+    enum TUIPhyScreen phyScreen = TUI_SCREEN_0;
+    if (!splitScreenType.empty()) {
+        phyScreen = TUIGetPhyScreen(splitScreenType[0], mTUIPanelInfo.foldState);
+    }
+
     if (phyScreen >= splitVec.size()) {
         tloge("phyScreen is not 0 or 1.\n");
         return;
@@ -626,11 +634,6 @@ void TUIEvent::TUIDealWithEvent(bool state)
 
 void TUIDisplayListener::OnFoldStatusChanged(OHOS::Rosen::FoldStatus foldState)
 {
-    if (foldState != OHOS::Rosen::FoldStatus::EXPAND && foldState != OHOS::Rosen::FoldStatus::FOLDED) {
-        tloge("foldState = %" PUBLIC "u invalid\n", static_cast<uint32_t>(foldState));
-        return;
-    }
-
     /* if foldState changed, should:
      * 1. get pannelinfo,
      * 2. send infos to teeos,
