@@ -245,8 +245,6 @@ HWTEST_F(TUIDaemonTest, TeeTuiThreadWork_004, TestSize.Level1)
     status = TmpInstance->TUIGetStatus();
     EXPECT_TRUE(status == true);
     TmpInstance->TUISensorCorrect();
-    auto screen = TmpInstance->TUIGetPhyScreen("0");
-    EXPECT_TRUE(screen == 0);
 }
 
 HWTEST_F(TUIDaemonTest, TeeTuiThreadWork_005, TestSize.Level1)
@@ -261,6 +259,25 @@ HWTEST_F(TUIDaemonTest, TeeTuiThreadWork_005, TestSize.Level1)
     TmpInstance->TUISetPanelInfo(0, 0, 0.0, 0.0);
     TmpInstance->TUISetPanelInfo(0, 0, -1.0, -1.0);
     TmpInstance->TUISetPanelInfo(0, 0, 100.0, 300.0);
+}
+
+HWTEST_F(TUIDaemonTest, TeeTuiThreadWork_006, TestSize.Level1)
+{
+    auto TmpInstance = TUIEvent::GetInstance();
+    EXPECT_TRUE(TmpInstance != nullptr);
+
+    auto screen = TmpInstance->TUIGetPhyScreen("6", FOLD_STATE_EXPAND_WITH_SECOND_EXPAND);
+    EXPECT_TRUE(screen == 0);
+    screen = TmpInstance->TUIGetPhyScreen("6", FOLD_STATE_EXPANDED);
+    EXPECT_TRUE(screen == 1);
+    screen = TmpInstance->TUIGetPhyScreen("8", FOLD_STATE_EXPAND_WITH_SECOND_HALF_FOLDED);
+    EXPECT_TRUE(screen == 1);
+    screen = TmpInstance->TUIGetPhyScreen("6", FOLD_STATE_EXPANDED);
+    EXPECT_TRUE(screen == 0);
+    screen = TmpInstance->TUIGetPhyScreen("1", FOLD_STATE_EXPAND_WITH_SECOND_HALF_FOLDED);
+    EXPECT_TRUE(screen == 0);
+    screen = TmpInstance->TUIGetPhyScreen("1", FOLD_STATE_EXPANDED);
+    EXPECT_TRUE(screen == 1);
 }
 
 HWTEST_F(TUIDaemonTest, TUIDaemonInit_002, TestSize.Level1)
