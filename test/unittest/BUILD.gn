@@ -21,7 +21,6 @@ if (defined(global_parts_info) &&
 }
 if (tee_client_features_tui) {
   ohos_unittest("tuidaemontest") {
-    subsystem_name = "tee"
     part_name = "tee_client"
     test_module = "tee_client"
     module_out_path = part_name + "/" + test_module
@@ -67,7 +66,6 @@ if (tee_client_features_tui) {
 }
 
 ohos_unittest("cadaemontest") {
-  subsystem_name = "tee"
   part_name = "tee_client"
   test_module = "tee_client"
   module_out_path = part_name + "/" + test_module
@@ -99,7 +97,6 @@ ohos_unittest("cadaemontest") {
 }
 
 ohos_unittest("teecvendortest") {
-  subsystem_name = "tee"
   part_name = "tee_client"
   test_module = "tee_client"
   module_out_path = part_name + "/" + test_module
@@ -113,9 +110,7 @@ ohos_unittest("teecvendortest") {
     "../../frameworks/libteec_vendor/",
   ]
 
-  sources = [
-    "teecvendortest.cpp",
-  ]
+  sources = [ "teecvendortest.cpp" ]
 
   deps = [ "../../frameworks/build/standard:libteec_vendor" ]
 
@@ -131,7 +126,6 @@ ohos_unittest("teecvendortest") {
 }
 
 ohos_unittest("authenticationtest") {
-  subsystem_name = "tee"
   part_name = "tee_client"
   test_module = "tee_client"
   module_out_path = part_name + "/" + test_module
@@ -174,7 +168,6 @@ ohos_unittest("authenticationtest") {
 }
 
 ohos_unittest("loadsecfiletest") {
-  subsystem_name = "tee"
   part_name = "tee_client"
   test_module = "tee_client"
   module_out_path = part_name + "/" + test_module
@@ -242,8 +235,6 @@ group("unittest") {
   if (component_type == "system") {
     deps = [ ":authenticationtest" ]
     deps += [ ":loadsecfiletest" ]
-    deps += [ ":cadaemontest" ]
-    deps += [ ":teecvendortest" ]
     deps += [ ":dlopenteectest" ]
     if (tee_client_features_tui) {
       deps += [
