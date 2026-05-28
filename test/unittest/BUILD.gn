@@ -183,9 +183,9 @@ ohos_unittest("loadsecfiletest") {
     "../../frameworks/include/standard/teec_system",
   ]
 
-  deps = [ "../../frameworks/build/standard:libteec_vendor" ]
-
   sources = [ "loadsecfiletest.cpp" ]
+
+  deps = [ "../../frameworks/build/standard:libteec_vendor" ]
 
   external_deps = [
     "c_utils:utils",
