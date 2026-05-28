@@ -329,8 +329,8 @@ DaemonProcdata *CaDaemonService::CallGetProcDataPtr(const CallerIdentity &identi
 {
     DaemonProcdata *outProcData = GetProcdataByPid(identity.pid);
     if (outProcData != nullptr) {
-        if (outProcData->callerIdentity.uid != identity.uid ||
-            outProcData->callerIdentity.tokenid != identity.tokenid) {
+        if ((outProcData->callerIdentity.uid != identity.uid) ||
+            (outProcData->callerIdentity.tokenid != identity.tokenid)) {
             tloge("procdata with pid %" PUBLIC "d have mismatch uid or tokenid\n", identity.pid);
             return nullptr;
         }
@@ -417,7 +417,7 @@ void CaDaemonService::PutBnContextAndReleaseFd(int pid, TEEC_ContextInner *outCo
 static TEEC_Result InitCaAuthInfo(CaAuthInfo *caInfo, const CallerIdentity &identity)
 {
     caInfo->pid = identity.pid;
-    caInfo->uid = (unsigned int)(identity.uid);
+    caInfo->uid = static_cast<unsigned int>(identity.uid);
     static bool sendXmlSuccFlag = false;
     /* Trans the system xml file to tzdriver */
     if (!sendXmlSuccFlag) {
@@ -482,7 +482,7 @@ TEEC_Result CaDaemonService::InitializeContext(const char *name, MessageParcel &
         goto RELEASE_CONTEXT;
     }
 
-    if (!reply.WriteInt32((int32_t)ret)) {
+    if (!reply.WriteInt32(static_cast<int32_t>(ret))) {
         ret = TEEC_FAIL;
         goto RELEASE_CONTEXT;
     }
@@ -785,7 +785,7 @@ static bool RecOpenReply(uint32_t returnOrigin, TEEC_Result ret, TEEC_Session *o
     bool writeRet = reply.WriteUint32(returnOrigin);
     CHECK_ERR_RETURN(writeRet, true, writeRet);
 
-    writeRet = reply.WriteInt32((int32_t)ret);
+    writeRet = reply.WriteInt32(static_cast<int32_t>(ret));
     CHECK_ERR_RETURN(writeRet, true, writeRet);
 
     if (ret != TEEC_SUCCESS) {
@@ -808,7 +808,7 @@ static void PrePareParmas(DecodePara &paraDecode, TaFileInfo &taFile,
     (void)memset_s(&(paraDecode.shmInner), sizeof(paraDecode.shmInner), 0x00, sizeof(paraDecode.shmInner));
     paraDecode.contextInner = outContext;
 
-    taFile.taPath = (const uint8_t *)taPath;
+    taFile.taPath = reinterpret_cast<const uint8_t *>(taPath);
     if (fd >= 0) {
         taFile.taFp = fdopen(fd, "r");
     }
@@ -883,7 +883,7 @@ ERROR:
     LogException(ret, destination, returnOrigin, TYPE_OPEN_SESSION_FAIL);
 
     CHECK_ERR_RETURN(reply.WriteUint32(returnOrigin), true, TEEC_FAIL);
-    CHECK_ERR_RETURN(reply.WriteInt32((int32_t)ret), true, TEEC_FAIL);
+    CHECK_ERR_RETURN(reply.WriteInt32(static_cast<int32_t>(ret)), true, TEEC_FAIL);
 
     return TEEC_SUCCESS;
 }
@@ -961,7 +961,7 @@ TEEC_Result CaDaemonService::InvokeCommand(TEEC_Context *context, TEEC_Session *
 
 END:
     CHECK_ERR_RETURN(reply.WriteUint32(returnOrigin), true, TEEC_FAIL);
-    CHECK_ERR_RETURN(reply.WriteInt32((int32_t)ret), true, TEEC_FAIL);
+    CHECK_ERR_RETURN(reply.WriteInt32(static_cast<int32_t>(ret)), true, TEEC_FAIL);
     CHECK_ERR_RETURN(WriteOperation(reply, operation), true, TEEC_FAIL);
 
     return TEEC_SUCCESS;
@@ -1057,7 +1057,7 @@ TEEC_Result CaDaemonService::RegisterSharedMemory(TEEC_Context *context,
     sharedMem->ops_cnt = outShm->ops_cnt;
     sharedMem->is_allocated = outShm->is_allocated;
 
-    CHECK_ERR_RETURN(reply.WriteInt32((int32_t)ret), true, TEEC_FAIL);
+    CHECK_ERR_RETURN(reply.WriteInt32(static_cast<int32_t>(ret)), true, TEEC_FAIL);
 
     CHECK_ERR_RETURN(WriteSharedMem(reply, sharedMem), true, TEEC_FAIL);
 
@@ -1066,7 +1066,7 @@ TEEC_Result CaDaemonService::RegisterSharedMemory(TEEC_Context *context,
     return TEEC_SUCCESS;
 
 ERROR_END:
-    writeRet = reply.WriteInt32((int32_t)ret);
+    writeRet = reply.WriteInt32(static_cast<int32_t>(ret));
     CHECK_ERR_RETURN(writeRet, true, TEEC_FAIL);
     return TEEC_SUCCESS;
 }
@@ -1074,7 +1074,7 @@ ERROR_END:
 static bool RecAllocReply(TEEC_Result ret, TEEC_SharedMemory *sharedMem,
     uint32_t offset, int32_t fd, MessageParcel &reply)
 {
-    bool writeRet = reply.WriteInt32((int32_t)ret);
+    bool writeRet = reply.WriteInt32(static_cast<int32_t>(ret));
     CHECK_ERR_RETURN(writeRet, true, writeRet);
 
     writeRet = WriteSharedMem(reply, sharedMem);
@@ -1142,7 +1142,7 @@ ERROR:
         free(outShm);
     }
     PutBnContextAndReleaseFd(identity.pid, outContext);
-    writeRet = reply.WriteInt32((int32_t)ret);
+    writeRet = reply.WriteInt32(static_cast<int32_t>(ret));
     CHECK_ERR_RETURN(writeRet, true, TEEC_FAIL);
     return TEEC_SUCCESS;
 }

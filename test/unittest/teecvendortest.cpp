@@ -26,7 +26,6 @@
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include "tee_client_type.h"
-#include "tee_client.h"
 #include "tee_log.h"
 #include "tc_ns_client.h"
 #include "tee_client_ext_api.h"
