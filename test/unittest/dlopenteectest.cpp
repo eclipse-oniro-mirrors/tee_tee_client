@@ -1,7 +1,22 @@
+/*
+ * Copyright (c) 2026 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #include <gtest/gtest.h>
 #include <dlfcn.h>
 #include "tee_client_type.h"
-#include <stdio.h>
+#include <cstdio>
 #include <unistd.h>
 #include "tee_log.h"
 #include "tee_client_api.h"
@@ -42,7 +57,7 @@ void DlopenTeecTest::TearDown(void)
 {
     printf("TearDown\n");
 }
-#define RUNT_TIMES 2 
+#define RUNT_TIMES 2
 HWTEST_F(DlopenTeecTest, LoadTeecTest1, TestSize.Level1)
 {
     for (int i = 0; i < RUNT_TIMES; i++) {
