@@ -239,7 +239,7 @@ group("unittest") {
     if (tee_client_features_tui) {
       deps += [
         # deps file
-        ":cadaemontest", 
+        ":cadaemontest",
         ":teecvendortest",
         ":tuidaemontest",
       ]
