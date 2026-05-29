@@ -59,11 +59,53 @@ bool TeeClient::SetCallBack()
     return true;
 }
 
+bool TeeClient::AddCaDeathRecipient()
+{
+    tlogi("enter AddCaDeathRecipient\n");
+    if (mDeathNotifier != nullptr) {
+        return true;
+    }
+    tlogi("new death notifier\n");
+    mDeathNotifier = new DeathNotifier(mTeecService);
+    if (mDeathNotifier == nullptr) {
+        tloge("new death notify failed\n");
+        mTeecService = nullptr;
+        return false;
+    }
+
+    if (!mTeecService->AddDeathRecipient(mDeathNotifier)) {
+        tloge("Add ca death notifier failed\n");
+        mTeecService = nullptr;
+        return false;
+    }
+    tlogi("add death recipient success\n");
+    return true;
+}
+
+void RemoveCaDeathRecipient(TeeClient &instance)
+{
+    tlogi("enter RemoveCaDeathRecipient\n");
+    if (instance.mTeecService != nullptr && instance.mDeathNotifier != nullptr) {
+        bool ret = instance.mTeecService->RemoveDeathRecipient(instance.mDeathNotifier);
+        const int retryTimes = 3;
+        for (int i = 0; i < retryTimes && !ret; i++) {
+            tlogi("remove death recipient failed, try remove again\n");
+            ret = instance.mTeecService->RemoveDeathRecipient(instance.mDeathNotifier);
+        }
+        if (ret) {
+            tlogi("remove death recipient success\n");
+        } else {
+            tloge("remove death recipient failed\n");
+        }
+    }
+}
+
 bool TeeClient::InitTeecService()
 {
     lock_guard<mutex> autoLock(mServiceLock);
 
     if (mServiceValid) {
+        (void)AddCaDeathRecipient();
         return true;
     }
 
@@ -87,23 +129,13 @@ bool TeeClient::InitTeecService()
         return false;
     }
 
-    mDeathNotifier = new DeathNotifier(mTeecService);
-    if (mDeathNotifier == nullptr) {
-        tloge("new death notify failed\n");
-        mTeecService = nullptr;
-        return false;
-    }
-
-    /* death notify, TeecService-->CA */
-    bool result = mTeecService->AddDeathRecipient(mDeathNotifier);
-    if (!result) {
-        tloge("set service to ca failed\n");
-        mTeecService = nullptr;
+    if (!AddCaDeathRecipient()) {
+        tloge("init tee service, add death notifier failed\n");
         return false;
     }
 
     /* death notify, CA-->TeecService */
-    result = SetCallBack();
+    bool result = SetCallBack();
     if (!result) {
         tloge("set ca to service failed\n");
         mTeecService = nullptr;
@@ -192,7 +224,7 @@ TEEC_Result TeeClient::TEEC_CheckOperation(const TEEC_Operation *operation)
         } else if (paramType == TEEC_NONE) {
             /*  if type is none, ignore it */
         } else if (paramType == TEEC_ION_INPUT) {
-          /* Secure Camera */  
+            /* Secure Camera */
         } else {
             tloge("param %" PUBLIC "u has invalid type %" PUBLIC "u\n", i, paramType);
             ret = TEEC_ERROR_BAD_PARAMETERS;
@@ -456,7 +488,7 @@ TEEC_Result TeeClient::OpenSession(TEEC_Context *context, TEEC_Session *session,
             TEEC_PARAM_TYPE_GET(operation->paramTypes, 1), TEEC_NONE, TEEC_NONE);
     }
 
-    fd = GetFileFd((const char *)context->ta_path);
+    fd = GetFileFd(reinterpret_cast<const char *>(context->ta_path));
     teecRet = OpenSessionSendCmd(context, session, destination, connectionMethod, fd, operation, &retOrigin);
 
     if (fd >= 0) {
@@ -1215,7 +1247,7 @@ int32_t TeeClient::GetFileFd(const char *filePath)
         return -1;
     }
 
-    if (!((strnlen(filePath, MAX_TA_PATH_LEN) < MAX_TA_PATH_LEN) && strstr(filePath, ".sec"))) {
+    if (!((strlen(filePath) < MAX_TA_PATH_LEN) && strstr(filePath, ".sec"))) {
         tloge("ta_path format is wrong\n");
         return -1;
     }
@@ -1592,7 +1624,6 @@ TEEC_Result TeeClient::GetTeeVersion(uint32_t &teeVersion)
 }
 
 } // namespace OHOS
-
 
 TEEC_Result TEEC_InitializeContext(const char *name, TEEC_Context *context)
 {

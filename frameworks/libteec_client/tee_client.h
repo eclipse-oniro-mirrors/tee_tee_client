@@ -68,7 +68,7 @@ public:
     void RequestCancellation(const TEEC_Operation *operation);
     TEEC_Result SendSecfile(const char *path, TEEC_Session *session);
     TEEC_Result GetTeeVersion(uint32_t &teeVersion);
-
+    friend void RemoveCaDeathRecipient(TeeClient &instance);
     class DeathNotifier : public IRemoteObject::DeathRecipient {
     public:
         explicit DeathNotifier(const sptr<IRemoteObject> &deathNotify) : serviceConnect(deathNotify)
@@ -77,7 +77,8 @@ public:
         virtual ~DeathNotifier()
         {
             if (mServiceValid && (serviceConnect != nullptr)) {
-                serviceConnect->RemoveDeathRecipient(this);
+                tloge("enter ~DeathNotifier\n");
+                TeeClient::GetInstance().mDeathNotifier = nullptr;
             }
         }
         virtual void OnRemoteDied(const wptr<IRemoteObject> &deathNotify)
@@ -141,7 +142,7 @@ private:
     void FreeAllShareMemoryInContext(const TEEC_Context *context);
     TEEC_Result FreeShareMem(TEEC_SharedMemory *sharedMem);
     TEEC_Result TEEC_CheckOperation(const TEEC_Operation *operation);
-
+    bool AddCaDeathRecipient();
     std::mutex mServiceLock;
     std::mutex mSharMemLock;
     static bool mServiceValid;
@@ -150,5 +151,10 @@ private:
     sptr<IRemoteObject> mNotify;
     std::vector<TC_NS_ShareMem> mShareMem;
 };
+/* when dlclose libteec.so or main process return, this function will be triggered */
+__attribute__((destructor)) void RemoveTeeClientDeathRecipient()
+{
+    RemoveCaDeathRecipient(TeeClient::GetInstance());
+}
 } // namespace OHOS
 #endif
