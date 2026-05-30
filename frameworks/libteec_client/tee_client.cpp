@@ -1414,7 +1414,7 @@ END:
     if (fd >= 0) {
         close(fd);
     }
-    return TEEC_SUCCESS;
+    return rRet;;
 }
 
 TEEC_Result TeeClient::AllocateSharedMemory(TEEC_Context *context, TEEC_SharedMemory *sharedMem)
