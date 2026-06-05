@@ -45,6 +45,7 @@ namespace OHOS {
             return;
         }
 
+        // 1. 从随机数据流中拆出参数 i
         uint32_t i = 0;
         uint32_t byteMax = 0;
 
@@ -53,8 +54,8 @@ namespace OHOS {
         CheckBit(i, byteMax, bitMap);
         ClearBit(i, byteMax, bitMap);
 
-        memcpy(&i, data, sizeof(uint32_t));
-        memcpy(&byteMax, data + sizeof(uint32_t), sizeof(uint32_t));
+        memcpy_s(&i, sizeof(i), data, sizeof(uint32_t));
+        memcpy_s(&byteMax, sizeof(byteMax), data + sizeof(uint32_t), sizeof(uint32_t));
         bitMap = (uint8_t *)calloc(byteMax, sizeof(uint8_t));
         if (bitMap == nullptr) {
             return;
@@ -82,7 +83,7 @@ namespace OHOS {
         }
 
         uint32_t byteMax;
-        memcpy(&byteMax, data, sizeof(uint32_t));
+        memcpy_s(&byteMax, sizeof(byteMax), data, sizeof(uint32_t));
 
         size_t remaining_size = size - sizeof(uint32_t);
 
@@ -98,7 +99,7 @@ namespace OHOS {
 
         size_t fill_size = (remaining_size > safe_alloc_size) ? safe_alloc_size : remaining_size;
         if (fill_size > 0) {
-            memcpy(bitMap, data + sizeof(uint32_t), fill_size);
+            memcpy_s(bitMap, sizeof(bitMap), data + sizeof(uint32_t), fill_size);
         }
 
         uint8_t *test_bit_map = (size % 10 == 0) ? nullptr : bitMap;
@@ -133,10 +134,10 @@ namespace OHOS {
         ListInit(&context.session_list);
         ListInit(&context.shrd_mem_list);
 
-        memcpy(&session.session_id, data, sizeof(uint32_t));
-        memcpy(&session.ops_cnt, data, sizeof(uint32_t));
-        memcpy(&shrMem.ops_cnt, data, sizeof(uint32_t));
-        memcpy(&shmOffset, data, sizeof(uint32_t));
+        memcpy_s(&session.session_id, sizeof(session.session_id), data, sizeof(uint32_t));
+        memcpy_s(&session.ops_cnt, sizeof(session.ops_cnt), data, sizeof(uint32_t));
+        memcpy_s(&shrMem.ops_cnt, sizeof(shrMem.ops_cnt), data, sizeof(uint32_t));
+        memcpy_s(&shmOffset, sizeof(shmOffset), data, sizeof(uint32_t));
 
         GetBnSession(&session, &context);
         PutBnSession(&session);
