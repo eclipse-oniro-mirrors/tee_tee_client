@@ -45,7 +45,6 @@ namespace OHOS {
             return;
         }
 
-        // 1. 从随机数据流中拆出参数 i
         uint32_t i = 0;
         uint32_t byteMax = 0;
 
