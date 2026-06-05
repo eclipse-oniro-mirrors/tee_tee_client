@@ -20,6 +20,7 @@
 #include "tee_client_constants.h"
 #include "tee_client_type.h"
 #include "tee_client_inner_api.h"
+#include "fuzzer/FuzzedDataProvider.h"
 
 namespace OHOS {
     bool LibteecVendorInitializeContextFuzzTest(const uint8_t *data, size_t size)
@@ -56,7 +57,11 @@ namespace OHOS {
 
         memcpy_s(&i, sizeof(i), data, sizeof(uint32_t));
         memcpy_s(&byteMax, sizeof(byteMax), data + sizeof(uint32_t), sizeof(uint32_t));
-        bitMap = (uint8_t *)calloc(byteMax, sizeof(uint8_t));
+        uint32_t safeSize = (byteMax > 1024) ? 1024 : byteMax;
+        if (safeSize == 0) {
+            safeSize = 1;
+        }
+        bitMap = (uint8_t *)calloc(safeSize, sizeof(uint8_t));
         if (bitMap == nullptr) {
             return;
         }
@@ -85,34 +90,34 @@ namespace OHOS {
         uint32_t byteMax;
         memcpy_s(&byteMax, sizeof(byteMax), data, sizeof(uint32_t));
 
-        size_t remaining_size = size - sizeof(uint32_t);
+        size_t remainingSize = size - sizeof(uint32_t);
 
-        uint32_t safe_alloc_size = (byteMax > 1024) ? 1024 : byteMax;
-        if (safe_alloc_size == 0) {
-            safe_alloc_size = 1;
+        uint32_t safeSize = (byteMax > 1024) ? 1024 : byteMax;
+        if (safeSize == 0) {
+            safeSize = 1;
         }
 
-        uint8_t *bitMap = (uint8_t *)calloc(safe_alloc_size, sizeof(uint8_t));
+        uint8_t *bitMap = (uint8_t *)calloc(safeSize, sizeof(uint8_t));
         if (bitMap == nullptr) {
             return;
         }
 
-        size_t fill_size = (remaining_size > safe_alloc_size) ? safe_alloc_size : remaining_size;
+        size_t fill_size = (remainingSize > safeSize) ? safeSize : remainingSize;
         if (fill_size > 0) {
-            memcpy_s(bitMap, sizeof(bitMap), data + sizeof(uint32_t), fill_size);
+            memcpy_s(bitMap, safeSize, data + sizeof(uint32_t), fill_size);
         }
 
-        uint8_t *test_bit_map = (size % 10 == 0) ? nullptr : bitMap;
+        uint8_t *testMap = (size % 10 == 0) ? nullptr : bitMap;
 
-        int32_t index = GetAndSetBit(test_bit_map, byteMax);
-        index = GetAndCleartBit(test_bit_map, byteMax);
+        int32_t index = GetAndSetBit(testMap, byteMax);
+        index = GetAndCleartBit(testMap, byteMax);
         byteMax = 1;
         bitMap[0] = 0xff;
-        GetAndSetBit(test_bit_map, byteMax);
-        GetAndCleartBit(test_bit_map, byteMax);
+        GetAndSetBit(testMap, byteMax);
+        GetAndCleartBit(testMap, byteMax);
         free(bitMap);
         bitMap = nullptr;
-        test_bit_map = nullptr;
+        testMap = nullptr;
         return;
     }
 
@@ -134,10 +139,11 @@ namespace OHOS {
         ListInit(&context.session_list);
         ListInit(&context.shrd_mem_list);
 
-        memcpy_s(&session.session_id, sizeof(session.session_id), data, sizeof(uint32_t));
-        memcpy_s(&session.ops_cnt, sizeof(session.ops_cnt), data, sizeof(uint32_t));
-        memcpy_s(&shrMem.ops_cnt, sizeof(shrMem.ops_cnt), data, sizeof(uint32_t));
-        memcpy_s(&shmOffset, sizeof(shmOffset), data, sizeof(uint32_t));
+        FuzzedDataProvider provider(data, size);
+        session.session_id = provider.ConsumeIntegral<uint32_t>();
+        session.ops_cnt = provider.ConsumeIntegral<uint32_t>();
+        shrMem.ops_cnt = provider.ConsumeIntegral<uint32_t>();
+        shmOffset = provider.ConsumeIntegral<uint32_t>();
 
         GetBnSession(&session, &context);
         PutBnSession(&session);
