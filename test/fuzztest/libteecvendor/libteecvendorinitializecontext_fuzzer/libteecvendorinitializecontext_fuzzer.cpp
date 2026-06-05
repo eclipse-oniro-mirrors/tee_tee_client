@@ -102,9 +102,9 @@ namespace OHOS {
             return;
         }
 
-        size_t fill_size = (remainingSize > safeSize) ? safeSize : remainingSize;
-        if (fill_size > 0) {
-            memcpy_s(bitMap, safeSize, data + sizeof(uint32_t), fill_size);
+        size_t fillSize = (remainingSize > safeSize) ? safeSize : remainingSize;
+        if (fillSize > 0) {
+            memcpy_s(bitMap, safeSize, data + sizeof(uint32_t), fillSize);
         }
 
         uint8_t *testMap = (size % 10 == 0) ? nullptr : bitMap;
