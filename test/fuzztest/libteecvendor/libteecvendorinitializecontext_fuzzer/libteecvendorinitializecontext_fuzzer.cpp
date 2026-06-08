@@ -14,11 +14,14 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <string>
+#include "securec.h"
 #include "tee_client_api.h"
 #include "tee_client_constants.h"
 #include "tee_client_type.h"
 #include "tee_client_inner_api.h"
+#include "fuzzer/FuzzedDataProvider.h"
 
 namespace OHOS {
     bool LibteecVendorInitializeContextFuzzTest(const uint8_t *data, size_t size)
@@ -40,106 +43,113 @@ namespace OHOS {
 
     void SetBitFuzzTest_001(const uint8_t *data, size_t size)
     {
-        uint32_t i = 0, byteMax = 0;
-        uint8_t bitMap = 0;
+        if (size < sizeof(uint32_t) + sizeof(uint32_t)) {
+            return;
+        }
 
-        SetBit(i, byteMax, NULL);
+        // 1. 从随机数据流中拆出参数 i
+        uint32_t i = 0;
+        uint32_t byteMax = 0;
 
+        uint8_t *bitMap = nullptr;
+        SetBit(i, byteMax, bitMap);
+        CheckBit(i, byteMax, bitMap);
+        ClearBit(i, byteMax, bitMap);
+
+        memcpy_s(&i, sizeof(i), data, sizeof(uint32_t));
+        memcpy_s(&byteMax, sizeof(byteMax), data + sizeof(uint32_t), sizeof(uint32_t));
+        uint32_t safeSize = (byteMax > 1024) ? 1024 : byteMax;
+        if (safeSize == 0) {
+            safeSize = 1;
+        }
+        bitMap = (uint8_t *)calloc(safeSize, sizeof(uint8_t));
+        if (bitMap == nullptr) {
+            return;
+        }
+
+        SetBit(i, byteMax, bitMap);
+        CheckBit(i, byteMax, bitMap);
+        ClearBit(i, byteMax, bitMap);
+        CheckBit(i, byteMax, bitMap);
+
+        free(bitMap);
+        bitMap = nullptr;
+        i = 0;
         byteMax = 1;
-        SetBit(i, byteMax, NULL);
-
-        SetBit(i, byteMax, &bitMap);
-
-        (void)data;
-        (void)size;
-    }
-
-    void CheckBitFuzzTest_001(const uint8_t *data, size_t size)
-    {
-        uint32_t i = 0, byteMax = 0;
-        uint8_t bitMap = 0;
-
-        CheckBit(i, byteMax, NULL);
-
-        byteMax = 1;
-        CheckBit(i, byteMax, NULL);
-
-        CheckBit(i, byteMax, &bitMap);
-        (void)data;
-        (void)size;
-    }
-
-    void ClearBitFuzzTest_001(const uint8_t *data, size_t size)
-    {
-        uint32_t i = 0, byteMax = 0;
-        uint8_t bitMap = 0;
-
-        ClearBit(i, byteMax, NULL);
-
-        byteMax = 1;
-        ClearBit(i, byteMax, NULL);
-
-        ClearBit(i, byteMax, &bitMap);
-        (void)data;
-        (void)size;
+        SetBit(i, byteMax, bitMap);
+        CheckBit(i, byteMax, bitMap);
+        ClearBit(i, byteMax, bitMap);
+        CheckBit(i, byteMax, bitMap);
     }
 
     void GetAndSetBitFuzzTest_001(const uint8_t *data, size_t size)
     {
-        uint8_t bitMap[1] = { 0 };
-        uint32_t byteMax = 0;
+        if (size < sizeof(uint32_t)) {
+            return;
+        }
 
-        GetAndSetBit(NULL, byteMax);
+        uint32_t byteMax;
+        memcpy_s(&byteMax, sizeof(byteMax), data, sizeof(uint32_t));
 
+        size_t remainingSize = size - sizeof(uint32_t);
+
+        uint32_t safeSize = (byteMax > 1024) ? 1024 : byteMax;
+        if (safeSize == 0) {
+            safeSize = 1;
+        }
+
+        uint8_t *bitMap = (uint8_t *)calloc(safeSize, sizeof(uint8_t));
+        if (bitMap == nullptr) {
+            return;
+        }
+
+        size_t fillSize = (remainingSize > safeSize) ? safeSize : remainingSize;
+        if (fillSize > 0) {
+            memcpy_s(bitMap, safeSize, data + sizeof(uint32_t), fillSize);
+        }
+
+        uint8_t *testMap = (size % 10 == 0) ? nullptr : bitMap;
+
+        int32_t index = GetAndSetBit(testMap, byteMax);
+        index = GetAndCleartBit(testMap, byteMax);
         byteMax = 1;
-        GetAndSetBit(bitMap, byteMax);
-
         bitMap[0] = 0xff;
-        GetAndSetBit(bitMap, byteMax);
-        (void)data;
-        (void)size;
-    }
-
-    void GetAndCleartBitFuzzTest_001(const uint8_t *data, size_t size)
-    {
-        uint8_t bitMap[1] = { 0 };
-        uint32_t byteMax = 0;
-
-        GetAndCleartBit(NULL, byteMax);
-
-        byteMax = 1;
-        GetAndCleartBit(bitMap, byteMax);
-
-        bitMap[0] = 0xff;
-        GetAndCleartBit(bitMap, byteMax);
-        (void)data;
-        (void)size;
+        GetAndSetBit(testMap, byteMax);
+        GetAndCleartBit(testMap, byteMax);
+        free(bitMap);
+        bitMap = nullptr;
+        testMap = nullptr;
+        return;
     }
 
     void GetBnSessionFuzzTest_001(const uint8_t *data, size_t size)
     {
+        if (size < sizeof(uint32_t)) {
+            return;
+        }
+
         TEEC_Session session = { 0 };
         TEEC_ContextInner context = { 0 };
+        TEEC_SharedMemoryInner shrMem = { 0 };
+        uint32_t shmOffset = 0;
+        GetBnSession(nullptr, &context);
+        GetBnSession(&session, nullptr);
+        PutBnShrMem(nullptr);
+        GetBnShmByOffset(0, nullptr);
 
-        GetBnSession(NULL, &context);
-        GetBnSession(&session, NULL);
-        (void)data;
-        (void)size;
-    }
+        ListInit(&context.session_list);
+        ListInit(&context.shrd_mem_list);
 
-    void PutBnSessionTest_001(void)
-    {
-        PutBnSession(NULL);
-    }
+        FuzzedDataProvider provider(data, size);
+        session.session_id = provider.ConsumeIntegral<uint32_t>();
+        session.ops_cnt = provider.ConsumeIntegral<uint32_t>();
+        shrMem.ops_cnt = provider.ConsumeIntegral<uint32_t>();
+        shmOffset = provider.ConsumeIntegral<uint32_t>();
 
-    void PutBnShrMemTest_001(void)
-    {
-        PutBnShrMem(NULL);
-    }
-
-    void GetBnShmByOffsetTest_001(void)
-    {
-        GetBnShmByOffset(0, NULL);
+        GetBnSession(&session, &context);
+        PutBnSession(&session);
+        PutBnShrMem(&shrMem);
+        GetBnShmByOffset(shmOffset, &context);
     }
 }
 
@@ -149,14 +159,8 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     /* Run your code on data */
     OHOS::LibteecVendorInitializeContextFuzzTest(data, size);
     OHOS::SetBitFuzzTest_001(data, size);
-    OHOS::CheckBitFuzzTest_001(data, size);
-    OHOS::ClearBitFuzzTest_001(data, size);
     OHOS::GetAndSetBitFuzzTest_001(data, size);
-    OHOS::GetAndCleartBitFuzzTest_001(data, size);
     OHOS::GetBnSessionFuzzTest_001(data, size);
-    OHOS::PutBnSessionTest_001();
-    OHOS::PutBnShrMemTest_001();
-    OHOS::GetBnShmByOffsetTest_001();
 
     return 0;
 }
