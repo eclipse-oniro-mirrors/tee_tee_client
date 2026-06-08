@@ -16,6 +16,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <string>
+#include "securec.h"
 #include "tee_client_api.h"
 #include "tee_client_constants.h"
 #include "tee_client_type.h"
