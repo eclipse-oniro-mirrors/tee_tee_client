@@ -94,13 +94,21 @@ void *MiscWorkThread(void *control)
                 break;
         }
 
+#if defined(__x86_64__)
+        __asm__ volatile("" ::: "memory");
+#else
         __asm__ volatile("isb");
         __asm__ volatile("dsb sy");
+#endif
 
         transControl->magic = AGENT_MISC_ID;
 
+#if defined(__x86_64__)
+        __asm__ volatile("" ::: "memory");
+#else
         __asm__ volatile("isb");
         __asm__ volatile("dsb sy");
+#endif
 
         ret = ioctl(miscFd, (int)TC_NS_CLIENT_IOCTL_SEND_EVENT_RESPONSE, AGENT_MISC_ID);
         if (ret) {

@@ -358,13 +358,21 @@ void *SecfileLoadAgentThread(void *control)
         }
         SecLoadAgentWork(secAgentControl);
 
+#if defined(__x86_64__)
+        __asm__ volatile("" ::: "memory");
+#else
         __asm__ volatile("isb");
         __asm__ volatile("dsb sy");
+#endif
 
         secAgentControl->magic = SECFILE_LOAD_AGENT_ID;
 
+#if defined(__x86_64__)
+        __asm__ volatile("" ::: "memory");
+#else
         __asm__ volatile("isb");
         __asm__ volatile("dsb sy");
+#endif
         ret = ioctl(g_secLoadAgentFd, (int)TC_NS_CLIENT_IOCTL_SEND_EVENT_RESPONSE, SECFILE_LOAD_AGENT_ID);
         if (ret) {
             tloge("gtask agent send reponse failed\n");
