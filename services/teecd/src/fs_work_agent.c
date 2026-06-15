@@ -1502,18 +1502,14 @@ static int FsWorkEventHandle(struct SecStorageType *transControl, int32_t fsFd)
             transControl->cmd, (tsEnd - tsStart) / USEC_PER_MSEC);
     }
 
-#if defined(__x86_64__)
-    __asm__ volatile("" ::: "memory");
-#else
+#if !defined(__x86_64__)
     __asm__ volatile("isb");
     __asm__ volatile("dsb sy");
 #endif
 
     transControl->magic = AGENT_FS_ID;
 
-#if defined(__x86_64__)
-    __asm__ volatile("" ::: "memory");
-#else
+#if !defined(__x86_64__)
     __asm__ volatile("isb");
     __asm__ volatile("dsb sy");
 #endif

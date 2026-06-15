@@ -94,18 +94,14 @@ void *MiscWorkThread(void *control)
                 break;
         }
 
-#if defined(__x86_64__)
-        __asm__ volatile("" ::: "memory");
-#else
+#if !defined(__x86_64__)
         __asm__ volatile("isb");
         __asm__ volatile("dsb sy");
 #endif
 
         transControl->magic = AGENT_MISC_ID;
 
-#if defined(__x86_64__)
-        __asm__ volatile("" ::: "memory");
-#else
+#if !defined(__x86_64__)
         __asm__ volatile("isb");
         __asm__ volatile("dsb sy");
 #endif

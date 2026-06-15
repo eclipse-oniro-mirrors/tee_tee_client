@@ -358,18 +358,14 @@ void *SecfileLoadAgentThread(void *control)
         }
         SecLoadAgentWork(secAgentControl);
 
-#if defined(__x86_64__)
-        __asm__ volatile("" ::: "memory");
-#else
+#if !defined(__x86_64__)
         __asm__ volatile("isb");
         __asm__ volatile("dsb sy");
 #endif
 
         secAgentControl->magic = SECFILE_LOAD_AGENT_ID;
 
-#if defined(__x86_64__)
-        __asm__ volatile("" ::: "memory");
-#else
+#if !defined(__x86_64__)
         __asm__ volatile("isb");
         __asm__ volatile("dsb sy");
 #endif
