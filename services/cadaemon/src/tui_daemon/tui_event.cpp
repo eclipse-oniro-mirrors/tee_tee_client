@@ -529,7 +529,7 @@ bool TUIEvent::TUIGetPannelInfo()
 
     mTUIPanelInfo.deviceType = TuiGetDeviceType();
     mScreenRotation = static_cast<uint32_t>(displayInfo->GetDisplayOrientation());
-    if (mTUIPanelInfo.deviceType == TUI_DEVICE_2IN1) {
+    if (mTUIPanelInfo.deviceType == TUI_DEVICE_2IN1 && (!mTUIFoldable)) {
         if (mScreenRotation == 0) {
             mScreenRotation = TUI_ROTATE_270;
         } else {
@@ -745,6 +745,7 @@ void TUIDaemon::TuiRegisteDisplayListener()
         g_tuiDisplayListenerRegisted = true;
         tlogi("regist display listener done\n");
     } else {
+        g_tuiDisplayListenerRegisted = false;
         tloge("regist display listener failed\n");
     }
 }
@@ -773,6 +774,8 @@ TUIDaemon::~TUIDaemon()
 #endif
         mTUIDisplayListener_ = nullptr;
     }
+
+    g_tuiDisplayListenerRegisted = false;
 
     if (g_tuiCallBackRegisted) {
         OHOS::DelayedSingleton<OHOS::Telephony::CallManagerClient>::GetInstance()->UnRegisterCallBack();
