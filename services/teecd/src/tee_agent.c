@@ -99,10 +99,42 @@ static struct SecAgentControlType *g_secLoadAgentControl = NULL;
 
 static int g_fsThreadFlag = 0;
 
+#ifdef CONFIG_TEE_FS_BUFFER_DYNAMIC
+static unsigned int GetFsBufferSizeFromTee(void)
+{
+    int fd;
+    unsigned int bufferSize = 0;
+
+    fd = tee_open(TC_PRIVATE_DEV_NAME, O_RDWR, 0);
+    if (fd < 0) {
+        tloge("open tee private dev failed, fd is %" PUBLIC "d\n", fd);
+        return TRANS_BUFF_SIZE;
+    }
+
+    if (ioctl(fd, (int)TC_NS_CLIENT_IOCTL_GET_FS_BUFFER_SIZE, &bufferSize) != 0) {
+        tloge("get fs buffer size from tee failed, using default\n");
+        bufferSize = TRANS_BUFF_SIZE;
+    } else if (bufferSize < TRANS_BUFF_SIZE || bufferSize > FS_BUFFER_SIZE_MAX) {
+        tlogw("fs buffer size %u is out of range, using default\n", bufferSize);
+        bufferSize = TRANS_BUFF_SIZE;
+    }
+
+    tee_close(&fd);
+    tlogd("fs buffer size = %u (0x%x)\n", bufferSize, bufferSize);
+    return bufferSize;
+}
+#endif
+
 static int ProcessAgentInit(void)
 {
     int ret;
-    g_fsFd = AgentInit(AGENT_FS_ID, FS_TRANS_BUFF_SIZE, (void **)(&g_fsControl));
+
+#ifdef CONFIG_TEE_FS_BUFFER_DYNAMIC
+    unsigned int fsBufferSize = GetFsBufferSizeFromTee();
+#else
+    unsigned int fsBufferSize = TRANS_BUFF_SIZE;
+#endif
+    g_fsFd = AgentInit(AGENT_FS_ID, fsBufferSize, (void **)(&g_fsControl));
     if (g_fsFd < 0) {
         tloge("fs agent init failed\n");
         g_fsThreadFlag = 0;

@@ -17,9 +17,7 @@
 #define AGENT_MISC_ID 0x4d495343
 
 #define TRANS_BUFF_SIZE (4 * 1024) /* agent transfer share buffer size */
-#ifndef FS_TRANS_BUFF_SIZE
-#define FS_TRANS_BUFF_SIZE  TRANS_BUFF_SIZE /* fs agent transfer share buffer size */
-#endif
+#define FS_BUFFER_SIZE_MAX (16 * 1024) /* max fs agent buffer threshold */
 int GetMiscFd(void);
 int GetFsFd(void);
 void TrySyncSysTimeToSecure(void);
