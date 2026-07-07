@@ -41,7 +41,6 @@ ohos_executable("tlogcat") {
     "bounds_checking_function:libsec_shared",
     "c_utils:utils",
     "hilog:libhilog",
-    "hilog:libhilog",
-    "zlib:libz",
+    "zlib:shared_libz",
   ]
 }
