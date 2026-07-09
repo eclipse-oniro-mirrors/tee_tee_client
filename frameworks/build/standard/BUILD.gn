@@ -103,4 +103,6 @@ ohos_shared_library("libteec_vendor") {
     "-Wl,-z,separate-code",
   ]
   public_configs = [ ":exported_header_files" ]
+
+  branch_protector_ret = "pac_ret"
 }
