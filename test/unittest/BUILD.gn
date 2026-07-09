@@ -92,6 +92,7 @@ ohos_unittest("cadaemontest") {
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
     "hisysevent:libhisysevent",
+    "bounds_checking_function:libsec_shared",
   ]
   ldflags = [ "--coverage" ]
 }
@@ -121,6 +122,7 @@ ohos_unittest("teecvendortest") {
     "ipc:ipc_single",
     "safwk:system_ability_fwk",
     "hisysevent:libhisysevent",
+    "bounds_checking_function:libsec_shared",
   ]
   ldflags = [ "--coverage" ]
 }
