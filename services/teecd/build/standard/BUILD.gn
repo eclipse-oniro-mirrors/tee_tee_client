@@ -67,4 +67,6 @@ ohos_executable("teecd") {
     "c_utils:utils",
     "hilog:libhilog",
   ]
+
+  branch_protector_ret = "pac_ret"
 }

@@ -43,4 +43,6 @@ ohos_executable("tlogcat") {
     "hilog:libhilog",
     "zlib:shared_libz",
   ]
+
+  branch_protector_ret = "pac_ret"
 }
