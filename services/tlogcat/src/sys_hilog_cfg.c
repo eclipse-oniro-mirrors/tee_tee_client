@@ -37,6 +37,8 @@ void CloseTeeLog(void)
 #define LOG_DOMAIN_PLATDRV 0xD005BFE
 #define LOG_DOMAIN_UNKNOWN 0x5BFF
 
+#define TEE_LOG_LEVEL_INFO 2
+
 typedef struct LogDomain {
     uint32_t domain;
     char uuid[UUID_MAX_STR_LEN];
@@ -111,7 +113,18 @@ static uint32_t TeeGetTeeosOrPlatdrvLogDomain(uint8_t logSourceType, const char 
     return LOG_DOMAIN_TEEOS;
 }
 
-static void TeeHilogPrint(const struct LogItem *logItem, const char *logItemBuffer, bool isTa)
+static bool ShouldSkipLogPrint(uint32_t logDomain, uint8_t logLevel)
+{
+#ifndef WITH_ENG_VERSION
+    if (logDomain == LOG_DOMAIN_PLATDRV && logLevel == TEE_LOG_LEVEL_INFO) {
+        return true;
+    }
+#endif
+    // The ENG version does not skip private log printing
+    return false;
+}
+
+static void TeeHilogPrint(const struct LogItem *logItem, const char *logItemBuffer, bool isTa, bool *skipPrivLog)
 {
     uint8_t logLevel = logItem->logLevel;
     uint32_t hiLogLevel[TOTAL_LEVEL_NUMS] = {LOG_ERROR, LOG_WARN, LOG_INFO, LOG_DEBUG, LOG_DEBUG};
@@ -127,6 +140,11 @@ static void TeeHilogPrint(const struct LogItem *logItem, const char *logItemBuff
         log_domain = TeeGetTeeosOrPlatdrvLogDomain(logItem->logSourceType, logItemBuffer, logItem->logRealLen);
     }
 
+    if (ShouldSkipLogPrint(log_domain, logLevel)) {
+        *skipPrivLog = true;
+        return;
+    }
+
     JudgeLogTag(logItem, isTa, &logTag);
 
     if (logLevel < TOTAL_LEVEL_NUMS) {
@@ -139,9 +157,10 @@ static void TeeHilogPrint(const struct LogItem *logItem, const char *logItemBuff
         logItem->serialNo, logItemBuffer);
 }
 #else
-static void TeeHilogPrint(const struct LogItem *logItem, const char *logItemBuffer, bool isTa)
+static void TeeHilogPrint(const struct LogItem *logItem, const char *logItemBuffer, bool isTa, bool *skipPrivLog)
 {
     (void)isTa;
+    (void)skipPrivLog;
     switch (logItem->logLevel) {
         case LOG_LEVEL_ERROR:
             HILOG_ERROR(HILOG_MODULE_SEC, "[%s] index: %u: %s",
@@ -168,13 +187,13 @@ static void TeeHilogPrint(const struct LogItem *logItem, const char *logItemBuff
 }
 #endif
 
-void LogWriteSysLog(const struct LogItem *logItem, bool isTa)
+void LogWriteSysLog(const struct LogItem *logItem, bool isTa, bool *skipPrivLog)
 {
-    if (logItem == NULL || logItem->logRealLen <= 0) {
+    if (logItem == NULL || logItem->logRealLen <= 0 || skipPrivLog == NULL) {
         return;
     }
     if (memcpy_s(g_logItemBuffer, LOG_ITEM_MAX_LEN, logItem->logBuffer, logItem->logRealLen) == EOK) {
         g_logItemBuffer[logItem->logRealLen - 1] = '\0';
-        TeeHilogPrint(logItem, (const char*)g_logItemBuffer, isTa);
+        TeeHilogPrint(logItem, (const char*)g_logItemBuffer, isTa, skipPrivLog);
     }
 }
