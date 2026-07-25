@@ -934,10 +934,13 @@ static void WritePrivateLogFile(const struct LogItem *logItem, bool isTa)
 static void WriteLogFile(const struct LogItem *logItem)
 {
     bool isTa = IsTaUuid((struct TeeUuid *)logItem->uuid);
+    bool skipPrivLog = false;
 
-    LogWriteSysLog(logItem, isTa);
+    LogWriteSysLog(logItem, isTa, &skipPrivLog);
 #ifdef CONFIG_TEE_PRIVATE_LOGFILE
-    WritePrivateLogFile(logItem, isTa);
+    if (!skipPrivLog) {
+        WritePrivateLogFile(logItem, isTa);
+    }
 #endif
 }
 

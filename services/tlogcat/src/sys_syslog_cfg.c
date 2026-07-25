@@ -41,9 +41,10 @@ static void TeeSyslogPrint(const struct LogItem *logItem, const char *logItemBuf
     (void)syslog(LOG_USER | logLevel, "index: %u: %s", logItem->serialNo, logItemBuffer);
 }
 
-void LogWriteSysLog(const struct LogItem *logItem, bool isTa)
+void LogWriteSysLog(const struct LogItem *logItem, bool isTa, bool *skipPrivLog)
 {
     (void)isTa;
+    (void)skipPrivLog;
     if (logItem == NULL || logItem->logRealLen == 0) {
         return;
     }

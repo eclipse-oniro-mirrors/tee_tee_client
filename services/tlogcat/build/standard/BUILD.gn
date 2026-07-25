@@ -22,6 +22,10 @@ ohos_executable("tlogcat") {
     "ENABLE_FDSAN_CHECK",
   ]
 
+  if (build_variant == "root") {
+    defines += [ "WITH_ENG_VERSION" ]
+  }
+
   sources = [
     "../../../../frameworks/tee_file/tee_file.c",
     "../../src/proc_tag.c",

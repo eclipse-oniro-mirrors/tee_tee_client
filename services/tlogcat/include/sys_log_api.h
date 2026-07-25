@@ -17,6 +17,6 @@
 
 void OpenTeeLog(void);
 void CloseTeeLog(void);
-void LogWriteSysLog(const struct LogItem *logItem, bool isTa);
+void LogWriteSysLog(const struct LogItem *logItem, bool isTa, bool *skipPrivLog);
 
 #endif
