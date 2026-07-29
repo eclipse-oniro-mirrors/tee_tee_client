@@ -30,7 +30,7 @@ const std::u16string INTERFACE_TOKEN = u"ohos.tee_client.accessToken";
 int32_t CaDaemonStub::OnRemoteRequest(uint32_t code,
     MessageParcel& data, MessageParcel &reply, MessageOption &option)
 {
-    tlogi("CaDaemonStub::OnReceived, code = %" PUBLIC "u, flags= %" PUBLIC "d.", code, option.GetFlags());
+    tlogd("CaDaemonStub::OnReceived, code = %" PUBLIC "u, flags= %" PUBLIC "d.", code, option.GetFlags());
     int32_t result;
     (void)mallopt(M_SET_THREAD_CACHE, M_THREAD_CACHE_DISABLE);
     (void)mallopt(M_DELAYED_FREE, M_DELAYED_FREE_DISABLE);
