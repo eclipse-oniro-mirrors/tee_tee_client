@@ -76,7 +76,7 @@ int32_t TEEC_GetApp(const TaFileInfo *taFile, const TEEC_UUID *srvUuid, TC_NS_Cl
         }
 
         if (TEEC_ReadApp(taFile, (const char *)tempName, true, cliContext) != 0) {
-            tlogi("teec load app from feima path failed, try to load from old path\n");
+            tlogd("teec load app from feima path failed, try to load from old path\n");
             memset_s(tempName, sizeof(tempName), 0, sizeof(tempName));
             if (snprintf_s(tempName, sizeof(tempName), filePathLen, "%s/%s.sec", TEE_DEFAULT_PATH, fileName) < 0) {
                 return -1;
