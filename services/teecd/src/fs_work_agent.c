@@ -1488,6 +1488,22 @@ static int FsWorkEventHandle(struct SecStorageType *transControl, int32_t fsFd)
     }
 
     tlogv("fs agent wake up and working!!\n");
+    /*
+     * Guard against repeat/ghost wakeup.
+     * The TEE(fs) side resets magic to 0 before sending a new fs command, and
+     * this agent sets magic to AGENT_FS_ID after handling one. So, if magic is
+     * still AGENT_FS_ID right after WAIT_EVENT, this wakeup was not paired with
+     * a new fs command (e.g. a stale/duplicate wakeup caused by agent handshake
+     * races under concurrent CAs). Skip the handler to avoid re-processing the
+     * stale transControl (which could repeat e.g. open and exhaust FDs), while
+     * still sending a response to keep the WAIT/RESPONSE handshake consistent.
+     */
+    if (transControl->magic == AGENT_FS_ID) {
+        tlogw("fs agent: stale magic, skip handler to avoid duplicate exec, "
+            "cmd=0x%" PUBLIC "x\n", transControl->cmd);
+        goto send_response;
+    }
+
     tsStart = GetTimeStampUs();
 
     if ((transControl->cmd < SEC_MAX) && (g_fsWorkTbl[transControl->cmd].fn != NULL)) {
@@ -1513,7 +1529,7 @@ static int FsWorkEventHandle(struct SecStorageType *transControl, int32_t fsFd)
     __asm__ volatile("isb");
     __asm__ volatile("dsb sy");
 #endif
-
+send_response:
     ret = ioctl(fsFd, (int32_t)TC_NS_CLIENT_IOCTL_SEND_EVENT_RESPONSE, AGENT_FS_ID);
     if (ret != 0) {
         tloge("fs agent send reponse failed\n");
