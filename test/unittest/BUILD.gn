@@ -49,6 +49,7 @@ if (tee_client_features_tui) {
     external_deps = [
       "ability_base:want",
       "c_utils:utils",
+      "bounds_checking_function:libsec_shared",
       "call_manager:tel_call_manager_api",
       "googletest:gmock",
       "googletest:gtest_main",
@@ -165,6 +166,7 @@ ohos_unittest("authenticationtest") {
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
     "hisysevent:libhisysevent",
+    "bounds_checking_function:libsec_shared",
   ]
   ldflags = [ "--coverage" ]
 }
@@ -194,6 +196,7 @@ ohos_unittest("loadsecfiletest") {
     "googletest:gtest_main",
     "hilog:libhilog",
     "hisysevent:libhisysevent",
+    "bounds_checking_function:libsec_shared",
   ]
   ldflags = [ "--coverage" ]
 }
@@ -228,6 +231,7 @@ ohos_unittest("dlopenteectest") {
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
     "hisysevent:libhisysevent",
+    "bounds_checking_function:libsec_shared",
   ]
   ldflags = [ "--coverage" ]
 }
