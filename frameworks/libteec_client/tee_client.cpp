@@ -1261,7 +1261,7 @@ int32_t TeeClient::GetFileFd(const char *filePath)
     if (strncmp(realLoadFile, "/data/", sizeof("/data/") - 1) == 0 ||
         strncmp(realLoadFile, "/chip_prod/", sizeof("/chip_prod/") - 1) == 0 ||
         strncmp(realLoadFile, "/system/", sizeof("/system/") - 1) == 0) {
-        int fd = tee_open(realLoadFile, O_RDONLY, 0);
+        int fd = tee_open(realLoadFile, O_RDONLY | O_NOFOLLOW, 0);
         if (fd == -1) {
             tloge("open ta failed\n");
         }
@@ -1465,6 +1465,10 @@ TEEC_Result TeeClient::FreeShareMem(TEEC_SharedMemory *sharedMem)
     size_t index;
     bool findFlag = false;
 
+    if (sharedMem == nullptr) {
+        return TEEC_ERROR_BAD_PARAMETERS;
+    }
+
     lock_guard<mutex> autoLock(mSharMemLock);
     size_t count = mShareMem.size();
     for (index = 0; index < count; index++) {
@@ -1475,7 +1479,7 @@ TEEC_Result TeeClient::FreeShareMem(TEEC_SharedMemory *sharedMem)
     }
 
     if (findFlag) {
-        if ((sharedMem->buffer != nullptr) && (sharedMem->buffer != ZERO_SIZE_PTR) && (sharedMem->size != 0)) {
+        if ((sharedMem->buffer != nullptr) && (sharedMem->size != 0)) {
             int32_t ret = munmap(sharedMem->buffer, sharedMem->size);
             if (ret != 0) {
                 tloge("munmap share mem failed, ret=0x%" PUBLIC "x\n", ret);
