@@ -1261,7 +1261,7 @@ int32_t TeeClient::GetFileFd(const char *filePath)
     if (strncmp(realLoadFile, "/data/", sizeof("/data/") - 1) == 0 ||
         strncmp(realLoadFile, "/chip_prod/", sizeof("/chip_prod/") - 1) == 0 ||
         strncmp(realLoadFile, "/system/", sizeof("/system/") - 1) == 0) {
-        int fd = tee_open(realLoadFile, O_RDONLY  | O_NOFOLLOW, 0);
+        int fd = tee_open(realLoadFile, O_RDONLY | O_NOFOLLOW, 0);
         if (fd == -1) {
             tloge("open ta failed\n");
         }
