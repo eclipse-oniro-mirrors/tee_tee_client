@@ -91,6 +91,7 @@ if (component_type == "system") {
       part_name = "tee_client"
       subsystem_name = "tee"
       output_extension = "so"
+      version_script = "libcadaemon_tui.map"
       defines = []
 
       # hash_string is md5sum of tui ttf file
