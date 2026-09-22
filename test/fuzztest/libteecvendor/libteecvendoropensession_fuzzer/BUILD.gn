@@ -29,14 +29,27 @@ ohos_fuzztest("LibteecVendorOpenSessionFuzzTest") {
     "-Wno-unused-variable",
     "-fno-omit-frame-pointer",
   ]
-  sources = [ "libteecvendoropensession_fuzzer.cpp" ]
-
-  deps = [ "../../../../frameworks/build/standard:libteec_vendor" ]
+  defines = [
+    "LIB_TEEC_VENDOR",
+    "CONFIG_LOG_REPORT",
+  ]
+  sources = [
+    "libteecvendoropensession_fuzzer.cpp",
+    "../../../../frameworks/libteec_vendor/load_sec_file.c",
+    "../../../../frameworks/libteec_vendor/tee_client_api.c",
+    "../../../../frameworks/libteec_vendor/tee_client_app_load.c",
+    "../../../../frameworks/libteec_vendor/tee_client_socket.c",
+    "../../../../frameworks/tee_file/tee_file.c",
+    "../../../../services/authentication/tee_auth_common.c",
+    "../../../../services/authentication/tee_get_native_cert.c",
+  ]
 
   external_deps = [
     "c_utils:utils",
     "hilog:libhilog",
     "ipc:ipc_single",
     "safwk:system_ability_fwk",
+    "bounds_checking_function:libsec_shared",
+    "hisysevent:libhisysevent",
   ]
 }
