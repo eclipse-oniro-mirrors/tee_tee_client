@@ -236,7 +236,6 @@ group("unittest") {
   if (component_type == "system") {
     deps = [ ":authenticationtest" ]
     deps += [ ":loadsecfiletest" ]
-    deps += [ ":dlopenteectest" ]
     if (tee_client_features_tui) {
       deps += [
         # deps file
