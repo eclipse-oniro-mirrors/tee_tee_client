@@ -69,6 +69,8 @@ ohos_shared_library("libteec_vendor") {
 
   innerapi_tags = [ "chipsetsdk_sp" ]
 
+  version_script = "libteec_vendor.map"
+
   defines = [
     "LIB_TEEC_VENDOR",
     "CONFIG_LOG_REPORT",
