@@ -17,14 +17,39 @@ module_output_path = "tee_client/tee_client"
 ohos_fuzztest("LibteecVendorAllocateSharedMemoryFuzzTest") {
   module_out_path = module_output_path
   fuzz_config_file = "../libteecvendorallocatesharedmemory_fuzzer"
-  include_dirs = [ "../../../../interfaces/inner_api" ]
+  include_dirs = [
+    "../../../../interfaces/inner_api",
+    "../../../../frameworks/libteec_vendor",
+    "../../../../services/authentication",
+    "../../../../frameworks/include",
+    "../../../../frameworks/include/standard/teec_vendor",
+    "../../../../frameworks/include/standard/",
+  ]
   cflags = [
     "-g",
     "-O0",
     "-Wno-unused-variable",
     "-fno-omit-frame-pointer",
   ]
-  sources = [ "libteecvendorallocatesharedmemory_fuzzer.cpp" ]
+  defines = [
+    "LIB_TEEC_VENDOR",
+    "CONFIG_LOG_REPORT",
+  ]
+  sources = [
+    "libteecvendorallocatesharedmemory_fuzzer.cpp",
+    "../../../../frameworks/libteec_vendor/load_sec_file.c",
+    "../../../../frameworks/libteec_vendor/tee_client_api.c",
+    "../../../../frameworks/libteec_vendor/tee_client_app_load.c",
+    "../../../../frameworks/libteec_vendor/tee_client_socket.c",
+    "../../../../frameworks/tee_file/tee_file.c",
+    "../../../../services/authentication/tee_auth_common.c",
+    "../../../../services/authentication/tee_get_native_cert.c",
+  ]
 
-  deps = [ "../../../../frameworks/build/standard:libteec_vendor" ]
+  external_deps = [
+    "c_utils:utils",
+    "hilog:libhilog",
+    "hisysevent:libhisysevent",
+    "bounds_checking_function:libsec_shared",
+  ]
 }
