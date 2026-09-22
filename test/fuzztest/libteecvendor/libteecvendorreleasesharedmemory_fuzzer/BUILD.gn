@@ -22,6 +22,7 @@ ohos_fuzztest("LibteecVendorReleaseSharedMemoryFuzzTest") {
     "../../../../frameworks/libteec_vendor",
     "../../../../services/authentication",
     "../../../../frameworks/include",
+    "../../../../frameworks/include/standard/",
   ]
   cflags = [
     "-g",
