@@ -114,12 +114,10 @@ ohos_unittest("teecvendortest") {
     "../../services/authentication/",
     "../../frameworks/libteec_vendor/",
     "../../frameworks/libteec_client/",
+    "../../frameworks/include/standard/teec_vendor",
   ]
 
-  defines = [
-    "LIB_TEEC_VENDOR",
-    "CONFIG_LOG_REPORT",
-  ]
+  defines = [ "LIB_TEEC_VENDOR" ]
 
   sources = [
     "teecvendortest.cpp",
@@ -202,13 +200,10 @@ ohos_unittest("loadsecfiletest") {
     "../../services/authentication/",
     "../../frameworks/libteec_vendor/",
     "../../frameworks/libteec_client/",
-    "../../frameworks/include/standard/teec_system",
+    "../../frameworks/include/standard/teec_vendor",
   ]
 
-  defines = [
-    "LIB_TEEC_VENDOR",
-    "CONFIG_LOG_REPORT",
-  ]
+  defines = [ "LIB_TEEC_VENDOR" ]
 
   sources = [
     "loadsecfiletest.cpp",
@@ -236,11 +231,11 @@ group("unittest") {
   if (component_type == "system") {
     deps = [ ":authenticationtest" ]
     deps += [ ":loadsecfiletest" ]
+    deps += [ ":cadaemontest" ]
+    deps += [ ":teecvendortest" ]
     if (tee_client_features_tui) {
       deps += [
         # deps file
-        ":cadaemontest",
-        ":teecvendortest",
         ":tuidaemontest",
       ]
     }
