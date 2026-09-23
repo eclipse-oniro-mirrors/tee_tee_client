@@ -230,7 +230,6 @@ group("unittest") {
   testonly = true
   if (component_type == "system") {
     deps = [ ":authenticationtest" ]
-    deps = [ ":authenticationtest" ]
     deps += [ ":loadsecfiletest" ]
     if (tee_client_features_tui) {
       deps += [
