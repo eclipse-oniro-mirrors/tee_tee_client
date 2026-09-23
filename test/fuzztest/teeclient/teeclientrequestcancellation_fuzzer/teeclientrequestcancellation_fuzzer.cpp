@@ -36,7 +36,6 @@ namespace OHOS {
         (void)size;
         TEEC_Operation operation = { 0 };
 
-        GetBnShmByOffset(0, nullptr);
         TEEC_RequestCancellation(nullptr);
 
         operation.session = nullptr;
