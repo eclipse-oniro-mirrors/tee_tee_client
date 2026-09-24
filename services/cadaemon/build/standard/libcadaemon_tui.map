@@ -18,6 +18,13 @@
         _ZGVN4OHOS16DelayedSingletonINS_9Telephony17CallManagerClientEE9instance_E;
         _ZGVN4OS16DelayedSingletonINS_9Telephony17CallManagerClientEE6mutex_E;
 
+        extern "C++" {
+            vtable?for?TUIDisplayListener;
+            vtable?for?TUICallManagerCallback;
+            VTT?for?TUIDisplayListener;
+            construction?vtable?for?OHOS::*;
+        };
+
     local:
         *;
 };
