@@ -1,0 +1,30 @@
+# Copyright (C) 2026 Huawei Technologies Co., Ltd.
+
+{
+    global:
+        # dlopen + dlsym entries used by libcadaemon.z.so
+        TeeTuiDaemonWork;
+        TeeTuiIsFoldable;
+
+        # cfi_cross_dso runtime entry
+        __cfi_check;
+
+        _init;
+        _fini;
+
+        # cross-DSO template singleton members
+        _ZN4OHOS16DelayedSingletonINS_9Telephony17CallManagerClientEE9instance_E;
+        _ZN4OHOS16DelayedSingletonINS_9Telephony17CallManagerClientEE6mutex_E;
+        _ZGVN4OHOS16DelayedSingletonINS_9Telephony17CallManagerClientEE9instance_E;
+        _ZGVN4OS16DelayedSingletonINS_9Telephony17CallManagerClientEE6mutex_E;
+
+        extern "C++" {
+            vtable?for?TUIDisplayListener;
+            vtable?for?TUICallManagerCallback;
+            VTT?for?TUIDisplayListener;
+            construction?vtable?for?OHOS::*;
+        };
+
+    local:
+        *;
+};
