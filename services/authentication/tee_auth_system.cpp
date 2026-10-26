@@ -14,7 +14,8 @@
 #include "tee_auth_common.h"
 #include "tee_log.h"
 #include "accesstoken_kit.h"
-#include "openssl/evp.h"
+#include "bsl_base64.h"
+#include "bsl_errno.h"
 #include <securec.h>
 #include <cstring>
 #include "ipc_skeleton.h"
@@ -39,40 +40,32 @@ static int32_t Base64Decode(string& encodedStr, unsigned char *decodedStr, uint3
 {
     size_t encodedLen = encodedStr.length();
     if (encodedLen == 0 || encodedLen % BASE_NUM_FOUR != 0) {
-        tloge("invaild based64 string, size %" PUBLIC "zu\n", encodedLen);
+        tloge("invalid base64 string, size %" PUBLIC "zu\n", encodedLen);
+        return -1;
+    }
+
+    if (encodedLen > UINT32_MAX) {
+        tloge("base64 string too long, size %" PUBLIC "zu\n", encodedLen);
         return -1;
     }
     if (*decodedLen < ((encodedLen / BASE_NUM_FOUR) * BASE_NUM_THREE)) {
-        tloge("decode string len too short, %" PUBLIC "zu, %" PUBLIC "u\n", encodedLen, (unsigned int)*decodedLen);
+        tloge("decode string len too short, %" PUBLIC "zu, %" PUBLIC "u\n",
+            encodedLen, (unsigned int)*decodedLen);
         return -1;
     }
 
-    int32_t ret = EVP_DecodeBlock(decodedStr, (const unsigned char*)encodedStr.c_str(), (int)encodedLen);
-    if (ret < 0) {
-        tloge("EVP DecodeBlock failed, ret %" PUBLIC "d\n", ret);
+    uint32_t outLen = *decodedLen;
+    int32_t ret = BSL_BASE64_Decode(encodedStr.c_str(), (uint32_t)encodedLen, decodedStr, &outLen);
+    if (ret != BSL_SUCCESS) {
+        tloge("BSL_BASE64_Decode failed, ret %" PUBLIC "d\n", ret);
+        return -1;
+    }
+    if (outLen == 0) {
+        tloge("base64 decoded failed, decoded len 0\n");
         return -1;
     }
 
-    uint32_t padLen = 0;
-    for (uint32_t i = 1; i <= BASE_NUM_FOUR; i++) {
-        if (encodedStr.at(encodedLen - i) == '=') {
-            padLen++;
-        } else {
-            break;
-        }
-    }
-
-    if (padLen > MAX_BASE64_PADDING_LEN) {
-        tloge("invaild base64 padding len, %" PUBLIC "u\n", padLen);
-        return -1;
-    }
-
-    if (ret == 0 || ret <= static_cast<int32_t>(padLen)) {
-        tloge("base64 decoded failed, decoded len %" PUBLIC "u, pad len %" PUBLIC "u\n", ret, padLen);
-        return -1;
-    }
-
-    *decodedLen = ret - padLen;
+    *decodedLen = outLen;
     return 0;
 }
 
