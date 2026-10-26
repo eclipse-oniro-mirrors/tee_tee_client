@@ -36,7 +36,7 @@
         "device_manager",
         "bounds_checking_function",
         "zlib",
-        "openssl",
+        "openhitls",
         "bundle_framework",
         "hisysevent",
         "init"

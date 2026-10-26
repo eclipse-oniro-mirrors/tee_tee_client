@@ -177,7 +177,7 @@ ohos_unittest("authenticationtest") {
     "googletest:gtest_main",
     "hilog:libhilog",
     "ipc:ipc_single",
-    "openssl:libcrypto_shared",
+    "openhitls:openhitls_bsl",
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
     "hisysevent:libhisysevent",
