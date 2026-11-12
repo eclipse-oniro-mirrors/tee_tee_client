@@ -251,10 +251,16 @@ static int32_t TEEC_ReadApp(const TaFileInfo *taFile, const char *loadFile, bool
         return retBuildInTa;
     }
 
-    /* open image file */
-    fpTmp = fopen(realLoadFile, "r");
-    if (fpTmp == NULL) {
+    fd = open(realLoadFile, O_RDONLY | O_NOFOLLOW, 0);
+    if (fd < 0) {
         tloge("open file error%" PUBLIC "d\n", errno);
+        return -1;
+    }
+    /* open image file */
+    fpTmp = fdopen(fd, "r");
+    if (fpTmp == NULL) {
+        tloge("open fdfile error%" PUBLIC "d\n", errno);
+        close(fd);
         return -1;
     }
     fp = fpTmp;
@@ -278,6 +284,7 @@ int32_t TEEC_LoadSecfile(const char *filePath, int tzFd, FILE *fp)
     FILE *fpUsable              = NULL;
     bool checkValue             = (tzFd < 0 || filePath == NULL);
     FILE *fpCur                 = NULL;
+    int fd = -1;
 
     if (checkValue) {
         tloge("Param err!\n");
@@ -285,11 +292,21 @@ int32_t TEEC_LoadSecfile(const char *filePath, int tzFd, FILE *fp)
     }
     if (fp == NULL) {
         char realPath[PATH_MAX + 1] = { 0 };
-        if (realpath(filePath, realPath) != NULL) {
-            fpCur = fopen(realPath, "r");
+        if (realpath(filePath, realPath) == NULL) {
+            tloge("realpath erro%" PUBLIC "d, path=%" PUBLIC "s\n", errno, filePath);
+            return -1;
         }
+
+        fd = open(realPath, O_RDONLY | O_NOFOLLOW, 0);
+        if (fd < 0) {
+            tloge("open file erro%" PUBLIC "d, path=%" PUBLIC "s\n", errno, filePath);
+            return -1;
+        }
+
+        fpCur = fdopen(fd, "r");
         if (fpCur == NULL) {
             tloge("realpath open file erro%" PUBLIC "d, path=%" PUBLIC "s\n", errno, filePath);
+            close(fd);
             return -1;
         }
         fpUsable = fpCur;
