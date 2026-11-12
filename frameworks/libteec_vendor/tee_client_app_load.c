@@ -233,6 +233,7 @@ static int32_t TEEC_ReadApp(const TaFileInfo *taFile, const char *loadFile, bool
     FILE *fp                        = NULL;
     FILE *fpTmp                     = NULL;
     char realLoadFile[PATH_MAX + 1] = { 0 };
+    int32_t fd = -1;
 
     if (taFile->taFp != NULL) {
         fp = taFile->taFp;
