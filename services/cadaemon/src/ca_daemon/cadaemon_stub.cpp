@@ -254,6 +254,10 @@ static bool GetOperationFromData(MessageParcel &data, TEEC_Operation *operation,
             operation->params[paramCnt].tmpref.buffer = nullptr;
         } else if (IS_PARTIAL_MEM(paramType[paramCnt])) {
             operation->params[paramCnt].memref.parent = nullptr;
+        } else if (IS_VALUE_MEM(paramType[paramCnt])) {
+            /*  if type is value, ignore it */
+        } else if (paramType[paramCnt] == TEEC_NONE) {
+            /*  if type is none, ignore it */
         } else if (paramType[paramCnt] == TEEC_ION_INPUT) {
             operation->params[paramCnt].ionref.ion_share_fd = data.ReadFileDescriptor();
             if (operation->params[paramCnt].ionref.ion_share_fd < 0) {
@@ -261,6 +265,10 @@ static bool GetOperationFromData(MessageParcel &data, TEEC_Operation *operation,
                 CloseDupIonFd(operation);
                 return false;
             }
+        } else {
+            tloge("param %" PUBLIC "u is invalid type %" PUBLIC "u\n", paramCnt, paramType[paramCnt]);
+            CloseDupIonFd(operation);
+            return false;
         }
     }
     return true;
