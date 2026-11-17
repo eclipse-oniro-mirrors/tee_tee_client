@@ -846,11 +846,15 @@ TEEC_Result CaDaemonService::OpenSession(TEEC_Context *context, const char *taPa
 
     ret = GetTeecOptMem(operation, optMemSize, optMem, &paraDecode);
     if (ret != TEEC_SUCCESS) {
+        PutAllocShrMem(paraDecode.shmInner, TEEC_PARAM_NUM);
+        PutBnContextAndReleaseFd(identity.pid, outContext); /* pairs with CallGetBnContext */
         goto ERROR;
     }
 
     if (AddTidData(&tidData, identity.pid) != TEEC_SUCCESS) {
         ret = TEEC_FAIL;
+        PutAllocShrMem(paraDecode.shmInner, TEEC_PARAM_NUM);
+        PutBnContextAndReleaseFd(identity.pid, outContext); /* pairs with CallGetBnContext */
         goto ERROR;
     }
 
