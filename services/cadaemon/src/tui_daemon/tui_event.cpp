@@ -410,7 +410,8 @@ enum TUIPhyScreen TUIEvent::TUIGetPhyScreen(std::string screenType, uint32_t fol
     if (screenType == "8") {
         tlogi("trifold V2.\n");
         if (foldState == FOLD_STATE_EXPAND_WITH_SECOND_HALF_FOLDED ||
-            foldState == FOLD_STATE_HALF_FOLDED_WITH_SECOND_EXPAND) {
+            foldState == FOLD_STATE_HALF_FOLDED_WITH_SECOND_EXPAND ||
+            foldState == FOLD_STATE_FOLDED_WITH_SECOND_EXPAND) {
             return TUI_SCREEN_1;
         }
 
